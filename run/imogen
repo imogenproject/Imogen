@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# --- Check for input file argument --- #
+if [ -z "${1}" ]; then
+  echo ">>> ERROR: No run file specified. Aborting script."
+  exit 1
+fi
+
+# --- Determine user name --- #
+myName=`whoami`
+
+# --- Determine stream output --- #
+stream=${2}
+if [ -z "$2" ]; then
+  stream="1"
+fi
+redirectStr="${HOME}/Results/logfile${stream}.out"
+
+# --- Determine Alias String --- #
+alias=${3}
+if [ -z "$3" ]; then
+  alias=""
+fi
+
+# --- Test for results directory --- #
+resDir="${HOME}/Results"
+if [ -d $resDir ]; then
+  activeResDir=$resDir
+else
+  mkdir "${HOME}/Results/"
+  echo ">>> WARNING: No Results directory found. One has been created."
+fi
+
+# --- Execute Imogen --- #
+ echo "imogenLoad('${1}','${redirectStr}','${alias}');" | nohup nice matlab -nodisplay -nojvm >& $redirectStr
