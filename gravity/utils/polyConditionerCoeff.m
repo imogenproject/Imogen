@@ -35,7 +35,7 @@ else
 end
 
 %--- Initiate search ---%
-%        Sample the condition at X. In parallel compute forward derivatives for every dimension.
+%        Sample the condition at X. In parallel, compute forward derivatives for every dimension.
 %        Attempt to descend gradient towards minimal condition number.
 %        Print some progress info so people don't give up in utter hopeless despair.
 

@@ -20,11 +20,13 @@ while (max(gridred - fix(gridred)) < 1e-8) && (min(gridred) >= 3)
     nQuantLevels = nQuantLevels+1;
 end
 
+nQuantlevels = nQuantLevels - 2;
+
 mass         = cell(nQuantLevels, 1); % Contains an Nx by Ny by Nz array
 pos          = cell(nQuantLevels, 1); % Contains a 3 by Nx by Ny by Nz array
 
 %--- A note about which end the finest value is kept at ---%
-%        At some point we end up counting both ways so it doesn't really matter.
+%        At some point we end up counting both ways so it doesn't really matter as long as we're consistent.
 
 %--- Get top-level positions ---%
 %        If we get top-level positions, use them and multiply by the differential volume. If not,

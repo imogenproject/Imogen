@@ -1,4 +1,4 @@
-function massGrav = calculateGravityEdge_GPU(mass, dGrid, mirrorZ, bcsrc)
+function massGrav = calculateGravityEdge_GPU(mass, dGrid, mirrorZ)
 % Generates the right hand side for an iterative solver, consisting of both mass density (scaled by
 % 4 pi G) and subtracting off potential at the boundaries (with scalings determined by the
 % Laplacian stencil being used).
@@ -8,30 +8,26 @@ function massGrav = calculateGravityEdge_GPU(mass, dGrid, mirrorZ, bcsrc)
 %<< massGrav  Rho + the boundary conditions, converted into an Nx1 vector      double
 
 %--- Step 1: Calculate potential at boundaries ---%
-grid = mass.gridSize;
+grid = size(mass);
+if numel(grid) == 2; grid(3) = 1; end
 N = grid+2;
 cellmeanrad = sqrt(dGrid{1}^2 + dGrid{2}^2 + dGrid{3}^2)/sqrt(3);
 
-[rhos poss] = massQuantization_GPU(mass.array, dGrid);
-
-%--- Select boundary condition source ---%
-%if strcmp(bcsrc, ENUM.GRAV_BCSOURCE_FULL);   bcfinder = @mg_bc_matlab; end
-%if strcmp(bcsrc, ENUM.GRAV_BCSOURCE_INTERP); bcfinder = @interpolateBvec; end;
-bcfinder = @mg_bc_gpumat;
+[rhos poss] = massQuantization_GPU(mass, dGrid);
 
 %--- Compute potential across 6 outer faces ---%
 %        bvec = [-x -y -z +x +y +z nx-1 ny-1 nz-1]
 %        Passing a simple array of cells to examine is better and could be done with a single call.
-
 Xmin = -.5 * dGrid{1};
 Xmax = (grid(1) + .5)*dGrid{1};
 Ymin = -.5 * dGrid{2};
 Ymax = (grid(2) + .5)*dGrid{2};
 Zmin = -.5 * dGrid{3};
 Zmax = (grid(3) + .5)*dGrid{3};
-Nx = grid(1)+1;
-Ny = grid(2)+1;
-Nz = grid(3)+1;
+H = [dGrid{1} dGrid{2} dGrid{3}];
+Nx = grid(1)+2;
+Ny = grid(2)+2;
+Nz = grid(3)+2;
 
 if mirrorZ == false
     bvectorSet = cell([6 1]);
@@ -39,30 +35,34 @@ else
     bvectorSet = cell([12 1]);
 end
 
-%--- Faces of constant X ---%
-bvectorSet{1} = [Xmin Ymin Zmin Xmin Ymax Zmax 0 Ny Nz];
-bvectorSet{2} = [Xmax Ymin Zmin Xmax Ymax Zmax 0 Ny Nz];
+bvectorSet{1} = [Xmin Ymin Zmin 0 H(2) 0 0 0 H(3) Ny Nz];
+bvectorSet{2} = [Xmax Ymin Zmin 0 H(2) 0 0 0 H(3) Ny Nz];
 if mirrorZ == true
-    bvectorSet{7} = [Xmin Ymin -Zmax Xmin Ymax -Zmin 0 Ny Nz];
-    bvectorSet{8} = [Xmax Ymin -Zmax Xmax Ymax -Zmin 0 Ny Nz];
+    bvectorSet{7} = [Xmin Ymin -Zmin 0 H(2) 0 0 0 -H(3) Ny Nz];
+    bvectorSet{8} = [Xmax Ymin -Zmin 0 H(2) 0 0 0 -H(2) Ny Nz];
 end
 
 %--- Faces of constant Y
-bvectorSet{3} = [Xmin Ymin Zmin Xmax Ymin Zmax Nx 0 Nz];
-bvectorSet{4} = [Xmin Ymax Zmin Xmax Ymax Zmax Nx 0 Nz];
+bvectorSet{3} = [Xmin Ymin Zmin H(1) 0 0 0 0 H(3) Nx Nz];
+bvectorSet{4} = [Xmin Ymax Zmin H(1) 0 0 0 0 H(3) Nx Nz];
 if mirrorZ == true
-    bvectorSet{9}  = [Xmin Ymin -Zmax Xmax Ymin -Zmin Nx 0 Nz];
-    bvectorSet{10} = [Xmin Ymax -Zmax Xmax Ymax -Zmin Nx 0 Nz];
+    bvectorSet{9}  = [Xmin Ymin -Zmin H(1) 0 0 0 0 -H(3) Nx Nz];
+    bvectorSet{10} = [Xmin Ymax -Zmin H(1) 0 0 0 0 -H(3) Nx Nz];
 end
 
-bvectorSet{5} = [Xmin Ymin Zmin Xmax Ymax Zmin Nx Ny 0];
-bvectorSet{6} = [Xmin Ymin Zmax Xmax Ymax Zmax Nx Ny 0];
+bvectorSet{5} = [Xmin Ymin Zmin H(1) 0 0 0 H(2) 0 Nx Ny];
+bvectorSet{6} = [Xmin Ymin Zmax H(1) 0 0 0 H(2) 0 Nx Ny];
 if mirrorZ == true
-    bvectorSet{11} = [Xmin Ymin -Zmin Xmax Ymax -Zmin Nx Ny 0];
-    bvectorSet{12} = [Xmin Ymin -Zmax Xmax Ymax -Zmax Nx Ny 0];
+    bvectorSet{11} = [Xmin Ymin -Zmin H(1) 0 0 0 H(2) 0 Nx Ny];
+    bvectorSet{12} = [Xmin Ymin -Zmax H(1) 0 0 0 H(2) 0 Nx Ny];
 end
 
-phiSet = bcfinder(rhos, poss, bvectorSet, cellmeanrad, dGrid{1});
+phiSet = cell(size(bvectorSet));
+for x = 1:numel(phiSet)
+  %  x
+    phiSet{x} = zeros(bvectorSet{x}(10:11), GPUdouble);
+    integralPoisson_mg(rhos, poss, phiSet{x}, bvectorSet{x}, cellmeanrad, dGrid{1});
+end
 
 if mirrorZ == false;
     lowerYZ = squeeze(phiSet{1});
@@ -96,22 +96,23 @@ upperXY(:,1) = 0; upperXY(:, N(2)) = 0;
 %--- 2. Apply to truncated parts of Laplacian stencil ---%
 Nm = N - 1;
 Nmm = Nm - 1;
-massGrav = zeros(grid,GPUdouble);
 
-%--- Various gravity stencils; Only HOC6 is likely to be used ---%
+%--- 2D stencils for subtracting edges off RHS ---%
 %        For HOC6
 %shifts = [0 0; 1 0; -1 0; 0 1; 0 -1; 1 1; 1 -1; -1 1; -1 -1];
-%preFactors = [14, 3, 3, 3, 3, 1, 1, 1, 1];
+%preFactors = [14, 3, 3, 3, 3, 1, 1, 1, 1] / (-30*dGrid{1}^2;
 
 %        For HOC4
 shifts = [0 0; 1 0; -1 0; 0 1; 0 -1; 1 1; 1 -1; -1 1; -1 -1];
-preFactors = [2, 1, 1, 1, 1, 0, 0, 0, 0];
+preFactors = [2, 1, 1, 1, 1, 0, 0, 0, 0] / (-6*dGrid{1}^2);
 
 %        Standard 7-point
 %shifts = [0 0; 1 0; -1 0; 0 1; 0 -1; 1 1; 1 -1; -1 1; -1 -1];
-%preFactors = [1, 0, 0, 0, 0, 0, 0, 0, 0];
+%preFactors = [1, 0, 0, 0, 0, 0, 0, 0, 0] / (-dGrid{1}^2);
 
-%tic;
+massGrav = GPUdouble(); setReal(massGrav); setSize(massGrav, grid); GPUallocVector(massGrav);
+symmetricLinearOperator(GPUdouble(mass), massGrav, 4*pi*[.5 1/12 0 0]);
+
 for i=1:5
     bcVals = circshift(lowerYZ,shifts(i,:)); 
     massGrav(1,:,:) = squeeze(massGrav(1,:,:)) + preFactors(i) * bcVals(2:Nm(2),2:Nm(3));
@@ -129,21 +130,8 @@ for i=1:5
     massGrav(:,:,Nmm(3)) = squeeze(massGrav(:,:,Nmm(3))) + preFactors(i) * bcVals(2:Nm(1),2:Nm(2));
 end
 
-rhsForce = .5*mass.array + (circ_shift(mass.array,1,1) + circ_shift(mass.array,1,-1) ...
-                          +  circ_shift(mass.array,2,1) + circ_shift(mass.array,2,-1) ...
-                          +  circ_shift(mass.array,3,1) + circ_shift(mass.array,3,-1))/12;
-
-rhsForce(1,:,:) = rhsForce(1,:,:) - mass.array(end,:,:)/12;
-rhsForce(end,:,:) = rhsForce(end,:,:) - mass.array(1,:,:)/12;
-
-rhsForce(:,1,:) = rhsForce(:,1,:) - mass.array(:,end,:)/12;
-rhsForce(:,end,:) = rhsForce(:,end,:) - mass.array(:,1,:)/12;
-
-rhsForce(:,:,1) = rhsForce(:,:,1) - mass.array(:,:,end)/12;
-rhsForce(:,:,end) = rhsForce(:,:,end) - mass.array(:,:,1)/12;
-
 %--- 3. Add mass density and reshape into vector to complete right hand side ---%
-massGrav = reshape(-massGrav/(6*dGrid{1}^2) + 4*pi*GPUdouble(rhsForce), [prod(grid) 1]);
+massGrav = reshape(massGrav, [prod(grid) 1]);
 
 end
 

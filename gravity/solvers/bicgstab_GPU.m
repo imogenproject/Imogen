@@ -1,3 +1,6 @@
+% THIS IS Mathwork's bicgstab file, modified to work on the GPU.
+
+
 function [x,flag,relres,iter,resvec] = bicgstab_GPU(A,b,tol,maxit,x0,varargin)
 %BICGSTAB   BiConjugate Gradients Stabilized Method.
 %   X = BICGSTAB(A,B) attempts to solve the system of linear equations

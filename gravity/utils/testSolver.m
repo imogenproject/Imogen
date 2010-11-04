@@ -3,14 +3,16 @@ run.time.iteration = 0;
 run.DGRID={1,1,1};
 run.gravity.bconditionSource='full';
 run.gravity.tolerance = 1e-14;
-run.gravity.iterMax = 150;
+run.gravity.iterMax = 250;
 run.gravity.constant = 1;
 run.gravity.info='eh';
 run.gravity.mirrorZ = 0;
 
-R = [4 8 16 32 64 96 128 192 256];
+%R = [3];
+R = [16 32 64];
 enorm = zeros(size(R));
 
+%a=7;
 for a = 1:numel(R);
     u = R(a);
 
@@ -28,7 +30,7 @@ for a = 1:numel(R);
 
     run.DGRID={2/u,2/u,2/u};
 
-    phi = double(bicgstabPotentialSolver_GPU(run, mass, zeros(size(mass.array))));
+    phi = double(bicgstabPotentialSolver_GPU(run, mass));
 
     ALPHA=2*pi/3; BETA=-ALPHA; GAMMA=pi/5;
 
@@ -38,8 +40,7 @@ for a = 1:numel(R);
     errormat = phi - phiAnalytic;
     errormat(isnan(errormat)) = 0; % Avoid any singularities
     errormat(isinf(errormat)) = 0;
-    errormat = errormat.^2;
 
-    enorm(a) = sqrt(sum(errormat(:))/numel(mass.array));
+    enorm(a) = sqrt(sum(errormat(:).^2)/numel(mass.array));
 end
 

@@ -1,0 +1,35 @@
+###################################################################################################
+#                           IMOGEN GRAVITY SOLVER BINARY MODULES README                           #
+###################################################################################################
+
+The Imogen MHD code supports Newtonian self gravity using either a universally supported CPU solver
+or a much faster GPU-based solver for CUDA devices with double-precision support. To use the GPU
+solver, it is necessary to compile a small number of binary modules that let Imogen interact with
+the GPU.
+
+Before you compile them, you must open the Makefile in this directory and provide correct values
+for the variables at the top. Then simply entering 'make' will build binary modules appropriate for
+your system architecture.
+
+###################################################################################################
+
+Using the GPU gravity solver imposes significant restrictions on the simulation domains that are
+permissible:
+
+The number of steps in all 3 directions must be an even multiple of 8.
+The number of steps in all 3 directions should have many 2s in its factorization.
+
+Failure to obey the first restriction will result in segfaults.
+Failure to obey the second will severely slow the boundary condition solver.
+
+###################################################################################################
+
+To utilize the GPU gravity solver:
+
+Start Matlab
+Go to the GPUmat directory and run GPUstart
+Begin the run from within Matlab
+
+Matlab can't activate GPUmat on its own at the present time. :(
+
+
