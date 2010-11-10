@@ -18,17 +18,17 @@ function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize)
     end
     
     % Recursively coarsen in order to propagate low-mode data faster
-    if prod(gridsize) > 64^3 % If we > 64^3 on a side
-        mprime = interpolateGPUvar(GPUdouble(mass), -4);
-        if run.time.iteration < 4; fprintf('Recursing to lower resolution...\n'); end
-        philo = GPUdouble(bicgstabPotentialSolver_GPU(run, mprime, gridsize / 4));
-
-        philo = reshape(philo, gridsize/4);
-        phi0 = interpolateGPUvar(philo, 4);
-        phi0 = reshape(phi0, [numel(phi0) 1]);
-	else
+%    if prod(gridsize) > 64^3 % If we > 64^3 on a side
+%        mprime = interpolateGPUvar(GPUdouble(mass), -4);
+%        if run.time.iteration < 4; fprintf('Recursing to lower resolution...\n'); end
+%        philo = GPUdouble(bicgstabPotentialSolver_GPU(run, mprime, gridsize / 4));
+%
+%        philo = reshape(philo, gridsize/4);
+%        phi0 = interpolateGPUvar(philo, 4);
+%        phi0 = reshape(phi0, [numel(phi0) 1]);
+%	else
         phi0 = zeros([numel(mass) 1], GPUdouble);
-    end
+%    end
 
     bcsAndMass = calculateGravityEdge_GPU(mass, run.DGRID, run.gravity.mirrorZ);
     if run.gravity.constant ~= 1
@@ -75,6 +75,7 @@ Mx = GPUdouble(); setReal(Mx); setSize(Mx, dims); GPUallocVector(Mx);
 % Call operator with HOC Laplacian weights and precondition it
 symmetricLinearOperator(x, Mx, prefact);
 Mx = polyPreconditionL2_GPU(Mx, dims, 1);
+%Mx = reshape(Mx, [numel(Mx) 1]);
 
 end
 

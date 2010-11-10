@@ -66,6 +66,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   int ny = dims[1];
   int nz = dims[2];
 
-  Laplacian_B_OperatorKernel<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), (double*)gm->gputype.getGPUptr(dstArray), *mxGetPr(prhs[2]), (double*)gm->gputype.getGPUptr(accArray), nx, ny, nz, 4);
+  Laplacian_B_OperatorKernel<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), (double*)gm->gputype.getGPUptr(dstArray), *mxGetPr(prhs[2]), (double*)gm->gputype.getGPUptr(accArray), nx, ny, nz, 2);
 
 }

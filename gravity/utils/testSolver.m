@@ -9,11 +9,12 @@ run.gravity.info='eh';
 run.gravity.mirrorZ = 0;
 
 %R = [3];
-R = [16 32 64];
+R = [16 32 64 128 256];
 enorm = zeros(size(R));
 
 %a=7;
-for a = 1:numel(R);
+%for a = 1:numel(R);
+a=4
     u = R(a);
 
     [X Y Z] = ndgrid(1:u,1:u,1:u);
@@ -42,5 +43,5 @@ for a = 1:numel(R);
     errormat(isinf(errormat)) = 0;
 
     enorm(a) = sqrt(sum(errormat(:).^2)/numel(mass.array));
-end
+%end
 

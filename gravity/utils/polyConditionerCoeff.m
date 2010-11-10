@@ -15,8 +15,8 @@ nEscapeTries = 0;
 normFunction = @polyCondCheck;
 
 %--- Create needed linear operator matrices ---%
-A = createLaplacianMatrix(tdims);
-B = createBMatrix(tdims);
+A = createCSOMatrix(tdims, [-24 2 1 0]);
+B = createCSOMatrix(tdims, [0 2 1 0]/24);
 ID = speye(prod(tdims));
 
 keepsearching = 1;
