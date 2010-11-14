@@ -16,7 +16,7 @@ function run = initialize(ini)
     fclose all; % Prevent any lingering saves from disrupting run.
     
     run             = ImogenManager.getInstance();
-	run.gridSize    = ini.grid;
+    run.gridSize    = ini.grid;
     [run.version, run.detailedVersion]                        = versionInfo();
     [run.paths.hostName, run.paths.imogen, run.paths.results] = determineHostVariables();
         
@@ -64,25 +64,25 @@ end
 %% .thresholdMass               Threshold value below which gravity will not act
 
 try
-	run.fluid.MASS_THRESHOLD = ini.thresholdMass;
-	run.appendInfo('Mass Threshold', run.fluid.MASS_THRESHOLD);
+    run.fluid.MASS_THRESHOLD = ini.thresholdMass;
+    run.appendInfo('Mass Threshold', run.fluid.MASS_THRESHOLD);
 catch MERR, loc_initializationError('thresholdmass',MERR);
 end
 
 %% .minMass                     Minimum allowed mass density value
 
 try 
-	run.fluid.MINMASS = ini.minMass;
-	run.appendInfo('Minimum mass density', run.fluid.MINMASS);
+    run.fluid.MINMASS = ini.minMass;
+    run.appendInfo('Minimum mass density', run.fluid.MINMASS);
 catch MERR, loc_initializationError('minmass',MERR);
 end
 
 %% .profile                     Enable the profiler to record execution information
 
 try 
-	run.PROFILE = ini.profile;
+    run.PROFILE = ini.profile;
     if (run.PROFILE); run.appendWarning('MATLAB profiler will be active for this run.'); end
-	run.appendInfo('Profiler', run.PROFILE);
+    run.appendInfo('Profiler', run.PROFILE);
 catch MERR, loc_initializationError('profile',MERR);
 end
 
@@ -134,21 +134,21 @@ end
 %% .notes                       Add notes (user generated)
 
 try
-	run.notes = ini.notes;    
+    run.notes = ini.notes;    
 catch MERR, loc_initializationError('notes',MERR);
 end 
 
 %% .iniInfo                     Add initialization information (procedurally generated)
 
 try
-	run.iniInfo = ini.iniInfo;     
+    run.iniInfo = ini.iniInfo;     
 catch MERR, loc_initializationError('iniinfo',MERR);
 end 
 
 %% .mode                        Activate code mode types (e.g. fluid, magnet, etc...)
 
 try
-	run.initializeMode(ini.mode);
+    run.initializeMode(ini.mode);
 catch MERR, loc_initializationError('mode',MERR);
 end    
 
@@ -184,7 +184,7 @@ end
 %% .debug                       Run the code in debug mode 
 
 try
-	run.DEBUG = ini.debug;
+    run.DEBUG = ini.debug;
     if (run.DEBUG), run.appendWarning('Running in debug mode.'); end
 catch MERR, loc_initializationError('debug',MERR);
 end
@@ -299,12 +299,12 @@ try
             run.appendWarning('Image saving interval set to every step.');
         end
 
-        if isfield(ini.image,'colordepth');	colordepth = ini.image.colordepth;
-        else	                            	colordepth = 256;
+        if isfield(ini.image,'colordepth');    colordepth = ini.image.colordepth;
+        else                                    colordepth = 256;
         end
 
         if isfield(ini.image,'colormap'); run.image.createColormap(ini.image.colormap, colordepth);
-        else	                              run.image.createColormap('jet',colordepth); 
+        else                                  run.image.createColormap('jet',colordepth); 
         end
         
         imageSaveState = 'Active';
@@ -328,7 +328,7 @@ end
 %% .fades                       Fade objects
 
 try
-	run.addFades(ini.fades);
+    run.addFades(ini.fades);
 catch MERR, loc_initializationError('fades',MERR);
 end
 
@@ -348,39 +348,39 @@ end
 
 %% .gravity.CONSTANT
 try
-	if isfield(ini.gravity,'constant')
-		run.gravity.constant = ini.gravity.constant;
-	else
-		run.gravity.constant = 1;
-	end
+    if isfield(ini.gravity,'constant')
+        run.gravity.constant = ini.gravity.constant;
+    else
+        run.gravity.constant = 1;
+    end
 
-	if isfield(ini.gravity,'iterMax')
-		run.gravity.iterMax = ini.gravity.iterMax;
-	else
-		run.gravity.iterMax = 100;
-	end;
+    if isfield(ini.gravity,'iterMax')
+        run.gravity.iterMax = ini.gravity.iterMax;
+    else
+        run.gravity.iterMax = 100;
+    end;
 
-	if isfield(ini.gravity,'tolerance')
-		run.gravity.tolerance = ini.gravity.tolerance;
-	else
-		run.gravity.tolerance = 1e-6;
-	end;
+    if isfield(ini.gravity,'tolerance')
+        run.gravity.tolerance = ini.gravity.tolerance;
+    else
+        run.gravity.tolerance = 1e-6;
+    end;
 
         if isfield(ini.gravity,'bconditionSource')
-		run.gravity.bconditionSource = ini.gravity.bconditionSource;
-	else
-		run.gravity.bconditionSource = GRAV_BCSOURCE_FULL;
-	end
+        run.gravity.bconditionSource = ini.gravity.bconditionSource;
+    else
+        run.gravity.bconditionSource = GRAV_BCSOURCE_FULL;
+    end
 
         run.gravity.mirrorZ = ini.gravity.mirrorZ;
 
 catch MERR, loc_initializationError('gravity.constant',MERR);
 end
 
-%% .gravity.solver	        	Gravity solver
+%% .gravity.solver                Gravity solver
 try   
-	run.gravity.setSolver(ini.gravity.solver);
-	run.appendInfo('Gravity solver', run.gravity.TYPE);
+    run.gravity.setSolver(ini.gravity.solver);
+    run.appendInfo('Gravity solver', run.gravity.TYPE);
 catch MERR, loc_initializationError('gravity.solver',MERR);
 end
 
@@ -407,8 +407,8 @@ end
 function loc_initializationError(property, caughtError)
 % Handles errors thrown by the try statements in the initialization routine.
 %
-%>> property               the property that threw the error	                	str
-%>> caughtError            The error captured by a try block	                	error
+%>> property               the property that threw the error                        str
+%>> caughtError            The error captured by a try block                        error
 
 
     fprintf('\n\n--- Unable to parse property %s. Run aborted. ---\n', property);

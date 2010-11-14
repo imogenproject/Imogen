@@ -100,9 +100,9 @@ while(currentZ < nz) {
 			+ 2*locSrc[threadIdx.x  ][threadIdx.y-1][plidx[1]]
 
 			+ locSrc[threadIdx.x-1][threadIdx.y  ][plidx[2]] // upper plane
-                        + locSrc[threadIdx.x  ][threadIdx.y-1][plidx[2]]
-                        + locSrc[threadIdx.x  ][threadIdx.y+1][plidx[2]]
-                        + locSrc[threadIdx.x+1][threadIdx.y  ][plidx[2]]
+            + locSrc[threadIdx.x  ][threadIdx.y-1][plidx[2]]
+            + locSrc[threadIdx.x  ][threadIdx.y+1][plidx[2]]
+            + locSrc[threadIdx.x+1][threadIdx.y  ][plidx[2]]
 			+ 2*locSrc[threadIdx.x  ][threadIdx.y][plidx[2]] ) / 24.0;
 		
 

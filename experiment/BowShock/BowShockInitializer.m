@@ -74,19 +74,19 @@ classdef BowShockInitializer < Initializer
         % USAGE: [mass, mom, ener, mag, statics, run] = getInitialConditions();
         
             %--- Initialization ---%
-            pathStr = fileparts(mfilename);
-            load([pathStr filesep 'data' filesep obj.stencil]);
-            if ~exist('staticArray','var'); 
-                error('Imogen:Initializer',['Static stencil array not found in loaded stencil ' ...
-                      'file. Unable to continue']);
-            end
+            %pathStr = fileparts(mfilename);
+            %load([pathStr filesep 'data' filesep obj.stencil]);
+            %if ~exist('staticArray','var'); 
+            %    error('Imogen:Initializer',['Static stencil array not found in loaded stencil ' ...
+            %          'file. Unable to continue']);
+            %end
             
-            N = size(staticArray);
-            if (obj.make3D(N) ~= obj.grid); 
-                warning('Imogen:Initializer',['Current grid size property doesn''t match ' ...
-                        'stencil size. Adjusting grid to match.']);
-                obj.grid = N;
-            end
+            %N = size(staticArray);
+            %if (obj.make3D(N) ~= obj.grid); 
+            %    warning('Imogen:Initializer',['Current grid size property doesn''t match ' ...
+            %%%            'stencil size. Adjusting grid to match.']);
+            %    obj.grid = N;
+            %end
 
             %--- Background Values ---%
             mass	= 0.125 * ones(obj.grid);
@@ -98,8 +98,43 @@ classdef BowShockInitializer < Initializer
             normalMass		= 0.125;
             normalEner      = (normalMass^obj.gamma)/(obj.gamma-1);
             statMass		= 1;
-            statXMom		= 0.75;
+            statXMom		= .75;
             statEner		= (statMass^obj.gamma)/(obj.gamma-1) + 0.5*(statXMom*statXMom)/statMass;
+
+	    statics = StaticsInitializer();
+
+[X Y] = ndgrid(1:obj.grid(1), 1:obj.grid(2));
+
+Ledge = (X < 8); % Left edge - flow source
+
+X = X - obj.grid(1)/2;
+Y = Y - obj.grid(2)/2;
+norm = sqrt(X.^2 + Y.^2);
+
+ball = (norm <= 32) & (norm > 29); % Select a thin ring of cells to hold static
+
+mom(1,1:200,:,:) = .75;
+
+statics.indexSet{1} = find(ball);
+statics.indexSet{2} = find(Ledge);
+statics.valueSet = {0, normalMass, statMass, statXMom, normalEner, statEner};
+
+% Force a left-edge plane flow
+statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 4);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 5);
+
+% Lock ball in place
+statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 3);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 6);
+
+return;
+
             statics.values  = [0, normalMass, statMass, statXMom, normalEner, statEner];
 
             %--- Static Arrays ---%

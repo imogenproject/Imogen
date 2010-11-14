@@ -4,10 +4,15 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = BowShockInitializer();
-run.iterMax         = 8000;
+run                 = BowShockInitializer([512 192 1]);
+run.iterMax         = 500;
+
 run.image.interval  = 5;
 run.image.mass      = true;
+run.image.speed     = true;
+
+run.ppSave.dim2     = 25;
+
 run.info            = 'Bow shock test.';
 run.notes           = '';
 

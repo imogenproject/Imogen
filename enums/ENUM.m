@@ -1,14 +1,14 @@
 classdef ENUM
     
     properties (Constant = true)
-		MASS	= 'mass';
-		MOM		= 'mom';
-		ENER	= 'ener';
-		MAG		= 'mag';
-		GRAV	= 'grav';
-		
-		SCALAR	= 0;
-		VECTOR	= [1 2 3];
+        MASS      = 'mass';
+        MOM       = 'mom';
+        ENER      = 'ener';
+        MAG       = 'mag';
+        GRAV      = 'grav';
+        
+        SCALAR    = 0;
+        VECTOR    = [1 2 3];
         
         POINT_FADE = 'point';
         
