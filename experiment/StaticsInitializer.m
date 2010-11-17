@@ -93,7 +93,7 @@ classdef StaticsInitializer < handle
             obj.valueSet{end+1} = values;
         end
 
-        function associateStatics(obj, varID, component, fieldID, indexNum, valueNum);
+        function associateStatics(obj, varID, component, fieldID, indexNum, valueNum)
             vmap = obj.mapVaridToIdx(varID, component);
 
             obj.arrayStatics{vmap}.arrayField(end+1) = fieldID;
