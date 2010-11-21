@@ -2,7 +2,7 @@
 run.time.iteration = 0;
 run.DGRID={1,1,1};
 run.gravity.bconditionSource='full';
-run.gravity.tolerance = 1e-14;
+run.gravity.tolerance = 1e-10;
 run.gravity.iterMax = 250;
 run.gravity.constant = 1;
 run.gravity.info='eh';

@@ -6,7 +6,7 @@ GPUMAT_DIR=/home/erik/GPUmat
 MATLAB_DIR=/opt/Matlab/matlab2010b
 CUDA_DIR = /usr/local/cuda
 CUDA_LDIR = lib64
-CUDA_ARCH = sm_13
+CUDA_ARCH = sm_20
 
 # Don't mess with these
 GPUMAT_INCL = -I$(GPUMAT_DIR)/modules/include

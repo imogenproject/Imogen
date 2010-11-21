@@ -1,4 +1,4 @@
-function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize)
+function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize, iamrecursed)
 % This routine solves for gravitational potential using a linear solver on the interior and 
 % finding potential at the boundaries by using a multigrid summation algorithm. The linear
 % solver is the biconjugate gradient method commonly used in gravitational hydrodynamics.
@@ -15,20 +15,23 @@ function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize)
     if isstruct(mass);
         gridsize = mass.gridSize;
         mass = mass.array;
+        iamrecursed = 0;
     end
-    
+
     % Recursively coarsen in order to propagate low-mode data faster
-%    if prod(gridsize) > 64^3 % If we > 64^3 on a side
-%        mprime = interpolateGPUvar(GPUdouble(mass), -4);
-%        if run.time.iteration < 4; fprintf('Recursing to lower resolution...\n'); end
-%        philo = GPUdouble(bicgstabPotentialSolver_GPU(run, mprime, gridsize / 4));
-%
-%        philo = reshape(philo, gridsize/4);
-%        phi0 = interpolateGPUvar(philo, 4);
-%        phi0 = reshape(phi0, [numel(phi0) 1]);
-%	else
+    if prod(gridsize) > 64^3 % If we > 64^3 on a side
+%gridsize
+        mprime = interpolateGPUvar(GPUdouble(mass), -2);
+%size(mprime)
+ %       if run.time.iteration < 4; fprintf('Recursing to lower resolution...\n'); end
+        philo = GPUdouble(bicgstabPotentialSolver_GPU(run, mprime, gridsize/2,1))/2;
+
+        philo = reshape(philo, gridsize/2);
+        phi0 = interpolateGPUvar(philo, 2);
+        phi0 = reshape(phi0, [numel(phi0) 1]);
+	else
         phi0 = zeros([numel(mass) 1], GPUdouble);
-%    end
+    end
 
     bcsAndMass = calculateGravityEdge_GPU(mass, run.DGRID, run.gravity.mirrorZ);
     if run.gravity.constant ~= 1
@@ -44,7 +47,8 @@ function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize)
     [phi, flag, relres, iter] = bicgstab_GPU(@(x) findLaplacianTimesRHS(x, gridsize, run.DGRID{1}), ...
                     bcsAndMass, run.gravity.tolerance, run.gravity.iterMax, phi0);
 
-    if run.time.iteration < 4;
+    if (run.time.iteration < 4)
+	if nargin == 4; fprintf('    '); end
         fprintf('Phi solver (imogen step %i): BCs %.3gs, bicgstab_GPU in %.3gs/%.3g iter w/relres %6.6g\n', run.time.iteration, t4bc, toc-t4bc, iter, relres);
     end
 
@@ -57,7 +61,8 @@ function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize)
     end
     
     %--- Convert potential results back to domain-shaped array and cast back to double ---%
-    phi = double(reshape(phi, gridsize)); 
+    phi = reshape(phi, gridsize); 
+    if iamrecursed == 0; phi = double(phi); end
 
 end
 
