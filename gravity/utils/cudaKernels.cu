@@ -50,8 +50,8 @@ locSrc[threadIdx.x][threadIdx.y][1] = 0.0;
 
 // Setup the indirection that lets us quickly flip data planes
 if(IAmInRange) {
-	locSrc[threadIdx.x][threadIdx.y][2] = src[myAddr];
-	} else { locSrc[threadIdx.x][threadIdx.y][2] = 0.0; }
+        locSrc[threadIdx.x][threadIdx.y][2] = src[myAddr];
+        } else { locSrc[threadIdx.x][threadIdx.y][2] = 0.0; }
 int plidx[3];
 plidx[0]=0;
 plidx[1]=1;
@@ -60,61 +60,61 @@ plidx[2]=2;
 __syncthreads();
 
 while(currentZ < nz) {
-	// Roll all 3 planes downwards
-	plidx[0] = ++plidx[0] % 3;
-	plidx[1] = ++plidx[1] % 3;
-	plidx[2] = ++plidx[2] % 3;
+        // Roll all 3 planes downwards
+        plidx[0] = ++plidx[0] % 3;
+        plidx[1] = ++plidx[1] % 3;
+        plidx[2] = ++plidx[2] % 3;
 
-	// Reload the top one
-	if((currentZ < (nz-1)) && IAmInRange)
-		locSrc[threadIdx.x][threadIdx.y][plidx[2]] = src[myAddr + nx*ny];
-		else locSrc[threadIdx.x][threadIdx.y][plidx[2]] = 0;
+        // Reload the top one
+        if((currentZ < (nz-1)) && IAmInRange)
+                locSrc[threadIdx.x][threadIdx.y][plidx[2]] = src[myAddr + nx*ny];
+                else locSrc[threadIdx.x][threadIdx.y][plidx[2]] = 0.0;
 
-	__syncthreads();
+        __syncthreads();
 
-	// Compute B operator
-	if(IAmInterior && IAmInRange) {
-		double res;
-		if(order == 2)
-		res   = ( locSrc[threadIdx.x+1][threadIdx.y  ][plidx[1]]
-        		+ locSrc[threadIdx.x-1][threadIdx.y  ][plidx[1]]
-			+ locSrc[threadIdx.x  ][threadIdx.y+1][plidx[1]]
-			+ locSrc[threadIdx.x  ][threadIdx.y-1][plidx[1]]
-			+ locSrc[threadIdx.x  ][threadIdx.y  ][plidx[2]]
-			+ locSrc[threadIdx.x  ][threadIdx.y  ][plidx[0]] ) / 6.0;
+        // Compute B operator
+        if(IAmInterior && IAmInRange) {
+                double res;
+                if(order == 2) {
+                res   = ( locSrc[threadIdx.x+1][threadIdx.y  ][plidx[1]]
+                        + locSrc[threadIdx.x-1][threadIdx.y  ][plidx[1]]
+                        + locSrc[threadIdx.x  ][threadIdx.y+1][plidx[1]]
+                        + locSrc[threadIdx.x  ][threadIdx.y-1][plidx[1]]
+                        + locSrc[threadIdx.x  ][threadIdx.y  ][plidx[2]]
+                        + locSrc[threadIdx.x  ][threadIdx.y  ][plidx[0]] ) / 6.0;
+                } else {
+                res   = ( locSrc[threadIdx.x-1][threadIdx.y  ][plidx[0]] // lower plane
+                        + locSrc[threadIdx.x  ][threadIdx.y-1][plidx[0]]
+                        + locSrc[threadIdx.x  ][threadIdx.y+1][plidx[0]]
+                        + locSrc[threadIdx.x+1][threadIdx.y  ][plidx[0]]
+                        + 2*locSrc[threadIdx.x  ][threadIdx.y][plidx[0]]
 
-		else if(order == 4)
-		res   = ( locSrc[threadIdx.x-1][threadIdx.y  ][plidx[0]] // lower plane
-			+ locSrc[threadIdx.x  ][threadIdx.y-1][plidx[0]]
-			+ locSrc[threadIdx.x  ][threadIdx.y+1][plidx[0]]
-			+ locSrc[threadIdx.x+1][threadIdx.y  ][plidx[0]]
-			+ 2*locSrc[threadIdx.x  ][threadIdx.y][plidx[0]]
+                        + locSrc[threadIdx.x-1][threadIdx.y-1][plidx[1]] // Center plane
+                        + locSrc[threadIdx.x+1][threadIdx.y-1][plidx[1]]
+                        + locSrc[threadIdx.x-1][threadIdx.y+1][plidx[1]]
+                        + locSrc[threadIdx.x+1][threadIdx.y+1][plidx[1]]
+                        +2*locSrc[threadIdx.x+1][threadIdx.y ][plidx[1]]
+                        +2*locSrc[threadIdx.x-1][threadIdx.y ][plidx[1]]
+                        +2*locSrc[threadIdx.x ][threadIdx.y+1][plidx[1]]
+                        +2*locSrc[threadIdx.x ][threadIdx.y-1][plidx[1]]
 
-			+ locSrc[threadIdx.x-1][threadIdx.y-1][plidx[1]] // Center plane
-			+ locSrc[threadIdx.x+1][threadIdx.y-1][plidx[1]]
-			+ locSrc[threadIdx.x-1][threadIdx.y+1][plidx[1]]
-			+ locSrc[threadIdx.x+1][threadIdx.y+1][plidx[1]]
-			+ 2*locSrc[threadIdx.x+1][threadIdx.y  ][plidx[1]]
-			+ 2*locSrc[threadIdx.x-1][threadIdx.y  ][plidx[1]]
-			+ 2*locSrc[threadIdx.x  ][threadIdx.y+1][plidx[1]]
-			+ 2*locSrc[threadIdx.x  ][threadIdx.y-1][plidx[1]]
+                        + locSrc[threadIdx.x-1][threadIdx.y  ][plidx[2]] // upper plane
+                        + locSrc[threadIdx.x  ][threadIdx.y-1][plidx[2]]
+                        + locSrc[threadIdx.x  ][threadIdx.y+1][plidx[2]]
+                        + locSrc[threadIdx.x+1][threadIdx.y  ][plidx[2]]
+                        + 2*locSrc[threadIdx.x][threadIdx.y  ][plidx[2]] ) / 24.0;
+                }
+                
 
-			+ locSrc[threadIdx.x-1][threadIdx.y  ][plidx[2]] // upper plane
-            + locSrc[threadIdx.x  ][threadIdx.y-1][plidx[2]]
-            + locSrc[threadIdx.x  ][threadIdx.y+1][plidx[2]]
-            + locSrc[threadIdx.x+1][threadIdx.y  ][plidx[2]]
-			+ 2*locSrc[threadIdx.x  ][threadIdx.y][plidx[2]] ) / 24.0;
-		
+                dst[myAddr] = res;
+                accum[myAddr] += accumCoefficient * res;
+                }
 
-		dst[myAddr] = res;
-		accum[myAddr] += accumCoefficient * res;
-		}
-
-	// Increment z and address pointer
-	currentZ++;
-	myAddr += nx*ny;
-	if(currentZ >= nz) break;
-	}
+        // Increment z and address pointer
+        currentZ++;
+        myAddr += nx*ny;
+        if(currentZ >= nz) break;
+        }
 
 
 }
@@ -129,7 +129,7 @@ __global__ void mgbc_kernelplane(double **mass,
                           short int *arrayDims,
                           int nLevels,
                           double *phi,
-			  double *bvec,
+                          double *bvec,
                           double qConst, double selfPotRad)
 {  
 
@@ -162,14 +162,14 @@ short int blockIter[3];
 for(blockIter[0] = 0; blockIter[0] < arrayDims[0]; blockIter[0]++) {
 for(blockIter[1] = 0; blockIter[1] < arrayDims[1]; blockIter[1]++) {
 for(blockIter[2] = 0; blockIter[2] < arrayDims[2]; blockIter[2]++) {
-	lpst[0] = blockIter[0];
-	lpst[1] = blockIter[1];
-	lpst[2] = blockIter[2];
-	lpst[3] = 0;
-	
-	goto MasterBlockIter;
-	MasterBlockReturn:
-	} } }
+        lpst[0] = blockIter[0];
+        lpst[1] = blockIter[1];
+        lpst[2] = blockIter[2];
+        lpst[3] = 0;
+        
+        goto MasterBlockIter;
+        MasterBlockReturn:
+        } } }
 
 // Make one pushback to global memory
 phi[(blockIdx.x*EDGEDIM_MGBC+threadIdx.x) + (blockIdx.y*EDGEDIM_MGBC+threadIdx.y)*(int)bvec[9] ] = locPhiStore[threadIdx.x][threadIdx.y];
@@ -188,29 +188,29 @@ if (rad < 1e-5) rad = selfPotRad;
 deltaphi = mass[CL][lpst[0] + arrayDims[3*CL+0]*(lpst[1] + arrayDims[3*CL+1]*lpst[2])] / rad;
 //deltaphi = mass[CL][lpst[0] + arrayDims[3*CL+0]*(lpst[1] + arrayDims[3*CL+1]*lpst[2])]*(1 + ptpos[0]*ptpos[0]/(rad*rad))/(rad*rad*rad);
 
-//	if we are far enough away or can't go deeper, sum up this reduced block
+//        if we are far enough away or can't go deeper, sum up this reduced block
 //if( (rad > qConst) || (CL >= (nLevels-1)) ) {
 if( (rad > qConst) || (CL >= 0) ) {
-	locPhiStore[threadIdx.x][threadIdx.y] -= deltaphi;
-	} else {
-	CL++;
-	qConst /= 2.0;
-	// Otherwise, go up a level and recurse over the 8 subcells	
-	for(lpst[4] = 2*lpst[0]; lpst[4] < 2*lpst[0]+2; lpst[4]++)
-	for(lpst[5] = 2*lpst[1]; lpst[5] < 2*lpst[1]+2; lpst[5]++)
-	for(lpst[6] = 2*lpst[2]; lpst[6] < 2*lpst[2]+2; lpst[6]++) {
-		lpst[7] = 1;
-//		CL++;
-		lpst = &lpst[LP_STATE_SIZE]; // move up stack
-		goto MasterBlockIter;
+        locPhiStore[threadIdx.x][threadIdx.y] -= deltaphi;
+        } else {
+        CL++;
+        qConst /= 2.0;
+        // Otherwise, go up a level and recurse over the 8 subcells        
+        for(lpst[4] = 2*lpst[0]; lpst[4] < 2*lpst[0]+2; lpst[4]++)
+        for(lpst[5] = 2*lpst[1]; lpst[5] < 2*lpst[1]+2; lpst[5]++)
+        for(lpst[6] = 2*lpst[2]; lpst[6] < 2*lpst[2]+2; lpst[6]++) {
+                lpst[7] = 1;
+//                CL++;
+                lpst = &lpst[LP_STATE_SIZE]; // move up stack
+                goto MasterBlockIter;
 
-	        iterReturn:
-		lpst = &lpst[-LP_STATE_SIZE];
-//		CL--;
-		}
-	CL--;
-	qConst *= 2.0;
-	}
+                iterReturn:
+                lpst = &lpst[-LP_STATE_SIZE];
+//                CL--;
+                }
+        CL--;
+        qConst *= 2.0;
+        }
 
 // We're finished with this block, current level will be 0. Otherwise, jump back.
 //if(CL > 0) { goto iterReturn; } else { goto MasterBlockReturn; }
@@ -313,7 +313,7 @@ for(counter = 1; counter < 9; counter++) {
 }
 
 // nx/ny/nz are size of source array, for which each cell has a thread
-__global__ void upResolutionKernel(double *src, double *dst, int factor, int nx, int ny, int nz)
+__global__ void upsampleKernel(double *src, double *dst, int factor, int nx, int ny, int nz)
 {
 
 int myx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -331,20 +331,20 @@ int ly = ny * factor;
 int chix, chiy, chiz;
 
 for (z = 0; z < nz; z++) {
-	myval = src[myx + nx*myy + nx*ny*z];
+        myval = src[myx + nx*myy + nx*ny*z];
 
-	for (chix = 0; chix < factor; chix++)
-	for (chiy = 0; chiy < factor; chiy++)
-	for (chiz = 0; chiz < factor; chiz++) {
+        for (chix = 0; chix < factor; chix++)
+        for (chiy = 0; chiy < factor; chiy++)
+        for (chiz = 0; chiz < factor; chiz++) {
 //src[myx + nx*myy + nx*ny*z] = (double)(factor*myx + chix + lx*(factor*myy + chiy   + ly*(factor*z + chiz) ));
-		dst[factor*myx + chix + lx*(factor*myy + chiy   + ly*(factor*z + chiz) )] = myval;
-		}
-	}
+                dst[factor*myx + chix + lx*(factor*myy + chiy   + ly*(factor*z + chiz) )] = myval;
+                }
+        }
 
 }
 
 // nx/ny/nz are size of destination array for which each cell has a thread.
-__global__ void downResolutionKernel(double *src, double *dst, int factor, int nx, int ny, int nz)
+__global__ void downsampleKernel(double *src, double *dst, int factor, int nx, int ny, int nz)
 {
 
 int myx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -369,8 +369,38 @@ for (z = 0; z < nz; z++) {
         for (chiz = 0; chiz < factor; chiz++) {
                 myval += src[factor*myx + chix + lx*(factor*myy + chiy   + ly*(factor*z + chiz) )];
                 }
+        dst[myx + nx*(myy + ny*z)] = myval;// / (double)(factor*factor*factor);
+        }
 
-	dst[myx + nx*(myy + ny*z)] = myval / (double)(factor*factor*factor);
+}
+
+// nx/ny/nz are size of destination array for which each cell has a thread.
+__global__ void downsampleKernel_lowdim(double *src, double *dst, int factor, int nx, int ny, int nz)
+{
+
+int myx = threadIdx.x + blockDim.x * blockIdx.x;
+if (myx >= nx) return;
+
+int myy = threadIdx.y + blockDim.y * blockIdx.y;
+if (myy >= ny) return;
+
+int z;
+double myval;
+
+int lx = nx * factor;
+int ly = ny * factor;
+
+int chix, chiy, chiz;
+
+for (z = 0; z < nz; z++) {
+        myval = 0.0;
+
+        for (chix = 0; chix < factor; chix++)
+        for (chiy = 0; chiy < factor; chiy++)
+        for (chiz = 0; chiz < factor; chiz++) {
+                myval += src[factor*myx + chix + lx*(factor*myy + chiy   + ly*(factor*z + chiz) )];
+                }
+        dst[myx + nx*(myy + ny*z)] = myval;// / (double)(factor*factor*factor);
         }
 
 }

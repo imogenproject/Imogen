@@ -111,9 +111,11 @@ X = X - obj.grid(1)/2;
 Y = Y - obj.grid(2)/2;
 norm = sqrt(X.^2 + Y.^2);
 
-ball = (norm <= 32) & (norm > 29); % Select a thin ring of cells to hold static
+ballrad = 32;
 
-mom(1,1:200,:,:) = .75;
+ball = (norm <= ballrad) & (norm > (ballrad-3)); % Select a thin ring of cells to hold static
+
+mom(1,1:(obj.grid(1)/2 - ballrad - 10),:,:) = .75;
 
 statics.indexSet{1} = find(ball);
 statics.indexSet{2} = find(Ledge);
@@ -127,11 +129,18 @@ statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
 statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 5);
 
 % Lock ball in place
-statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 3);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
-statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 6);
+%statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 3);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 1);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
+%statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 6);
+
+% Zero flux at ball's surface.
+statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.FLUXL,   1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.FLUXL,   1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.FLUXL,   1, 1);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.FLUXL,   1, 1);
 
 return;
 

@@ -4,7 +4,7 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = BowShockInitializer([512 192 1]);
+run                 = BowShockInitializer([192 192 1]);
 run.iterMax         = 500;
 
 run.image.interval  = 5;

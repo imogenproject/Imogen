@@ -283,14 +283,20 @@ classdef ImogenArray < handle
         
 %___________________________________________________________________________________________________ readStatics
 % Reads the static cell array from the structure provided by as an argument in imogen.m.
-%>> staticStruct    Structure containing all of the static arrays and values.           struct
-        function readStatics(obj, staticStruct)
-            fields = {'x','y','z'};
+%>> statics     Class carrying full information regarding all statics in simulation      class
+        function readStatics(obj, statics)
+            if isempty(statics); return; end
             
  %           if isfield(staticStruct,obj.id{1}) 
                 
                 %--- Flux array case ---%
                 if isa(obj,'FluxArray')
+                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
+                    obj.staticIndices = SI;
+                    obj.staticVals    = SV;
+fprintf('%s %i %i\n', obj.id{1}, obj.component, numel(SI));
+
+                    if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
 %                    if isfield(staticStruct.(obj.id{1}), obj.id{2}) %FluxArray case
 %                        if isfield(staticStruct.(obj.id{1}).(obj.id{2}),'s')
 %                            if (obj.component > 0)
@@ -306,8 +312,11 @@ classdef ImogenArray < handle
                 
                 %--- Primary array case ---%
                 else
+                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
+                    obj.staticIndices = SI;
+                    obj.staticVals    = SV;
 
-                    populateStatics(obj, staticStruct);
+                    if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
 %                    if isfield(staticStruct.(obj.id{1}),'s')
 %                        if (obj.component > 0)
 %                            if isfield(staticStruct.(obj.id{1}).s,fields{obj.component})

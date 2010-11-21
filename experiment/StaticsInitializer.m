@@ -5,6 +5,7 @@ classdef StaticsInitializer < handle
         CELLVAR = 0;
         FLUXL   = 1;
         FLUXR   = 2;
+        FLUXALL = 3;
     end%CONSTANT
         
 %===================================================================================================
@@ -55,7 +56,7 @@ classdef StaticsInitializer < handle
             AS = obj.arrayStatics{partmap};
 
             for x = 1:numel(AS.arrayField) % For each static defined for this variable
-                if AS.arrayField == fieldId % If it applies to the requested field
+                if AS.arrayField(x) == fieldId % If it applies to the requested field
                     newIdx = obj.indexSet{AS.indexId(x)};
                     newVal = obj.valueSet{AS.valueId(x)};
 
