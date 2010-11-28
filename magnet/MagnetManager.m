@@ -8,7 +8,8 @@ classdef MagnetManager < handle
 	
 %===================================================================================================
     properties (SetAccess = public, GetAccess = public, Transient = true) %			P U B L I C  [P]
-		ACTIVE;				% specifies the magnetic fluxing solver state			Bool
+		ACTIVE;				% specifies the magnetic fluxing solver state			logical
+		limiter;            % Flux limiters to use for each flux direction.         cell(3)
 	end%PUBLIC
 
 %===================================================================================================

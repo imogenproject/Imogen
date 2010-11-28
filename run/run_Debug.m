@@ -18,6 +18,9 @@ run.viscosity.type              = ENUM.ARTIFICIAL_VISCOSITY_NEUMANN_RICHTMYER;
 run.viscosity.linear            = 0.1;
 run.viscosity.quadratic         = 0.25;
 
+run.fluxLimiter.x               = FluxLimiterEnum.VAN_LEER;
+run.fluxLimiter.y               = FluxLimiterEnum.MINMOD;
+
 run.radiation.type              = ENUM.RADIATION_OPTICALLY_THIN;
 run.radiation.exponent          = 0.5;
 run.radiation.initialMaximum    = 0.1;
@@ -33,7 +36,7 @@ run.notes                       = '';
 if (true)
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
     ini.runCode = 'Debug';
-    imogen(mass, mom, ener, magnet, ini, statics);
+    imogen(mass, mom, ener, magnet, ini, []);
 end
 
 enderRun();

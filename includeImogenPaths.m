@@ -7,7 +7,8 @@ function includeImogenPaths()
     %       subdirectories to the Matlab environmental path to access standard Imogen functionality.
     directories = {'classes','equilibrium','experiment','fluid','enums','utils','gravity', ...
                    'io','magnet','parallel','pic','pressure','run','save','shifting', ...
-                   'testing','time','treadmill','users','external','visualization'};
+                   'testing','time','treadmill','users','external','visualization', ...
+                   'flux'};
 
     pathToHere = fileparts(mfilename('fullpath'));
     addpath(pathToHere); % Add base Imogen directory without subdirectories.

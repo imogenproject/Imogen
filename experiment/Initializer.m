@@ -39,7 +39,8 @@ classdef Initializer < handle
         treadmill;      % Treadmilling direction, inactive if empty.        string
         viscosity;      % Viscosity sub initializer object.                 ViscositySubInitializer
         radiation;      % Radiation sub initializer objet.                  RadiationSubInitializer
-        logProperties;  % List of class properties to include in run.log    Cell
+        logProperties;  % List of class properties to include in run.log    cell
+        fluxLimiter;    % Specifies the flux limiter(s) to use.             struct
     end %PUBLIC
 
 %===================================================================================================
@@ -94,7 +95,8 @@ classdef Initializer < handle
             obj.gravity              = GravitySubInitializer();
             obj.viscosity            = ViscositySubInitializer();
             obj.radiation            = RadiationSubInitializer();
-            
+            obj.fluxLimiter          = struct();
+
             fields = SaveManager.SLICEFIELDS;
             for i=1:length(fields)
                 obj.activeSlices.(fields{i}) = false; 
@@ -168,6 +170,19 @@ classdef Initializer < handle
             obj.grid = Initializer.make3D(value, 1);
         end
         
+%___________________________________________________________________________________________________ GS: fluxLimiter
+        function result = get.fluxLimiter(obj)
+            result = struct();
+            fields = {'x', 'y', 'z'};
+            for i=1:3
+                if isfield(obj.fluxLimiter, fields{i})
+                    result.(fields{i}) = obj.fluxLimiter.(fields{i});
+                else
+                    result.(fields{i}) = FluxLimiterEnum.VAN_LEER;
+                end
+            end
+        end
+
 	end%GET/SET
 	
 %===================================================================================================
