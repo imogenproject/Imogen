@@ -220,7 +220,9 @@ __global__ void mgbc_kern(double **mass, double **position, short int *arrayDims
     
     MasterBlockIter:
     
-    double *ptpos = &position[CL][3*(loopState[0] + arrayDims[3*CL+0]*(loopState[1] + arrayDims[3*CL+1]*loopState[2]))];    
+    double *ptpos = &position[CL][3*(loopState[0] + arrayDims[3*CL+0]*(loopState[1] 
+                    + arrayDims[3*CL+1]*loopState[2]))];
+                    
     rad           = sqrt( (ptpos[0] - myX)*(ptpos[0] - myX) +
                           (ptpos[1] - myY)*(ptpos[1] - myY) +
                           (ptpos[2] - myZ)*(ptpos[2] - myZ));
