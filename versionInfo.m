@@ -19,26 +19,29 @@ function [version, detailedVersion] = versionInfo()
             detailedVersion = [version '-???'];
         else
             % Test for master branch
-            if isempty(strfind(status, 'on branch master'))
+            if isempty(strfind(status, 'branch master'))
                 branch = '?';
             else
                 branch = 'MB';
             end
-            
+    
             pieces   = regexpi(status, sprintf('\n'), 'split');
             modified = false;
             
             for i=1:length(pieces)
-                modified = (modified || strcmpi(pieces{i}(1), 'm'));
+                item = pieces{i};
+                if length(item) > 1
+                    modified = (modified || ~isempty(strfind(pieces{i}, 'modified')));
+                end
             end
-                
+        
             if modified
                 modified = 'MOD';
             else
                 modified = 'BASE';
             end
             
-            detailedVersion = [version, '-', branch, '-', modified];
+            detailedVersion = [version, '.', branch, '-', modified];
         end
     catch e
         detailedVersion = [version '.???'];
