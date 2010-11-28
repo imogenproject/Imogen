@@ -6,7 +6,6 @@ function superbeeLimiter(flux, dLeft, dRight)
 %>> dLeft    Differences between left fluxVals.                             double(Nx,Ny,Nz)
 %>> dRight   Differences between right fluxVals.                            double(Nx,Ny,Nz)
 
-    coeff      = (abs(dLeft) < abs(dRight));
-    correction = minmodLimiter( (1 + coeff) .* dLeft, (2 - coeff) .* dRight);
-    flux.array = flux.array + correction;
+    coeff = (abs(dLeft) < abs(dRight));
+    minmodLimiter(flux, (1 + coeff) .* dLeft, (2 - coeff) .* dRight);
 end
