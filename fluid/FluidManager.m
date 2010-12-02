@@ -16,6 +16,7 @@ classdef FluidManager < handle
         thresholds;               % Threshold values for gravitational fluxing.         struct
         viscosity;                % Artificial viscosity object.                        ArtificialViscosity
         radiation;                % Radiation object.                                   Radiation
+        limiter;                  % Flux limiters to use for each flux direction.       cell(3)
     end%PUBLIC
     
 %===================================================================================================
@@ -55,12 +56,36 @@ classdef FluidManager < handle
             end
         end
         
+%___________________________________________________________________________________________________ setFluxLimiters
+% Initializes the flux limiters array based on the enumerated input.
+        function setFluxLimiters(obj, limiters)
+            obj.limiter = cell(1,3);
+            fields      = {'x', 'y', 'z'};
+            for i=1:3
+                if isfield(limiters, fields{i});
+                    obj.limiter{i} = obj.parseFluxLimiterEnum(limiters.(fields{i}));
+                else
+                    obj.limiter{i} = @vanleerLimiter;
+                end
+            end
+        end
+        
     end%PUBLIC
-    
     
 %===================================================================================================    
     methods (Access = private) %                                                P R I V A T E    [M]
         
+%___________________________________________________________________________________________________ parseFluxLimiterEnum
+        function result = parseFluxLimiterEnum(obj, limiterEnum)
+            switch limiterEnum
+                case FluxLimiterEnum.VAN_LEER,      result = @vanleerLimiter;
+                case FluxLimiterEnum.SUPERBEE,      result = @superbeeLimiter;
+                case FluxLimiterEnum.MINMOD,        result = @minmodLimiter;
+                otherwise
+                    error(['Imogen:UnknownType: Unknown flux limiter type: ', limiterEnum]);
+            end
+        end
+    
 %___________________________________________________________________________________________________ FluidManager
 % Creates a new FluidManager instance.
         function obj = FluidManager() 

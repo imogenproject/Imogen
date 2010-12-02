@@ -3,7 +3,7 @@ classdef PressureTypesEnum
 % of pressure to return.
 
 
-    Properties (Constant = true)
+    properties (Constant = true)
     
         % Enumerated type specifying both total pressure and sound speed.
         TOTAL_AND_SOUND = 'totsnd';

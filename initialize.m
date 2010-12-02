@@ -45,6 +45,15 @@ try
 catch MERR, loc_initializationError('infinity',MERR);
 end
 
+%% .fluxLimiter                 # type of flux limiter to use globally or in each dimension.
+
+try
+    run.fluid.setFluxLimiters(ini.fluxLimiter);
+    run.magnet.limiter = run.fluid.limiter;
+    run.appendInfo('Flux Limiters', run.fluid.limiter);
+catch MERR, loc_initializationError('infinity',MERR);
+end
+
 %% .cfl                         CFL prefactor 
 
 try
