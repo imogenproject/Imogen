@@ -20,7 +20,6 @@
 // static paramaters
 static int init = 0;
 static GPUmat *gm;
-#define EDGEDIM 8
 
 #include "cudaKernels.h"
 
@@ -52,20 +51,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   const int *dims    = gm->gputype.getSize(srcArray);
 
   dim3 gridsize;
-  gridsize.x = dims[0]/EDGEDIM;
-  gridsize.y = dims[1]/EDGEDIM;
+  gridsize.x = dims[0]/EDGEDIM_BOP;
+  gridsize.y = dims[1]/EDGEDIM_BOP;
   gridsize.z = 1;
 
-  if(gridsize.x * EDGEDIM < dims[0]) gridsize.x++;
-  if(gridsize.y * EDGEDIM < dims[1]) gridsize.y++;
+  if(gridsize.x * EDGEDIM_BOP < dims[0]) gridsize.x++;
+  if(gridsize.y * EDGEDIM_BOP < dims[1]) gridsize.y++;
 
-  dim3 blocksize; blocksize.x = blocksize.y = EDGEDIM+2;
+  dim3 blocksize; blocksize.x = blocksize.y = EDGEDIM_BOP+2;
   blocksize.z = 1;
 
   int nx = dims[0];
   int ny = dims[1];
   int nz = dims[2];
 
-  Laplacian_B_OperatorKernel<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), (double*)gm->gputype.getGPUptr(dstArray), *mxGetPr(prhs[2]), (double*)gm->gputype.getGPUptr(accArray), nx, ny, nz, 2);
+  Laplacian_B_OperatorKernel<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), (double*)gm->gputype.getGPUptr(dstArray), *mxGetPr(prhs[2]), (double*)gm->gputype.getGPUptr(accArray), nx, ny, nz, 4);
 
 }

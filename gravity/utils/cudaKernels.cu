@@ -27,6 +27,10 @@
 // It consists of the off-diagonal matrix elements of the operator with the diagonal normalized to 1
 __global__ void Laplacian_B_OperatorKernel(double *src, double *dst, double accumCoefficient, double *accum, int nx, int ny, int nz, int order)
 {
+
+//if (blockIdx.x > 0) return;
+//if (blockIdx.y > 1) return;
+
 // Allocate local storage for 3 planes of data
 // Since each plane depends only on itself and the planes above/below it, the strategy is to
 // store only those 3 planes seen by the current plane and roll along, minimizing waste on loading edges.
@@ -107,8 +111,12 @@ while(currentZ < nz) {
                 
 
                 dst[myAddr] = res;
+//                dst[myAddr] = locSrc[threadIdx.x][threadIdx.y][plidx[1]];
+//                accum[myAddr] = locSrc[threadIdx.x][threadIdx.y][plidx[1]];
                 accum[myAddr] += accumCoefficient * res;
                 }
+
+	__syncthreads();
 
         // Increment z and address pointer
         currentZ++;

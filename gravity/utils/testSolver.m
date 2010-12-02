@@ -9,7 +9,7 @@ run.gravity.info='eh';
 run.gravity.mirrorZ = 0;
 
 R = [16 32 64 128 256];
-%R = [16 32 64 96 128 192];
+%R = [16 32 64 96 ];
 enorm = zeros(size(R));
 
 for a = 1:numel(R);

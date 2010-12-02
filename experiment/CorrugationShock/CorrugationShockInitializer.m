@@ -140,7 +140,7 @@ classdef CorrugationShockInitializer < Initializer
 
             %--- Initialization ---%
             statics                 = []; % No statics used in this problem
-            obj.dGrid.value         = 0.01/min(obj.grid);
+            obj.dGrid.value         = 0.01/min(obj.grid(2:3));
             obj.appendInfo('Grid cell spacing set to %g.',obj.dGrid.value);
             
             half        = ceil(obj.grid/2);
@@ -172,7 +172,9 @@ classdef CorrugationShockInitializer < Initializer
             ener                 = ener ...
                                  + 0.5*squeeze( sum(mom.*mom,1) )./mass ...      % kinetic energy
                                  + 0.5*squeeze( sum(mag.*mag,1) );               % magnetic energy
+           
             
+ 
             %--- Perturb mass density in pre-shock region ---%
             %       Mass density gets perturbed in the pre-shock region just before the shock front
             %       to seed the formation of the instability.
