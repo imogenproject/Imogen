@@ -240,6 +240,10 @@ classdef ImogenArray < handle
            %                             * double( (obj.staticArray == obj.staticIndices(i)) );
             %end
             obj.pArray(obj.staticIndices) = obj.staticVals;
+dbstack
+obj.id
+obj.staticVals(1);
+
         end
         
 %___________________________________________________________________________________________________ readFades
@@ -291,10 +295,9 @@ classdef ImogenArray < handle
                 
                 %--- Flux array case ---%
                 if isa(obj,'FluxArray')
-                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
+                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL)
                     obj.staticIndices = SI;
                     obj.staticVals    = SV;
-fprintf('%s %i %i\n', obj.id{1}, obj.component, numel(SI));
 
                     if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
 %                    if isfield(staticStruct.(obj.id{1}), obj.id{2}) %FluxArray case
@@ -313,7 +316,10 @@ fprintf('%s %i %i\n', obj.id{1}, obj.component, numel(SI));
                 %--- Primary array case ---%
                 else
                     [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
-                    obj.staticIndices = SI;
+obj.id
+SI'
+SV'
+		    obj.staticIndices = SI;
                     obj.staticVals    = SV;
 
                     if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
@@ -363,6 +369,8 @@ fprintf('%s %i %i\n', obj.id{1}, obj.component, numel(SI));
 % when the array is updated.
 %>> statics     Array of static indices to be applied to object.                    uint8(Nx,Ny,Nz)
         function populateStatics(obj,statics)
+
+dbstack
 
             if isempty(statics)
                 obj.staticActive  = false;

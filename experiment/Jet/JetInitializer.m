@@ -121,19 +121,15 @@ classdef JetInitializer < Initializer
             jetEner = (obj.jetMass^obj.gamma)/(obj.gamma - 1) ...   % internal
                         + 0.5*(jetMom^2)/obj.jetMass ...            % kinetic
                         + 0.5*sum(obj.jetMags .* obj.jetMags, 2);   % magnetic
-                    
-            statics.values = [0, obj.jetMass, jetMom, jetEner, obj.jetMags(1), ...
-                            obj.jetMags(2), obj.jetMags(3)];
-       
 
 statics = StaticsInitializer();
              
 lind = zeros(obj.grid);
 lind(1:end) = 1:prod(obj.grid);
 
-xMin = max(obj.offset(1)-1,1);        xMax = min(obj.offset(1)+1,obj.grid(1));
-yMin = max(obj.offset(2)-1,1);        yMax = min(obj.offset(2)+1,obj.grid(2));
-zMin = max(obj.offset(3)-1,1);        zMax = min(obj.offset(3)+1,obj.grid(3));
+xMin = max(obj.offset(1)-2,1);        xMax = min(obj.offset(1)+2,obj.grid(1));
+yMin = max(obj.offset(2)-2,1);        yMax = min(obj.offset(2)+2,obj.grid(2));
+zMin = max(obj.offset(3)-2,1);        zMax = min(obj.offset(3)+2,obj.grid(3));
 
 statics.valueSet = {0, obj.jetMass, jetMom, jetEner, obj.jetMags(1), ...
                             obj.jetMags(2), obj.jetMags(3)};
@@ -141,19 +137,20 @@ statics.valueSet = {0, obj.jetMass, jetMom, jetEner, obj.jetMags(1), ...
 statics.indexSet = {lind(xMin:xMax+1,yMin:yMax,zMin:zMax)};
 
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 1, 2);
-statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 1, 4);
+%statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.FLUXL, 1, 2);
+%statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 1, 4);
 
-fields = {JetInitializer.X, JetInitializer.Y, JetInitializer.Z};
-for i = 1:3
-	if strcmp(obj.direction, fields{i});    momIndex = 3;
-        else                                    momIndex = 1;
-        end
-	statics.associateStatics(ENUM.MOM, ENUM.VECTOR(i), statics.CELLVAR, 1, momIndex);
-end
-statics.associateStatics(ENUM.MAG, ENUM.VECTOR(1), statics.CELLVAR, 1, 5);
-statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 6);
-statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 7);
+%fields = {JetInitializer.X, JetInitializer.Y, JetInitializer.Z};
+%for i = 1:3
+%	if strcmp(obj.direction, fields{i});    momIndex = 3;
+ %       else                                    momIndex = 1;
+  %      end
+	statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 1, 3);
+%end
 
+%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(1), statics.CELLVAR, 1, 5);
+%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 6);
+%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 7);
             
             if obj.mode.magnet;     obj.runCode = [obj.runCode 'Mag'];  end
             if obj.mode.gravity;    obj.runCode = [obj.runCode 'Grav']; end

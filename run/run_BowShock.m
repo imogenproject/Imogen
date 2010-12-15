@@ -4,8 +4,11 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = BowShockInitializer([192 192 1]);
-run.iterMax         = 500;
+grid = [128 128 1];
+run                 = BowShockInitializer(grid);
+run.iterMax         = 100;
+
+run.ballRadii = [32 32 inf];
 
 run.image.interval  = 5;
 run.image.mass      = true;

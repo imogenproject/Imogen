@@ -36,7 +36,7 @@ run.notes                       = '';
 if (true)
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
     ini.runCode = 'Debug';
-    imogen(mass, mom, ener, magnet, ini, []);
+    imogen(mass, mom, ener, magnet, ini, statics);
 end
 
 enderRun();

@@ -17,6 +17,9 @@ classdef BowShockInitializer < Initializer
     properties (SetAccess = public, GetAccess = public) %                           P U B L I C  [P]
         stencil;      % File name for the statics stencil (must be in data dir).        str
         staticType;   % Enumerated specification of how to apply static values.         str
+
+	ballRadii;    % 3x1, radii in all 3 dimensions					double
+	ballCenter;   % 3x1, center of the ball						double
     end %PUBLIC
 
 %===================================================================================================
@@ -53,7 +56,10 @@ classdef BowShockInitializer < Initializer
             
             obj.staticType       = BowShockInitializer.PRIMAY_MODE;
             obj.stencil          = 'SmallSphere_800x256.mat';
-            
+           
+            obj.ballRadii = [32 32 32];
+	    obj.ballCenter = round(input/2);
+	 
             obj.operateOnInput(input, [800, 256, 1]);
         end
                
@@ -107,15 +113,11 @@ classdef BowShockInitializer < Initializer
 
 Ledge = (X < 8); % Left edge - flow source
 
-X = X - obj.grid(1)/2;
-Y = Y - obj.grid(2)/2;
-norm = sqrt(X.^2 + Y.^2);
-
-ballrad = 32;
-
-ball = (norm <= ballrad) & (norm > (ballrad-3)); % Select a thin ring of cells to hold static
-
-mom(1,1:(obj.grid(1)/2 - ballrad - 10),:,:) = .75;
+X = X - obj.ballCenter(1);
+Y = Y - obj.ballCenter(2);
+norm = sqrt((X/obj.ballRadii(1)).^2 + (Y/obj.ballRadii(2)).^2);
+ball = (norm <= 1.0);
+mom(1,1:(obj.grid(1)/2 - max(obj.ballRadii) - 10),:,:) = .75;
 
 statics.indexSet{1} = find(ball);
 statics.indexSet{2} = find(Ledge);
@@ -130,19 +132,21 @@ statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 5);
 
 % Lock ball in place
 %statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 3);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 1);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
 %statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 6);
 
 % Zero flux at ball's surface.
-statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.FLUXL,   1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.FLUXL,   1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.FLUXL,   1, 1);
-statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.FLUXL,   1, 1);
+%statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.FLUXL,   1, 1);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.FLUXL,   1, 1);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.FLUXL,   1, 1);
+%statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.FLUXL,   1, 1);
 
 return;
+
+% This is the old code
 
             statics.values  = [0, normalMass, statMass, statXMom, normalEner, statEner];
 
