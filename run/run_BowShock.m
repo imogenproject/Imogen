@@ -1,20 +1,26 @@
-% Run a bow shock test.
-
 %-- Initialize Imogen directory ---%
 starterRun();
 
-%--- Initialize test ---%
-grid = [128 128 1];
+%--- Initialize bow shock ---%
+grid = [512 256 1];
 run                 = BowShockInitializer(grid);
-run.iterMax         = 100;
+run.iterMax         = 1500;
 
-run.ballRadii = [32 32 inf];
+%--- Adjustable simulation parameters ---%
 
+run.ballRadii = [24 24 1];
+%run.ballCenter =  [centerx centery centerz];
+run.bgVx      = 4;
+%run.bgRho     = 1;
+%run.ballVr    = 1;
+%run.ballRho   = 1;
+
+%--- Adjustable output parameters ---%
 run.image.interval  = 5;
 run.image.mass      = true;
 run.image.speed     = true;
 
-run.ppSave.dim2     = 25;
+run.ppSave.dim2     = 10;
 
 run.info            = 'Bow shock test.';
 run.notes           = '';

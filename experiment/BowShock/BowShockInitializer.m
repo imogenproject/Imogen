@@ -20,6 +20,14 @@ classdef BowShockInitializer < Initializer
 
 	ballRadii;    % 3x1, radii in all 3 dimensions					double
 	ballCenter;   % 3x1, center of the ball						double
+
+	bgRho;
+	bgVx;
+%	bgPressure;
+
+	ballRho;
+	ballVr;
+%	ballPressure;
     end %PUBLIC
 
 %===================================================================================================
@@ -44,7 +52,7 @@ classdef BowShockInitializer < Initializer
             obj.runCode          = 'Bow';
             obj.info             = 'Bow shock trial.';
             obj.mode.fluid		 = true;
-            obj.mode.magnet		 = true;
+            obj.mode.magnet		 = false;
             obj.mode.gravity	 = false;
             obj.cfl				 = 0.7;
             obj.iterMax          = 10;
@@ -59,6 +67,14 @@ classdef BowShockInitializer < Initializer
            
             obj.ballRadii = [32 32 32];
 	    obj.ballCenter = round(input/2);
+
+	    obj.bgRho	     = .125;
+	    obj.bgVx         = 1;
+%	    obj.bgPressure   = 1
+
+            obj.ballRho      = 1;
+	    obj.ballVr       = 1;
+%	    obj.ballPressure = 1;
 	 
             obj.operateOnInput(input, [800, 256, 1]);
         end
@@ -95,47 +111,53 @@ classdef BowShockInitializer < Initializer
             %end
 
             %--- Background Values ---%
-            mass	= 0.125 * ones(obj.grid);
+            mass	= zeros(obj.grid);
             mom		= zeros([3 obj.grid]);
             mag		= zeros([3 obj.grid]);
-            ener	= (mass.^obj.gamma )./ (obj.gamma - 1);
+	    ener	= zeros(obj.grid);
 
             %--- Static Values ---%
-            normalMass		= 0.125;
-            normalEner      = (normalMass^obj.gamma)/(obj.gamma-1);
-            statMass		= 1;
-            statXMom		= .75;
-            statEner		= (statMass^obj.gamma)/(obj.gamma-1) + 0.5*(statXMom*statXMom)/statMass;
-
 	    statics = StaticsInitializer();
 
-[X Y] = ndgrid(1:obj.grid(1), 1:obj.grid(2));
+	    [X Y] = ndgrid(1:obj.grid(1), 1:obj.grid(2));
+	    Ledge = (X < 8); % Left edge - we establish plane flow here
 
-Ledge = (X < 8); % Left edge - flow source
+	    % The obstacle is a spheroid 
+	    X = X - obj.ballCenter(1);
+	    Y = Y - obj.ballCenter(2);
+	    norm = sqrt((X/obj.ballRadii(1)).^2 + (Y/obj.ballRadii(2)).^2);
+	    ball = (norm <= 1.0);
 
-X = X - obj.ballCenter(1);
-Y = Y - obj.ballCenter(2);
-norm = sqrt((X/obj.ballRadii(1)).^2 + (Y/obj.ballRadii(2)).^2);
-ball = (norm <= 1.0);
-mom(1,1:(obj.grid(1)/2 - max(obj.ballRadii) - 10),:,:) = .75;
+	    % set background values
+	    mom(1,1:round(obj.grid(1)/2 - obj.ballRadii(1)-25),:,:) = obj.bgVx*obj.bgRho;
+	    mass(:) = obj.bgRho;
+	    ener(:) = obj.bgRho.^obj.gamma / (obj.gamma-1) + .5*squeeze(mom(1,:,:,:).^2)./mass;
 
-statics.indexSet{1} = find(ball);
-statics.indexSet{2} = find(Ledge);
-statics.valueSet = {0, normalMass, statMass, statXMom, normalEner, statEner};
+	    statics.indexSet{1} = find(ball);
+	    statics.indexSet{2} = find(Ledge);
+
+	    xhat = X/obj.ballRadii(1);
+            yhat = Y/obj.ballRadii(2);
+
+	    ballMomRadial = obj.ballVr*obj.ballRho;
+	    ballEner      = (obj.ballRho^obj.gamma)/(obj.gamma-1) + .5*ballMomRadial^2.*norm(ball)/obj.ballRho;
+
+	    statics.valueSet = {0, obj.bgRho, obj.bgRho*obj.bgVx, ener(1), obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballEner};
+
 
 % Force a left-edge plane flow
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 4);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
 statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
-statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 5);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
 
 % Lock ball in place
-%statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 3);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
-%statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 6);
+statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
+statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
+%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 8);
 
 % Zero flux at ball's surface.
 %statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
