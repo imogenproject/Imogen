@@ -15,19 +15,19 @@ classdef BowShockInitializer < Initializer
     
 %===================================================================================================
     properties (SetAccess = public, GetAccess = public) %                           P U B L I C  [P]
-        stencil;      % File name for the statics stencil (must be in data dir).        str
-        staticType;   % Enumerated specification of how to apply static values.         str
+        stencil;      % File name for the statics stencil (must be in data dir).            str
+        staticType;   % Enumerated specification of how to apply static values.             str
 
-	ballRadii;    % 3x1, radii in all 3 dimensions					double
-	ballCenter;   % 3x1, center of the ball						double
+        ballRadii;    % 3x1, radii in all 3 dimensions                                      double
+        ballCenter;   % 3x1, center of the ball                                             double
 
-	bgRho;
-	bgVx;
-%	bgPressure;
+        bgRho;
+        bgVx;
+%        bgPressure;
 
-	ballRho;
-	ballVr;
-%	ballPressure;
+        ballRho;
+        ballVr;
+%        ballPressure;
     end %PUBLIC
 
 %===================================================================================================
@@ -51,14 +51,18 @@ classdef BowShockInitializer < Initializer
             obj.gamma            = 5/3;
             obj.runCode          = 'Bow';
             obj.info             = 'Bow shock trial.';
-            obj.mode.fluid		 = true;
-            obj.mode.magnet		 = false;
-            obj.mode.gravity	 = false;
-            obj.cfl				 = 0.7;
+            obj.mode.fluid       = true;
+            obj.mode.magnet      = false;
+            obj.mode.gravity     = false;
+            obj.cfl              = 0.7;
             obj.iterMax          = 10;
-            obj.bcMode.x		 = 'trans';
-            obj.bcMode.y		 = 'trans';
-            obj.bcMode.z         = 'circ';
+            obj.bcMode.x         = 'trans';
+            obj.bcMode.y         = 'fade';
+            if input(3) > 1
+                obj.bcMode.z     = 'fade';
+            else
+                obj.bcMode.z     = 'circ';
+            end
             obj.activeSlices.xy  = true;
             obj.ppSave.dim2      = 25;
             
@@ -66,16 +70,16 @@ classdef BowShockInitializer < Initializer
             obj.stencil          = 'SmallSphere_800x256.mat';
            
             obj.ballRadii = [32 32 32];
-	    obj.ballCenter = round(input/2);
+            obj.ballCenter = round(input/2);
 
-	    obj.bgRho	     = .125;
-	    obj.bgVx         = 1;
-%	    obj.bgPressure   = 1
+            obj.bgRho             = .125;
+            obj.bgVx         = 1;
+%            obj.bgPressure   = 1
 
             obj.ballRho      = 1;
-	    obj.ballVr       = 1;
-%	    obj.ballPressure = 1;
-	 
+            obj.ballVr       = 1;
+%            obj.ballPressure = 1;
+         
             obj.operateOnInput(input, [800, 256, 1]);
         end
                
@@ -91,133 +95,71 @@ classdef BowShockInitializer < Initializer
         
 %___________________________________________________________________________________________________ calculateInitialConditions
         function [mass, mom, ener, mag, statics] = calculateInitialConditions(obj)
-        % Returns the initial conditions for a magnetic shock tube according to the settings for
-        % the initializer.
+        % Returns the initial conditions for a bow shock simulation
         % USAGE: [mass, mom, ener, mag, statics, run] = getInitialConditions();
         
-            %--- Initialization ---%
-            %pathStr = fileparts(mfilename);
-            %load([pathStr filesep 'data' filesep obj.stencil]);
-            %if ~exist('staticArray','var'); 
-            %    error('Imogen:Initializer',['Static stencil array not found in loaded stencil ' ...
-            %          'file. Unable to continue']);
-            %end
-            
-            %N = size(staticArray);
-            %if (obj.make3D(N) ~= obj.grid); 
-            %    warning('Imogen:Initializer',['Current grid size property doesn''t match ' ...
-            %%%            'stencil size. Adjusting grid to match.']);
-            %    obj.grid = N;
-            %end
-
             %--- Background Values ---%
-            mass	= zeros(obj.grid);
-            mom		= zeros([3 obj.grid]);
-            mag		= zeros([3 obj.grid]);
-	    ener	= zeros(obj.grid);
+            mass        = zeros(obj.grid);
+            mom                = zeros([3 obj.grid]);
+            mag                = zeros([3 obj.grid]);
+            ener        = zeros(obj.grid);
 
             %--- Static Values ---%
-	    statics = StaticsInitializer();
+            statics = StaticsInitializer();
 
-	    [X Y] = ndgrid(1:obj.grid(1), 1:obj.grid(2));
-	    Ledge = (X < 8); % Left edge - we establish plane flow here
+            [X Y Z] = ndgrid(1:obj.grid(1), 1:obj.grid(2), 1:obj.grid(3));
+            Ledge = (X < 8); % Left edge - we establish plane flow here
 
-	    % The obstacle is a spheroid 
-	    X = X - obj.ballCenter(1);
-	    Y = Y - obj.ballCenter(2);
-	    norm = sqrt((X/obj.ballRadii(1)).^2 + (Y/obj.ballRadii(2)).^2);
-	    ball = (norm <= 1.0);
+            % The obstacle is a spheroid 
+            X = X - obj.ballCenter(1);
+            Y = Y - obj.ballCenter(2);
+            Z = Z - obj.ballCenter(3);
+            norm = sqrt((X/obj.ballRadii(1)).^2 + (Y/obj.ballRadii(2)).^2 + (Z/obj.ballRadii(3)).^2);
+            ball = (norm <= 1.0);
 
-	    % set background values
-	    mom(1,1:round(obj.grid(1)/2 - obj.ballRadii(1)-25),:,:) = obj.bgVx*obj.bgRho;
-	    mass(:) = obj.bgRho;
-	    ener(:) = obj.bgRho.^obj.gamma / (obj.gamma-1) + .5*squeeze(mom(1,:,:,:).^2)./mass;
+            % set background values
+            mom(1,1:round(obj.ballCenter(1) - obj.ballRadii(1)-25),:,:) = obj.bgVx*obj.bgRho;
+            mass(:) = obj.bgRho;
+            ener(:) = obj.bgRho.^obj.gamma / (obj.gamma-1) + .5*squeeze(mom(1,:,:,:).^2)./mass;
 
-	    statics.indexSet{1} = find(ball);
-	    statics.indexSet{2} = find(Ledge);
+            statics.indexSet{1} = find(ball);
+            statics.indexSet{2} = find(Ledge);
 
-	    xhat = X/obj.ballRadii(1);
+            xhat = X/obj.ballRadii(1);
             yhat = Y/obj.ballRadii(2);
 
-	    ballMomRadial = obj.ballVr*obj.ballRho;
-	    ballEner      = (obj.ballRho^obj.gamma)/(obj.gamma-1) + .5*ballMomRadial^2.*norm(ball)/obj.ballRho;
+            ballMomRadial = obj.ballVr*obj.ballRho;
+            ballEner      = (obj.ballRho^obj.gamma)/(obj.gamma-1) + .5*ballMomRadial^2.*norm(ball)/obj.ballRho;
 
-	    statics.valueSet = {0, obj.bgRho, obj.bgRho*obj.bgVx, ener(1), obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballEner};
+            statics.valueSet = {0, obj.bgRho, obj.bgRho*obj.bgVx, ener(1), ...
+                obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballEner};
 
-
-% Force a left-edge plane flow
-statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
-statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
-
-% Lock ball in place
-statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
-statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
-statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 8);
-
-% Zero flux at ball's surface.
-%statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.FLUXL,   1, 1);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.FLUXL,   1, 1);
-%statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.FLUXL,   1, 1);
-%statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.FLUXL,   1, 1);
-
-return;
-
-% This is the old code
-
-            statics.values  = [0, normalMass, statMass, statXMom, normalEner, statEner];
-
-            %--- Static Arrays ---%
-            L = 5; U = 10;
-            switch obj.staticType
-                case BowShockInitializer.PRIMAY_MODE
-                    statics.mass.s = uint8(2*staticArray);		statics.mass.s(L:U,:,:) = 3;
-
-                    statics.mom.s = uint8(zeros([3 N]));
-                    statics.mom.s(1,:,:,:) = staticArray;		statics.mom.s(1,L:U,:,:) = 4;
-                    statics.mom.s(2,:,:,:) = staticArray;
-                    statics.mom.s(3,:,:,:) = staticArray;
-
-                    statics.ener.s =uint8(5*staticArray);       statics.ener.s(L:U,:,:)  = 6;
-
-                case BowShockInitializer.FLUX_MODE
-                    statics.mass.flux.s = staticArray;
-
-                    statics.mom.flux.s			= uint8(zeros([3 N]));
-                    statics.mom.flux.s(1,:,:,:) = staticArray;
-                    statics.mom.flux.s(2,:,:,:) = staticArray;
-                    statics.mom.flux.s(3,:,:,:) = staticArray;
-
-                    statics.ener.flux.s = staticArray;
-
-                    statics.mag.flux.s			= uint8(zeros([3 N]));
-                    statics.mag.flux.s(1,:,:,:) = staticArray;
-                    statics.mag.flux.s(2,:,:,:) = staticArray;
-                    statics.mag.flux.s(3,:,:,:) = staticArray;
-            
-                case BowShockInitializer.FLUX_LR_MODE;
-
-                    statics.mass.fluxl.s = staticArray;
-                    statics.mom.fluxl.s			 = uint8(zeros([3 N]));
-                    statics.mom.fluxl.s(1,:,:,:) = staticArray;
-                    statics.mom.fluxl.s(2,:,:,:) = staticArray;
-                    statics.mom.fluxl.s(3,:,:,:) = staticArray;
-                    statics.ener.fluxl.s = staticArray;
-
-                    statics.mass.fluxr.s = staticArray;
-                    statics.mom.fluxr.s			 = uint8(zeros([3 N]));
-                    statics.mom.fluxr.s(1,:,:,:) = staticArray;
-                    statics.mom.fluxr.s(2,:,:,:) = staticArray;
-                    statics.mom.fluxr.s(3,:,:,:) = staticArray;
-                    statics.ener.fluxr.s = staticArray;
+            % Force a left-edge plane flow
+            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
+            if obj.grid(3) > 1            
+                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
             end
-        end
+            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
         
+            % Lock ball in place
+            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
+            if obj.grid(3) > 1    
+                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
+            end
+            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 8);
+        
+            % Zero flux at ball's surface.
+            %statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
+            %statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.FLUXL,   1, 1);
+            %statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.FLUXL,   1, 1);
+            %statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.FLUXL,   1, 1);
+            %statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.FLUXL,   1, 1);
+        end
+
     end%PROTECTED
         
 %===================================================================================================    

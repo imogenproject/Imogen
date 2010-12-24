@@ -47,15 +47,12 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
         %run.time.updateUI();
         
         for i=1:2 % Two timesteps per iteration
-fprintf('========== STARTING MAIN LOOP phase %i===========\n', i);
             run.time.update(mass, mom, ener, mag, i);
             flux(run, mass, mom, ener, mag, grav, direction(i));
             treadmillGrid(run, mass, mom, ener, mag);
             run.gravity.solvePotential(run, mass, grav);
             source(run, mass, mom, ener, mag, grav);
         end
-
-%error('Stop aftering first loopsest.\n');
 
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);

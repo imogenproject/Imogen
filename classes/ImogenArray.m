@@ -231,19 +231,7 @@ classdef ImogenArray < handle
 % Applies the static conditions for the ImogenArray to the data array. This method is called during
 % array assignment (set.array).
         function applyStatics(obj)
-            %--- Zero any static cells ---%
-        %    obj.pArray = double(not(obj.staticArray)) .* obj.pArray;
-
-            %--- Fill in static values by index ---%
-         %   for i=1:length(obj.staticIndices)
-          %     obj.pArray = obj.pArray +  obj.staticVals(obj.staticIndices(i)) ...
-           %                             * double( (obj.staticArray == obj.staticIndices(i)) );
-            %end
             obj.pArray(obj.staticIndices) = obj.staticVals;
-dbstack
-obj.id
-obj.staticVals(1);
-
         end
         
 %___________________________________________________________________________________________________ readFades
@@ -316,10 +304,7 @@ obj.staticVals(1);
                 %--- Primary array case ---%
                 else
                     [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
-obj.id
-SI'
-SV'
-		    obj.staticIndices = SI;
+                    obj.staticIndices = SI;
                     obj.staticVals    = SV;
 
                     if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
@@ -369,8 +354,6 @@ SV'
 % when the array is updated.
 %>> statics     Array of static indices to be applied to object.                    uint8(Nx,Ny,Nz)
         function populateStatics(obj,statics)
-
-dbstack
 
             if isempty(statics)
                 obj.staticActive  = false;
