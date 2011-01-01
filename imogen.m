@@ -20,6 +20,13 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
     run.preliminary();
 
     %--- Create Primary Data Objects ---%
+    if run.useGPU
+	massDen = GPUdouble(massDen);
+	momDen  = GPUdouble(momDen);
+	enerDen = GPUdouble(enerDen);
+	magnet  = GPUdouble(magnet);
+    end
+
     mass = FluidArray(ENUM.SCALAR, ENUM.MASS, massDen, run, statics);
     ener = FluidArray(ENUM.SCALAR, ENUM.ENER, enerDen, run, statics);
     grav = GravityArray(ENUM.GRAV, run, statics);
@@ -47,12 +54,15 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
         %run.time.updateUI();
         
         for i=1:2 % Two timesteps per iteration
+%fprintf('========= ENTERING MAIN LOOP =========\n');
             run.time.update(mass, mom, ener, mag, i);
             flux(run, mass, mom, ener, mag, grav, direction(i));
             treadmillGrid(run, mass, mom, ener, mag);
             run.gravity.solvePotential(run, mass, grav);
             source(run, mass, mom, ener, mag, grav);
         end
+
+%error('Stop, we did the first step correctly.');
 
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);

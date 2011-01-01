@@ -1,4 +1,4 @@
-function exportAnimatedToEnsight(outBasename, inBasename, padlength, oldrange, addrange, timeNormalization)
+function appendAnimatedToEnsight(outBasename, inBasename, padlength, oldrange, addrange, timeNormalization)
 %>> outBasename:       Base filename for output Ensight files
 %>> inBasename:        Input filename for Imogen .mat savefiles
 %>> padlength:         Number of zeros in Imogen filenames

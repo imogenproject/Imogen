@@ -31,7 +31,7 @@ function [result, aux] = pressure(mode, run, mass, momvel, ener, mag)
             magSquared = magSquared + mag(i).cellMag.array .* mag(i).cellMag.array;
         end
     end
-	
+
 	%Calculate the fluid pressure
 	result = (GAMMA - 1.0)*(ener.array - 0.5*mass.array .* velSquared);
 	
@@ -62,5 +62,6 @@ function [result, aux] = pressure(mode, run, mass, momvel, ener, mag)
             end
 	end 
 	
-	result = max( result, 0); 
+	
+	result(result < 0) = 0.0;
 end

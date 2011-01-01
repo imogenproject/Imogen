@@ -18,7 +18,7 @@ classdef BowShockInitializer < Initializer
         stencil;      % File name for the statics stencil (must be in data dir).            str
         staticType;   % Enumerated specification of how to apply static values.             str
 
-        ballRadii;    % 3x1, radii in all 3 dimensions                                      double
+        ballCells;    % 3x1, radii in all 3 dimensions                                      double
         ballCenter;   % 3x1, center of the ball                                             double
 
         bgRho;
@@ -27,7 +27,9 @@ classdef BowShockInitializer < Initializer
 
         ballRho;
         ballVr;
+        ballXRadius;
 %        ballPressure;
+
     end %PUBLIC
 
 %===================================================================================================
@@ -69,8 +71,9 @@ classdef BowShockInitializer < Initializer
             obj.staticType       = BowShockInitializer.PRIMAY_MODE;
             obj.stencil          = 'SmallSphere_800x256.mat';
            
-            obj.ballRadii = [32 32 32];
+            obj.ballCells = [32 32 32];
             obj.ballCenter = round(input/2);
+	    obj.ballXRadius = 1;
 
             obj.bgRho             = .125;
             obj.bgVx         = 1;
@@ -114,25 +117,28 @@ classdef BowShockInitializer < Initializer
             X = X - obj.ballCenter(1);
             Y = Y - obj.ballCenter(2);
             Z = Z - obj.ballCenter(3);
-            norm = sqrt((X/obj.ballRadii(1)).^2 + (Y/obj.ballRadii(2)).^2 + (Z/obj.ballRadii(3)).^2);
+            norm = sqrt((X/obj.ballCells(1)).^2 + (Y/obj.ballCells(2)).^2 + (Z/obj.ballCells(3)).^2);
             ball = (norm <= 1.0);
 
             % set background values
-            mom(1,1:round(obj.ballCenter(1) - obj.ballRadii(1)-25),:,:) = obj.bgVx*obj.bgRho;
+            mom(1,1:round(obj.ballCenter(1) - obj.ballCells(1)-30),:,:) = obj.bgVx*obj.bgRho;
             mass(:) = obj.bgRho;
             ener(:) = obj.bgRho.^obj.gamma / (obj.gamma-1) + .5*squeeze(mom(1,:,:,:).^2)./mass;
+
+	    obj.dGrid = obj.ballXRadius / obj.ballCells(1);
 
             statics.indexSet{1} = find(ball);
             statics.indexSet{2} = find(Ledge);
 
-            xhat = X/obj.ballRadii(1);
-            yhat = Y/obj.ballRadii(2);
+            xhat = X/obj.ballCells(1);
+            yhat = Y/obj.ballCells(2);
+            zhat = Z/obj.ballCells(3);
 
             ballMomRadial = obj.ballVr*obj.ballRho;
             ballEner      = (obj.ballRho^obj.gamma)/(obj.gamma-1) + .5*ballMomRadial^2.*norm(ball)/obj.ballRho;
 
             statics.valueSet = {0, obj.bgRho, obj.bgRho*obj.bgVx, ener(1), ...
-                obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballEner};
+                obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballMomRadial*zhat(ball), ballEner};
 
             % Force a left-edge plane flow
             statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
@@ -148,9 +154,9 @@ classdef BowShockInitializer < Initializer
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
             if obj.grid(3) > 1    
-                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
+                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 8);
             end
-            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 8);
+            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 9);
         
             % Zero flux at ball's surface.
             %statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);

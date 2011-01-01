@@ -248,7 +248,7 @@ classdef SaveManager < handle
 			if iscodistributed(array)
 				result = squeeze( gather(array(i{:}),1) );
 			else
-				result = squeeze( array(i{:}) );
+				result = double(squeeze( array(i{:}) ));
 			end
 		end
 		

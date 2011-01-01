@@ -26,6 +26,8 @@ classdef ImogenManager < handle
         gridSize;       % Grid size for the arrays.                                     int(3)
         paths;          % Contains various paths needed for saving data.                Paths
         fades;          %
+
+        useGPU;         % if true, Imogen is running on a GPU device - some changes in behavior necessary.
         
         %--- Manager Classes ---%
         bc;             % Manages boundary conditions.                              BCManager

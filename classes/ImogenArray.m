@@ -79,6 +79,13 @@ classdef ImogenArray < handle
         % Sets the data array to the new value and cleans up faded and static cells.
             obj.pArray        = value;
 
+	q = isnan(double(value));
+
+	if max(q(:)) > 0
+	dbstack
+	error('I fucked up');
+end
+
             if ~isempty(obj.pFadesValue),       obj.applyFades();       end % Fade array.
             if obj.staticActive,                obj.applyStatics();     end % Enforce static values.
             if obj.pUninitialized,              obj.applyInitialize();  end % Initialize if needed.
@@ -283,7 +290,7 @@ classdef ImogenArray < handle
                 
                 %--- Flux array case ---%
                 if isa(obj,'FluxArray')
-                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL)
+                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
                     obj.staticIndices = SI;
                     obj.staticVals    = SV;
 
