@@ -54,7 +54,6 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
         %run.time.updateUI();
         
         for i=1:2 % Two timesteps per iteration
-%fprintf('========= ENTERING MAIN LOOP =========\n');
             run.time.update(mass, mom, ener, mag, i);
             flux(run, mass, mom, ener, mag, grav, direction(i));
             treadmillGrid(run, mass, mom, ener, mag);
@@ -62,7 +61,11 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
             source(run, mass, mom, ener, mag, grav);
         end
 
-%error('Stop, we did the first step correctly.');
+
+%run.time.iteration
+%mass.array
+%mom(1).array
+%ener.array
 
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);

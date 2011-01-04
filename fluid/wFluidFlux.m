@@ -19,6 +19,7 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
     press             = press + run.fluid.viscosity.solve(run, mass, mom, ener, mag, soundSpd, X);  % (run, mass, mom, soundSpd, X);
     velocity          = mom(X).array ./ mass.array;
 
+
     if run.useGPU
         spd               = GPUdouble(max( double(abs(velocity) + soundSpd) ,[],X) );
     else
@@ -34,9 +35,10 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
     %-------------------------------------------------
     
     %--- MASS DENSITY ---%
-    mass.wArray    = mom(X).array; 
-    mass.wArray    = mass.wArray ./ freezeSpd.array;
+    mass.wArray    = mom(X).array ./ freezeSpd.array;
     
+
+
     %--- ENERGY DENSITY ---%
     ener.wArray    = velocity .* (ener.array + press) - mag(X).cellMag.array .* ...
                         ( mag(1).cellMag.array .* mom(1).array ...
@@ -49,6 +51,15 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
         mom(i).wArray    = velocity .* mom(i).array + press*dirVec(i)...
                              - mag(X).cellMag.array .* mag(i).cellMag.array;
         mom(i).wArray    = mom(i).wArray ./ freezeSpd.array;
+
+q=isnan(double(mom(i).wArray));
+if max(q(:))>0;
+mass.array
+velocity
+%mom(i).array
+%press
+
+error('mom nan'); end
     end
 
 end

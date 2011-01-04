@@ -61,7 +61,12 @@ function [result, aux] = pressure(mode, run, mass, momvel, ener, mag)
                 result = 0.5*magSquared;
             end
 	end 
-	
-	
-	result(result < 0) = 0.0;
+
+if run.useGPU	
+    result = double(result);
+    result(result < 0) = 0.0;
+    result = GPUdouble(result);
+else
+    result(result < 0) = 0;
+end
 end

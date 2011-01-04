@@ -4,18 +4,17 @@
 starterRun();
 
 %--- Initialize test ---%
-run             = AdvectionInitializer([32 4 4 ]);
-run.iterMax     = 20;
+run             = AdvectionInitializer([64 4 4]);
+run.iterMax     = 250;
 run.info        = 'Advection test.';
 run.notes       = 'Simple advection test in the x-direction.';
 
-run.image.interval = 2;
+run.image.interval = 5;
 run.image.mass = true;
 %run.ppSave.dim2 = 20;
 
-
 run.useGPU      = true;
-run.gpuDeviceNumber = 0;
+run.gpuDeviceNumber = 2;
 
 %--- Run tests ---%
 if (true)

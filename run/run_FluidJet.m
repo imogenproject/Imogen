@@ -4,15 +4,15 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = JetInitializer([2048 512 1]);
-run.iterMax         = 4000;
-run.offset          = [20 256 1];
-run.bcMode.x        = 'fade';
+run                 = JetInitializer([512 256 1]);
+run.iterMax         = 1000;
+run.offset          = [20 128 1];
+run.bcMode.x        = 'circ';
 run.bcMode.y        = 'circ';
 run.direction       = JetInitializer.X;
 run.flip            = false;
 
-run.image.interval	= 5;
+run.image.interval	= 10;
 run.image.mass		= true;
 run.image.speed = true;
 
@@ -21,6 +21,9 @@ run.notes           = '';
 
 run.jetMass = 3;
 run.jetMach = 5;
+
+run.useGPU = false;
+run.gpuDeviceNumber = 0;
 
 %--- Run tests ---%
 if (true)

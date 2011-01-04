@@ -79,10 +79,16 @@ classdef ImogenArray < handle
         % Sets the data array to the new value and cleans up faded and static cells.
             obj.pArray        = value;
 
+%obj.id
+%value(:,1,1)'
 	q = isnan(double(value));
 
+%    dbstack
+    
 	if max(q(:)) > 0
 	dbstack
+obj.id
+value
 	error('I fucked up');
 end
 
