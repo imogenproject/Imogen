@@ -25,32 +25,18 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
     tempFreeze = run.fluid.freezeSpd(X).array;
 
     for i=1:5
-q=isnan(double(v(i).array));
-
-	if max(q(:)) > 0;
-i
-v(i).array
-error('nan!');
-end
-q=isnan(double(v(i).wArray));
-if max(q(:)) > 0;
-i
-v(i).wArray
-error('nans!!')
-end
-
         v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
         v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
         v(i).store.array = v(i).array - 0.5*fluxFactor .* tempFreeze .* ...
                         ( v(i).store.fluxR.array - v(i).store.fluxR.shift(X,-1) ...
                         + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
-    
-    v(i).store.cleanup();
+   
+        v(i).store.cleanup();
     end
 
        
     if run.useGPU == 1
-        mass.store.array = GPUdouble(max(double(mass.store.array), run.fluid.MINMASS));
+        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_MIN);
     else
         mass.store.array = max(mass.store.array, run.fluid.MINMASS);
     end
@@ -82,7 +68,8 @@ end
     end
 
     if run.useGPU == 1
-        mass.store.array = GPUdouble(max(double(mass.store.array), run.fluid.MINMASS));
+%        mass.store.array = GPUdouble(max(double(mass.store.array), run.fluid.MINMASS));
+        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_MIN);
     else
         mass.store.array = max(mass.store.array, run.fluid.MINMASS);
     end

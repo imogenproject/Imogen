@@ -6,10 +6,18 @@ function vanleerLimiter(flux, dLeft, dRight)
 %>> dLeft    Differences between left fluxVals.                             double(Nx,Ny,Nz)
 %>> dRight   Differences between right fluxVals.                            double(Nx,Ny,Nz)
 
+
+
     if isa(dLeft,'GPUdouble') == 1
-        signTest = max(double(dLeft .* dRight), 0) ./ double(dLeft + dRight); % 1. Harmonic average.
-        signTest(isnan(signTest)) = 0;
-	signTest = GPUdouble(signTest);        
+%	signTest = ( max(double(dLeft .* dRight), 0) ./ double(dLeft + dRight));
+%	signTest(isnan(signTest)) = 0;
+%	signTest = GPUdouble(signTest);
+
+        signTest = dLeft.*dRight;
+	cudaArrayAtomic(signTest, 0, ENUM.CUATOMIC_MIN);
+	signTest = double(signTest ./(dLeft+dRight));
+	signTest(isnan(signTest)) = 0;
+        signTest = GPUdouble(signTest);
     else
         signTest = max(dLeft .* dRight, 0) ./ (dLeft + dRight); % 1. Harmonic average.
         signTest(isnan(signTest)) = 0;                          % 2. Remove NaN.

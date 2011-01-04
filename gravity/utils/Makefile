@@ -6,7 +6,7 @@ GPUMAT_DIR=/home/erik/GPUmat
 MATLAB_DIR=/opt/Matlab/matlab2010b
 CUDA_DIR = /usr/local/cuda
 CUDA_LDIR = lib64
-CUDA_ARCH = sm_20
+CUDA_ARCH = sm_13
 
 # Don't mess with these
 GPUMAT_INCL = -I$(GPUMAT_DIR)/modules/include
@@ -21,7 +21,7 @@ MEX_LDIR  = -L$(CUDA_DIR)/$(CUDA_LDIR)
 MEX_LIBS  = -lcuda -lcudart -lcublas
 
 ###############################################################################
-all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate
+all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate cudaArrayAtomic
 
 
 kernels: cudaKernels.cu
@@ -58,6 +58,11 @@ integralPoisson_mg: integralPoisson_mg.cu kernels
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda integralPoisson_mg.cu -o integralPoisson_mg.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) integralPoisson_mg.cpp $(GPUMAT_CPP) cudaKernels.cpp -o integralPoisson_mg $(MEX_LDIR) $(MEX_LIBS)
 	rm -f integralPoisson_mg.cpp
+
+cudaArrayAtomic: cudaArrayAtomic.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaArrayAtomic.cu -o cudaArrayAtomic.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaArrayAtomic.cpp $(GPUMAT_CPP) -o cudaArrayAtomic $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaArrayAtomic.cpp
 
 clean:
 	rm -f *mexa64 cudaKernels.cpp

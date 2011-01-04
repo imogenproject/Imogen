@@ -36,8 +36,6 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
     
     %--- MASS DENSITY ---%
     mass.wArray    = mom(X).array ./ freezeSpd.array;
-    
-
 
     %--- ENERGY DENSITY ---%
     ener.wArray    = velocity .* (ener.array + press) - mag(X).cellMag.array .* ...
@@ -51,15 +49,6 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
         mom(i).wArray    = velocity .* mom(i).array + press*dirVec(i)...
                              - mag(X).cellMag.array .* mag(i).cellMag.array;
         mom(i).wArray    = mom(i).wArray ./ freezeSpd.array;
-
-q=isnan(double(mom(i).wArray));
-if max(q(:))>0;
-mass.array
-velocity
-%mom(i).array
-%press
-
-error('mom nan'); end
     end
 
 end
