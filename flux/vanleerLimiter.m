@@ -13,15 +13,24 @@ function vanleerLimiter(flux, dLeft, dRight)
 %	signTest(isnan(signTest)) = 0;
 %	signTest = GPUdouble(signTest);
 
-        signTest = dLeft.*dRight;
-	cudaArrayAtomic(signTest, 0, ENUM.CUATOMIC_MIN);
-	signTest = double(signTest ./(dLeft+dRight));
-	signTest(isnan(signTest)) = 0;
-        signTest = GPUdouble(signTest);
+%        signTest = dLeft.*dRight;
+%	cudaArrayAtomic(signTest, 0, ENUM.CUATOMIC_SETMIN);
+%	signTest = double(signTest ./(dLeft+dRight));
+%	signTest(isnan(signTest)) = 0;
+%        signTest = GPUdouble(signTest);
+	signTest  = GPUdouble(); setReal(signTest); setSize(signTest, size(dLeft)); GPUallocVector(signTest);
+	%signTest = zeros(size(dLeft), GPUdouble);
+	fluxLimiterKernels(dLeft, dRight, signTest, 1);
+
+%	sb = max(double(dLeft .* dRight), 0) ./ double(dLeft + dRight);
+%	sb(isnan(sb))=0;
+	%double(signTest)-2*sb
+
+	flux.array = flux.array + signTest;                   % 3. Impose monotonicity.
     else
         signTest = max(dLeft .* dRight, 0) ./ (dLeft + dRight); % 1. Harmonic average.
         signTest(isnan(signTest)) = 0;                          % 2. Remove NaN.
+	flux.array = flux.array + 2*signTest;                   % 3. Impose monotonicity.
     end
 
-    flux.array = flux.array + 2*signTest;                   % 3. Impose monotonicity.
 end

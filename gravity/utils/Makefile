@@ -21,7 +21,7 @@ MEX_LDIR  = -L$(CUDA_DIR)/$(CUDA_LDIR)
 MEX_LIBS  = -lcuda -lcudart -lcublas
 
 ###############################################################################
-all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate cudaArrayAtomic
+all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate cudaArrayAtomic fluxLimiterKernels
 
 
 kernels: cudaKernels.cu
@@ -63,6 +63,11 @@ cudaArrayAtomic: cudaArrayAtomic.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaArrayAtomic.cu -o cudaArrayAtomic.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaArrayAtomic.cpp $(GPUMAT_CPP) -o cudaArrayAtomic $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaArrayAtomic.cpp
+
+fluxLimiterKernels: fluxLimiterKernels.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda fluxLimiterKernels.cu -o fluxLimiterKernels.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) fluxLimiterKernels.cpp $(GPUMAT_CPP) -o fluxLimiterKernels $(MEX_LDIR) $(MEX_LIBS)
+	rm -f fluxLimiterKernels.cpp
 
 clean:
 	rm -f *mexa64 cudaKernels.cpp

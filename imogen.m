@@ -61,12 +61,6 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
             source(run, mass, mom, ener, mag, grav);
         end
 
-
-%run.time.iteration
-%mass.array
-%mom(1).array
-%ener.array
-
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);
         run.time.step();

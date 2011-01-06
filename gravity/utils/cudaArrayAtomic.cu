@@ -45,24 +45,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   int numDims        = gm->gputype.getNdims(srcArray);
   const int *dims    = gm->gputype.getSize(srcArray);
 
-  dim3 gridsize;
-  gridsize.x = dims[1]/BLOCKDIM;
-  numDims == 3 ? gridsize.y = dims[2]/BLOCKDIM : gridsize.y = 1;
-  gridsize.z = 1;
+  dim3 gridsize, blocksize;
+  int nzToPass;
 
-  if(gridsize.x * BLOCKDIM < dims[1]) gridsize.x++;
-  if(numDims == 3) if(gridsize.y * BLOCKDIM < dims[2]) gridsize.y++;
-  
-  dim3 blocksize;
-  blocksize.x = blocksize.y = BLOCKDIM;
-  blocksize.z = 1;
+  switch(numDims) {
+    case 2:
+      gridsize.x = dims[1]/BLOCKDIM; if(gridsize.x * BLOCKDIM < dims[1]) gridsize.x++;
+      gridsize.y = 1;
+      gridsize.z = 1;
+      blocksize.x = BLOCKDIM;
+      blocksize.y = 1;
+      blocksize.z = 1;
+      nzToPass = 1;
+      break;
+    case 3:
+      gridsize.x = dims[1]/BLOCKDIM; if(gridsize.x * BLOCKDIM < dims[1]) gridsize.x++;
+      gridsize.y = dims[2]/BLOCKDIM; if(gridsize.y * BLOCKDIM < dims[2]) gridsize.y++;
+      gridsize.z = 1;
+      blocksize.x = BLOCKDIM;
+      blocksize.y = BLOCKDIM;
+      blocksize.z = 1;
+      nzToPass = dims[2];
+      break;
+  }
 
-/printf("%i %i %i %i %i %i\n", gridsize.x, gridsize.y, gridsize.z, blocksize.x, blocksize.y, blocksize.z);
+//printf("%i %i %i %i %i %i\n", gridsize.x, gridsize.y, gridsize.z, blocksize.x, blocksize.y, blocksize.z);
 
   switch((int)operation) {
-    case 1: cukern_ArraySetMin<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], numDims == 3 ? dims[2] : 1); break;
-    case 2: cukern_ArraySetMax<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], numDims == 3 ? dims[2] : 1); break;
-    case 3: cukern_ArrayFixNaN<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], numDims == 3 ? dims[2] : 1); break;
+    case 1: cukern_ArraySetMin<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], nzToPass); break;
+    case 2: cukern_ArraySetMax<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], nzToPass); break;
+    case 3: cukern_ArrayFixNaN<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], nzToPass); break;
   }
 
 }
@@ -75,7 +87,7 @@ int myZ = threadIdx.y + blockDim.y*blockIdx.y;
 
 int myBaseaddr = nu*(myY + nv*myZ);
 
-if((myY > nv) || (myZ > nw)) return;
+if((myY >= nv) || (myZ >= nw)) return;
 
 int xcount;
 for(xcount = 0; xcount < nu; xcount++) {
@@ -94,7 +106,7 @@ int myZ = threadIdx.y + blockDim.y*blockIdx.y;
 
 int myBaseaddr = nu*(myY + nv*myZ);
 
-if((myY > nv) || (myZ > nw)) return;
+if((myY >= nv) || (myZ >= nw)) return;
 
 int xcount;
 for(xcount = 0; xcount < nu; xcount++) {
@@ -114,7 +126,7 @@ int myZ = threadIdx.y + blockDim.y*blockIdx.y;
 
 int myBaseaddr = nu*(myY + nv*myZ);
 
-if((myY > nv) || (myZ > nw)) return;
+if((myY >= nv) || (myZ >= nw)) return;
 
 int xcount;
 for(xcount = 0; xcount < nu; xcount++) {

@@ -81,16 +81,16 @@ classdef ImogenArray < handle
 
 %obj.id
 %value(:,1,1)'
-	q = isnan(double(value));
+%	q = isnan(double(value));
 
 %    dbstack
     
-	if max(q(:)) > 0
-	dbstack
-obj.id
-value
-	error('I fucked up');
-end
+%	if max(q(:)) > 0
+%	dbstack
+%obj.id
+%value
+%	error('I fucked up');
+%end
 
             if ~isempty(obj.pFadesValue),       obj.applyFades();       end % Fade array.
             if obj.staticActive,                obj.applyStatics();     end % Enforce static values.

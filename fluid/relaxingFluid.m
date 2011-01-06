@@ -36,7 +36,7 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
 
        
     if run.useGPU == 1
-        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_MIN);
+       cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
     else
         mass.store.array = max(mass.store.array, run.fluid.MINMASS);
     end
@@ -68,8 +68,7 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
     end
 
     if run.useGPU == 1
-%        mass.store.array = GPUdouble(max(double(mass.store.array), run.fluid.MINMASS));
-        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_MIN);
+        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
     else
         mass.store.array = max(mass.store.array, run.fluid.MINMASS);
     end

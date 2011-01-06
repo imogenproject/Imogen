@@ -22,6 +22,8 @@ classdef JetInitializer < Initializer
     properties (SetAccess = public, GetAccess = public) %                           P U B L I C  [P]
         direction;  % enumerated direction of the jet.                                  str
         flip;       % specifies if the jet should be negatively directed.               logical
+        injectorSize;
+
         jetMass;    % mass value of the jet.                                            double
         jetMach;    % mach speed for the jet.                                           double
         jetMags;    % magnetic field amplitudes for the jet.                            double(3)
@@ -64,6 +66,8 @@ classdef JetInitializer < Initializer
             
             obj.direction       = JetInitializer.X;
             obj.flip            = false;
+            obj.injectorSize    = 2;
+
             obj.jetMass         = 1;
             obj.jetMach         = 1;
             obj.jetMags         = [0 0 0];
@@ -118,7 +122,7 @@ classdef JetInitializer < Initializer
 
             if (obj.flip), jetMom = - jetMom; end
 
-            jetEner = (obj.jetMass^obj.gamma)/(obj.gamma - 1) ...   % internal
+            jetEner = .5*(obj.backMass^obj.gamma)/(obj.gamma - 1) ...   % internal
                         + 0.5*(jetMom^2)/obj.jetMass ...            % kinetic
                         + 0.5*sum(obj.jetMags .* obj.jetMags, 2);   % magnetic
 
@@ -127,30 +131,31 @@ statics = StaticsInitializer();
 lind = zeros(obj.grid);
 lind(1:end) = 1:prod(obj.grid);
 
-xMin = max(obj.offset(1)-2,1);        xMax = min(obj.offset(1)+2,obj.grid(1));
-yMin = max(obj.offset(2)-2,1);        yMax = min(obj.offset(2)+2,obj.grid(2));
-zMin = max(obj.offset(3)-2,1);        zMax = min(obj.offset(3)+2,obj.grid(3));
+xMin = max(obj.offset(1)-obj.injectorSize,1);        xMax = min(obj.offset(1)+obj.injectorSize,obj.grid(1));
+yMin = max(obj.offset(2)-obj.injectorSize,1);        yMax = min(obj.offset(2)+obj.injectorSize,obj.grid(2));
+zMin = max(obj.offset(3)-obj.injectorSize,1);        zMax = min(obj.offset(3)+obj.injectorSize,obj.grid(3));
 
 statics.valueSet = {0, obj.jetMass, jetMom, jetEner, obj.jetMags(1), ...
-                            obj.jetMags(2), obj.jetMags(3)};
+                            obj.jetMags(2), obj.jetMags(3), obj.backMass};
 
-statics.indexSet = {lind(xMin:xMax+1,yMin:yMax,zMin:zMax)};
+iBack = lind((xMin-2):(xMin-1),(yMin-1):(yMax+1), zMin:zMax);
+iTop  = lind((xMin+1):xMax,    (yMax+1):(yMax+2), zMin:zMax);
+iBot  = lind((xMin+1):xMax,    (yMin-2):(yMin-1), zMin:zMax);
+injCase = [iBack(:)' iTop(:)' iBot(:)' ];
+
+statics.indexSet = {lind(xMin:xMax+1,yMin:yMax,zMin:zMax), injCase};
 
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 1, 2);
-%statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.FLUXL, 1, 2);
-%statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 1, 4);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 1, 4);
+statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 1, 3);
 
-%fields = {JetInitializer.X, JetInitializer.Y, JetInitializer.Z};
-%for i = 1:3
-%	if strcmp(obj.direction, fields{i});    momIndex = 3;
- %       else                                    momIndex = 1;
-  %      end
-	statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 1, 3);
-%end
+statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 2, 8);
+statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 2, 1);
+statics.associateStatics(ENUM.MOM, ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
+%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
+%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
 
-%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(1), statics.CELLVAR, 1, 5);
-%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 6);
-%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 7);
+
             
             if obj.mode.magnet;     obj.runCode = [obj.runCode 'Mag'];  end
             if obj.mode.gravity;    obj.runCode = [obj.runCode 'Grav']; end

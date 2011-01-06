@@ -63,7 +63,7 @@ function [result, aux] = pressure(mode, run, mass, momvel, ener, mag)
 	end 
 
 if run.useGPU	
-    cudaArrayAtomic(result, 0.0, ENUM.CUATOMIC_MIN);
+    cudaArrayAtomic(result, 0.0, 1);
 else
     result(result < 0) = 0;
 end

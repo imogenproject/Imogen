@@ -54,8 +54,8 @@ classdef ENUM
         ARTIFICIAL_VISCOSITY_NEUMANN_RICHTMYER  = 'neumann_richtmyer';
         ARTIFICIAL_VISCOSITY_CARAMANA_SHASHKOV_WHALEN = 'caramana_shashkov_whalen';
 
-	CUATOMIC_MIN  = 1;
-	CUATOMIC_MAX  = 2;
+	CUATOMIC_SETMIN  = 1;
+	CUATOMIC_SETMAX  = 2;
 	CUATOMIC_FIXNAN  = 3;
         
     end
