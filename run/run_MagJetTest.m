@@ -4,14 +4,21 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = JetInitializer();
+run                 = JetInitializer([512 256 1]);
 run.mode.magnet     = true;
-run.clf             = 0.35;
+run.iterMax = 500;
+run.cfl             = 0.35;
 run.image.interval	= 3;
 run.image.mass		= true;
 run.image.mach		= true;
 run.info            = 'Magnetic jet test.';
 run.notes           = '';
+
+run.bcMode.x = 'circ';
+run.bcMode.y = 'circ';
+
+run.useGPU = false;
+run.gpuDeviceNumber = 2;
 
 %--- Run tests ---%
 if (true)

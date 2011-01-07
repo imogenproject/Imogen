@@ -152,9 +152,12 @@ statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 1, 3);
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 2, 8);
 statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 2, 1);
 statics.associateStatics(ENUM.MOM, ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
-%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 1);
-%statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 1);
 
+if obj.mode.magnet
+statics.associateStatics(ENUM.MAG, ENUM.VECTOR(1), statics.CELLVAR, 1, 5);
+statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 6);
+statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 7);
+end
 
             
             if obj.mode.magnet;     obj.runCode = [obj.runCode 'Mag'];  end

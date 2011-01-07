@@ -67,7 +67,7 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
 
     end
     %%%=== END MAIN LOOP ========================================================================%%%
-
+error('stop');
     run.postliminary();
 
 end

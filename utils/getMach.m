@@ -11,7 +11,13 @@ function result = getMach(mass, mom, ener, mag, GAMMA)
 	velSquared = getVelocitySquared(mass,mom);
 	magSquared = getMagneticSquared(mag);
 	
+	if isa(mass.array,'GPUdouble')
+	result = (GAMMA - 1.0)*(ener.array - 0.5*mass.array .* velSquared - 0.5*magSquared);
+	cudaArrayAtomic(result, 0, ENUM.CUATOMIC_SETMIN);
+	result = sqrt( velSquared ./ abs((GAMMA*result + 2.0*magSquared) ./ mass.array) );
+	else
 	result = sqrt( velSquared ./ abs((GAMMA*max( (GAMMA - 1.0)*(ener.array ...
 					- 0.5*mass.array .* velSquared - 0.5*magSquared), 0.0 ) ...
 					+ 2.0*magSquared) ./ mass.array) );
+	end
 end

@@ -4,9 +4,9 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = JetInitializer([2048 1024 1]);
-run.iterMax         = 10;
-run.offset          = [20 512 1];
+run                 = JetInitializer([512 256 1]);
+run.iterMax         = 500;
+run.offset          = [20 128 1];
 run.bcMode.x        = 'circ';
 run.bcMode.y        = 'const';
 run.direction       = JetInitializer.X;
@@ -23,7 +23,7 @@ run.injectorSize = 8;
 run.jetMass = 1.2;
 run.jetMach = 5;
 
-run.useGPU = false;
+run.useGPU = true;
 run.gpuDeviceNumber = 2;
 
 %--- Run tests ---%

@@ -14,13 +14,18 @@ function relaxingMagnet(run, mag, velGrid, X, I)
     % Initialization
     %---------------
     fluxFactor = 0.5*run.time.dTime ./ run.DGRID{X};
-    velocityFlow = ( (velGrid.array + velGrid.shift(X,1)) < 0.0 );
+    if isa(velGrid.array, 'GPUdouble')
+        velocityFlow = double(velGrid.array + velGrid.shift(X,1));
+        velocityFlow = GPUdouble( velocityFlow < 0.0 );
+    else
+        velocityFlow = ( (velGrid.array + velGrid.shift(X,1)) < 0.0 );
+    end
     
     %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     %Half-Timestep predictor step (first-order upwind,not TVD)
     %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
     mag(I).store(X).fluxR.array = mag(I).array .* velGrid.array;
-    mag(I).store(X).fluxR.array = mag(I).store(X).fluxR.array .* ~velocityFlow ...
+    mag(I).store(X).fluxR.array = mag(I).store(X).fluxR.array .* (1-velocityFlow) ...
 							  + mag(I).store(X).fluxR.shift(X,1) .* velocityFlow;
     
     mag(I).store(X).array = mag(I).array ...
@@ -32,11 +37,11 @@ function relaxingMagnet(run, mag, velGrid, X, I)
     fluxFactor = 2*fluxFactor; %Multiply to get full timestep
     mag(I).wMag(X).array = mag(I).store(X).array .* velGrid.array;
     
-    mag(I).flux(X).array = mag(I).wMag(X).array .* ~velocityFlow ...
+    mag(I).flux(X).array = mag(I).wMag(X).array .* (1-velocityFlow) ...
                            + mag(I).wMag(X).shift(X,1) .* velocityFlow;
-    dFluxR  = ( mag(I).wMag(X).shift(X,1) - mag(I).flux(X).array ) .* ~velocityFlow ...
+    dFluxR  = ( mag(I).wMag(X).shift(X,1) - mag(I).flux(X).array ) .* (1-velocityFlow) ...
             + ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,2) ) .* velocityFlow;
-    dFluxL  = ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,-1) ) .* ~velocityFlow ...
+    dFluxL  = ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,-1) ) .* (1-velocityFlow) ...
             + ( mag(I).wMag(X).array - mag(I).flux(X).array ) .* velocityFlow;
     run.magnet.limiter{X}(mag(I).flux(X), 0.5*dFluxL, 0.5*dFluxR);
 

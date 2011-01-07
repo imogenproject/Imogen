@@ -22,13 +22,13 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
 
     if run.useGPU
         spd               = GPUdouble(max( double(abs(velocity) + soundSpd) ,[],X) );
+	freezeSpd.array = repmat( spd, repsMat' );
+%	freezeSpd.array = directionalMaxFinder(velocity, soundSpd, X);
     else
         spd               = max( (abs(velocity) + soundSpd) ,[],X);
+        if iscodistributed(spd), spd = gather(spd); end
+        freezeSpd.array = repmat( spd, repsMat' );
     end
-
-    if iscodistributed(spd), spd = gather(spd); end
-
-    freezeSpd.array = repmat( spd, repsMat' );
 
     %-----------------------------------------------------------------------------------------------
     % Determine the auxiliary relaxing function arrays
@@ -46,9 +46,9 @@ function wFluidFlux(run, mass, mom, ener, mag, grav, freezeSpd, X)
     
     %--- MOMENTUM DENSITY ---%
     for i=1:3
-        mom(i).wArray    = velocity .* mom(i).array + press*dirVec(i)...
-                             - mag(X).cellMag.array .* mag(i).cellMag.array;
-        mom(i).wArray    = mom(i).wArray ./ freezeSpd.array;
+        mom(i).wArray    = (velocity .* mom(i).array + press*dirVec(i)...
+                             - mag(X).cellMag.array .* mag(i).cellMag.array) ./ freezeSpd.array;
+%        mom(i).wArray    = mom(i).wArray ./ freezeSpd.array;
     end
 
 end

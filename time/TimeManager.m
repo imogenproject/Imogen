@@ -3,59 +3,55 @@ classdef TimeManager < handle
 % singleton class to be accessed using the getInstance() method and not instantiated directly.
 
 %===================================================================================================
-	properties (Constant = true, Transient = true) %							C O N S T A N T	 [P]
+        properties (Constant = true, Transient = true) %                 C O N S T A N T         [P]
     end%CONSTANT
     
 %===================================================================================================
-    properties (SetAccess = public, GetAccess = public, Transient = true) %			P U B L I C  [P]
-        time;		% Simulation time.				           					double
-        dTime;		% Current timestep.	            							double
-		iteration;	% Current iteration.										int
-        history;	% History of timestep values.								double(N)
-        CFL;		% Courant-Freidrichs-Levy condition prefactor.				double
-        ITERMAX;	% Maximum iterations before finishing run.					int
-        TIMEMAX;	% Maximum simulation time before finishing run.				double
-        WALLMAX;    % Maximum wall time before finishing run in hours.          double
-        wallTime;   % Number of hours since run was started.                    double
-		startTime;	% Time the run was started.									Date Vector
-        updateMode; % Frequency of updates (PER_ITERATION or PER_STEP)          int
-        timePercent; % Percent complete based on simulation time.               double
-        iterPercent; % Percent complete based on iterations of maximum.         double
-        wallPercent; % Percent complete based on wall time.                     double
-        running;     % Specifies if the simulation should continue running.     logical
-	end%PUBLIC
-	
+    properties (SetAccess = public, GetAccess = public, Transient = true) %         P U B L I C  [P]
+        time;        % Simulation time.                                              double
+        dTime;       % Current timestep.                                             double
+        iteration;   % Current iteration.                                            int
+        history;     % History of timestep values.                                   double(N)
+        CFL;         % Courant-Freidrichs-Levy condition prefactor.                  double
+        ITERMAX;     % Maximum iterations before finishing run.                      int
+        TIMEMAX;     % Maximum simulation time before finishing run.                 double
+        WALLMAX;     % Maximum wall time before finishing run in hours.              double
+        wallTime;    % Number of hours since run was started.                        double
+        startTime;   % Time the run was started.                                     Date Vector
+        updateMode;  % Frequency of updates (PER_ITERATION or PER_STEP)              int
+        timePercent; % Percent complete based on simulation time.                    double
+        iterPercent; % Percent complete based on iterations of maximum.              double
+        wallPercent; % Percent complete based on wall time.                          double
+        running;     % Specifies if the simulation should continue running.          logical
+        end%PUBLIC
+        
 %===================================================================================================
-    properties (SetAccess = public, GetAccess = private) %						   P R I V A T E [P]
-		parent;			% Parent manager											ImogenManager
+    properties (SetAccess = public, GetAccess = private) %                          P R I V A T E [P]
+        parent;      % Parent manager                                                ImogenManager
     end %PRIVATE
 
-	
-    
-    
-	
 %===================================================================================================
-    methods %																	  G E T / S E T  [M]
+    methods %                                                                      G E T / S E T  [M]
         
         function result = get.running(obj)
             result = (obj.iteration <= obj.ITERMAX) && (obj.time < obj.TIMEMAX) ...
                       && (obj.wallTime < obj.WALLMAX);
         end
         
-	end%GET/SET
-	
+        end%GET/SET
+        
 %===================================================================================================
-    methods (Access = public) %														P U B L I C  [M]
+    methods (Access = public) %                                                     P U B L I C  [M]
     
 %___________________________________________________________________________________________________ update
 % Calculate the correct timestep for the upcoming flux iteration (both the forward and backward 
 % steps) of the main loop according to the Courant-Freidrichs-Levy condition for a magnetic fluid.
 %
-%>< run             Imogen run manager									ImogenManager
-%>< mass            mass density array                                  FluidArray
-%>< mom             momentum density array								FluidArray(3)
-%>< ener            energy density array                                FluidArray	
-%>< mag             magnetic field array								MagnetArray(3)
+%>< run             Imogen run manager                                         ImogenManager
+%>< mass            mass density array                                         FluidArray
+%>< mom             momentum density array                                     FluidArray(3)
+%>< ener            energy density array                                       FluidArray        
+%>< mag             magnetic field array                                       MagnetArray(3)
         function update(obj, mass, mom, ener, mag, fluxDirection)
         
             %--- Initialization ---%
@@ -73,7 +69,11 @@ classdef TimeManager < handle
             %           Find the maximum fluid velocity in the grid and its vector direction.
             soundSpeed = pressure('sound', obj.parent, mass, mom, ener, mag);
             for i=1:3
-                c = maxFinderND(abs(mom(i).array ./ mass.array) + soundSpeed);
+                if isa(mass.array, 'GPUdouble')
+                    c = directionalMaxFinder(abs(mom(i).array ./ mass.array) + soundSpeed);
+                else
+                    c = maxFinderND(abs(mom(i).array ./ mass.array) + soundSpeed);
+                end
                 if (c > cmax)
                     cmax      = c;
                     gridIndex = i;
@@ -112,10 +112,10 @@ classdef TimeManager < handle
             if obj.iteration < 3
                 switch obj.iteration 
                     
-                    case 1;	%Activate clock timer for the first loop	
+                    case 1;        %Activate clock timer for the first loop        
                         tic; 
                         
-                    case 2;	%Stop clock timer and use the elapsed time to predict total run time
+                    case 2;        %Stop clock timer and use the elapsed time to predict total run time
                         elapsedMins = toc/60;
                         save.logPrint('\nFirst loop completed in %0.5g minutes.', elapsedMins);
 
@@ -175,74 +175,74 @@ classdef TimeManager < handle
         
 %___________________________________________________________________________________________________ step
 % Increments the iteration variable by one for the next loop.
-		function step(obj)
+                function step(obj)
             obj.updateUI();
-			obj.iteration   = obj.iteration + 1;
+                        obj.iteration   = obj.iteration + 1;
             obj.iterPercent = 100*obj.iteration/obj.ITERMAX;
-		end
-		
+                end
+                
 %___________________________________________________________________________________________________ toStruct
 % Converts the TimeManager object to a structure for saving and non-class use.
-% # result	The structure resulting from conversion of the TimeManager object.			Struct
-		function result = toStruct(obj)
-			result.time			= obj.time;
-			result.history		= obj.history(1:obj.iteration);
-			result.iterMax		= obj.ITERMAX;
-			result.timeMax		= obj.TIMEMAX;
+% # result        The structure resulting from conversion of the TimeManager object.                        Struct
+                function result = toStruct(obj)
+                        result.time                        = obj.time;
+                        result.history                = obj.history(1:obj.iteration);
+                        result.iterMax                = obj.ITERMAX;
+                        result.timeMax                = obj.TIMEMAX;
             result.wallMax      = obj.WALLMAX;
-			result.started		= datestr( obj.startTime );
-			result.iteration	= obj.iteration;
-		end
+                        result.started                = datestr( obj.startTime );
+                        result.iteration        = obj.iteration;
+                end
         
     end%PUBLIC 
-	
-%===================================================================================================	
-	methods (Access = private) %												P R I V A T E    [M]
-		
+        
+%===================================================================================================
+        methods (Access = private) %                                            P R I V A T E    [M]
+                
 %___________________________________________________________________________________________________ TimeManager
 % Creates a new TimeManager instance.
         function obj = TimeManager() 
             obj.startTime   = clock;
-			obj.time        = 0;
-			obj.dTime       = 0;
-			obj.iteration   = 0;
-			obj.ITERMAX     = 1000;
-			obj.TIMEMAX     = 5000;
+                        obj.time        = 0;
+                        obj.dTime       = 0;
+                        obj.iteration   = 0;
+                        obj.ITERMAX     = 1000;
+                        obj.TIMEMAX     = 5000;
             obj.WALLMAX     = 1e5;
-			obj.history     = zeros(obj.ITERMAX,1);
+                        obj.history     = zeros(obj.ITERMAX,1);
             obj.updateMode  = ENUM.TIMEUPDATE_PER_ITERATION;
             obj.iterPercent = 0;
             obj.timePercent = 0;
             obj.wallPercent = 0;
-		end
-		
+                end
+                
 %___________________________________________________________________________________________________ appendHistory
 % Appends a new dTime value to the history.
-		function appendHistory(obj)
+                function appendHistory(obj)
             if length(obj.history) < obj.iteration
-				obj.history = [obj.history; zeros(obj.ITERMAX-length(obj.history),1)];
+                                obj.history = [obj.history; zeros(obj.ITERMAX-length(obj.history),1)];
             end
             if obj.iteration > 0
                 obj.history(obj.iteration) = obj.dTime;
             end
-		end
+                end
 
-	end%PROTECTED
+        end%PROTECTED
 
-%===================================================================================================	
-	methods (Static = true) %													  S T A T I C    [M]
-		
+%===================================================================================================
+        methods (Static = true) %                                                 S T A T I C    [M]
+                
 %___________________________________________________________________________________________________ getInstance
 % Accesses the singleton instance of the TimeManager class, or creates one if none have
 % been initialized yet.
-		function singleObj = getInstance()
-			persistent instance;
-			if isempty(instance) || ~isvalid(instance) 
-				instance = TimeManager();
-			end
-			singleObj = instance;
-		end
-	  
-	end%STATIC
-	
+                function singleObj = getInstance()
+                        persistent instance;
+                        if isempty(instance) || ~isvalid(instance) 
+                                instance = TimeManager();
+                        end
+                        singleObj = instance;
+                end
+          
+        end%STATIC
+        
 end%CLASS
