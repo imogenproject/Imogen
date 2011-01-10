@@ -74,5 +74,10 @@ directionalMaxFinder: directionalMaxFinder.cu
 	mex $(MEX_OPTS) $(MEX_INCL) directionalMaxFinder.cpp $(GPUMAT_CPP) -o directionalMaxFinder $(MEX_LDIR) $(MEX_LIBS)
 	rm -f directionalMaxFinder.cpp
 
+cudaMHDKernels: cudaMHDKernels.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaMHDKernels.cpp
+
 clean:
 	rm -f *mexa64 cudaKernels.cpp

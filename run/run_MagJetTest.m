@@ -4,9 +4,9 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = JetInitializer([512 256 1]);
+run                 = JetInitializer([2048 1024 1]);
 run.mode.magnet     = true;
-run.iterMax = 500;
+run.iterMax = 25;
 run.cfl             = 0.35;
 run.image.interval	= 3;
 run.image.mass		= true;
@@ -17,7 +17,7 @@ run.notes           = '';
 run.bcMode.x = 'circ';
 run.bcMode.y = 'circ';
 
-run.useGPU = false;
+run.useGPU = true;
 run.gpuDeviceNumber = 2;
 
 %--- Run tests ---%
