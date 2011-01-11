@@ -122,7 +122,7 @@ classdef JetInitializer < Initializer
 
             if (obj.flip), jetMom = - jetMom; end
 
-            jetEner = .5*(obj.backMass^obj.gamma)/(obj.gamma - 1) ...   % internal
+            jetEner = 1*(obj.backMass^obj.gamma)/(obj.gamma - 1) ...   % internal
                         + 0.5*(jetMom^2)/obj.jetMass ...            % kinetic
                         + 0.5*sum(obj.jetMags .* obj.jetMags, 2);   % magnetic
 

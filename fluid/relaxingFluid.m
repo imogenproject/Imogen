@@ -25,11 +25,13 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
     tempFreeze = run.fluid.freezeSpd(X).array;
 
     for i=1:5
-        v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
-        v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
+        
         if run.useGPU
+            [v(i).store.fluxL.array v(i).store.fluxR.array] = cudaMHDKernels(8, v(i).array, v(i).wArray);
             v(i).store.array = cudaMHDKernels(7, v(i).array, tempFreeze, v(i).store.fluxR.array, v(i).store.fluxR.shift(X,-1), v(i).store.fluxL.array, v(i).store.fluxL.shift(X,1), .5*fluxFactor);
         else
+            v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
+            v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
             v(i).store.array = v(i).array - 0.5*fluxFactor .* tempFreeze .* ...
                             ( v(i).store.fluxR.array - v(i).store.fluxR.shift(X,-1) ...
                             + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
@@ -54,12 +56,16 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
     
     tempFreeze = run.fluid.freezeSpdTVD(X).array;
     for i=1:5
+        if run.useGPU
+            [v(i).fluxL.array v(i).fluxR.array] = cudaMHDKernels(8, v(i).store.array, v(i).store.wArray);
+        else
         v(i).fluxR.array =  0.5*(v(i).store.array + v(i).store.wArray);
+        v(i).fluxL.array =  0.5*(v(i).store.array - v(i).store.wArray);
+        end
+        
         run.fluid.limiter{X}(v(i).fluxR, ...
                              0.5*(v(i).fluxR.array - v(i).fluxR.shift(X,-1)), ...
                              0.5*(v(i).fluxR.shift(X,1) - v(i).fluxR.array) );
-
-        v(i).fluxL.array =  0.5*(v(i).store.array - v(i).store.wArray);
         run.fluid.limiter{X}(v(i).fluxL, ...
                              0.5*(v(i).fluxL.shift(X,-1) - v(i).fluxL.array), ...
                              0.5*(v(i).fluxL.array - v(i).fluxL.shift(X,1)) );
