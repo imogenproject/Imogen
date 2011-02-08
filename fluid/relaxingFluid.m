@@ -19,32 +19,42 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%                   Half-Timestep predictor step (first-order upwind,not TVD)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    
+
+if run.useGPU == 1
+        [freezea pressa] = freezeAndPtot(mass.array, ...
+                                         ener.array, ...
+                                         mom(1).array, mom(2).array, mom(3).array, ...
+                                         mag(1).cellMag.array, mag(2).cellMag.array, mag(3).cellMag.array, ...
+                                         run.GAMMA, X);
+        [v(1).store.array v(5).store.array ...
+         v(2).store.array v(3).store.array v(4).store.array] = cudaWstep(mass.array, ener.array, ...
+                                                                         mom(1).array, mom(2).array, mom(3).array, ...
+                                                                         mag(1).cellMag.array, mag(2).cellMag.array, mag(3).cellMag.array, ...
+                                                                         pressa, freezea, fluxFactor, X);
+
+else
     wFluidFlux(run, mass, mom, ener, mag, grav, run.fluid.freezeSpd(X), X);
     
     tempFreeze = run.fluid.freezeSpd(X).array;
 
     for i=1:5
-        
-        if run.useGPU
-            [v(i).store.fluxL.array v(i).store.fluxR.array] = cudaMHDKernels(8, v(i).array, v(i).wArray);
-            v(i).store.array = cudaMHDKernels(7, v(i).array, tempFreeze, v(i).store.fluxR.array, v(i).store.fluxR.shift(X,-1), v(i).store.fluxL.array, v(i).store.fluxL.shift(X,1), .5*fluxFactor);
-        else
-            v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
-            v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
-            v(i).store.array = v(i).array - 0.5*fluxFactor .* tempFreeze .* ...
-                            ( v(i).store.fluxR.array - v(i).store.fluxR.shift(X,-1) ...
-                            + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
+        v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
+        v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
+        v(i).store.array = v(i).array - 0.5*fluxFactor .* tempFreeze .* ...
+                         ( v(i).store.fluxR.array - v(i).store.fluxR.shift(X,-1) ...
+                         + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
         end
         v(i).store.cleanup();
-    end
-
-       
+end
+   
     if run.useGPU == 1
        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
     else
         mass.store.array = max(mass.store.array, run.fluid.MINMASS);
     end
+
+%imagesc(double(v(1).store.array));
+%input('continue: ');
 
     run.fluid.freezeSpd(X).cleanup();
 
@@ -63,12 +73,13 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
         v(i).fluxL.array =  0.5*(v(i).store.array - v(i).store.wArray);
         end
         
+	% NOTE fluxes are not divided by two here, but in the flux limiters
         run.fluid.limiter{X}(v(i).fluxR, ...
-                             0.5*(v(i).fluxR.array - v(i).fluxR.shift(X,-1)), ...
-                             0.5*(v(i).fluxR.shift(X,1) - v(i).fluxR.array) );
+                             (v(i).fluxR.array - v(i).fluxR.shift(X,-1)), ...
+                             (v(i).fluxR.shift(X,1) - v(i).fluxR.array) );
         run.fluid.limiter{X}(v(i).fluxL, ...
-                             0.5*(v(i).fluxL.shift(X,-1) - v(i).fluxL.array), ...
-                             0.5*(v(i).fluxL.array - v(i).fluxL.shift(X,1)) );
+                             (v(i).fluxL.shift(X,-1) - v(i).fluxL.array), ...
+                             (v(i).fluxL.array - v(i).fluxL.shift(X,1)) );
 
         if run.useGPU
             v(i).array = cudaMHDKernels(7, v(i).array, tempFreeze, v(i).fluxR.array, v(i).fluxR.shift(X,-1), v(i).fluxL.array, v(i).fluxL.shift(X,1), fluxFactor);

@@ -21,14 +21,18 @@ classdef BowShockInitializer < Initializer
         ballCells;    % 3x1, radii in all 3 dimensions                                      double
         ballCenter;   % 3x1, center of the ball                                             double
 
+        magneticShock;
+	magX;
+	magY;
+
         bgRho;
         bgVx;
-%        bgPressure;
+        bgThermalPressure;
 
         ballRho;
         ballVr;
         ballXRadius;
-%        ballPressure;
+        ballThermalPressure;
 
     end %PUBLIC
 
@@ -57,7 +61,7 @@ classdef BowShockInitializer < Initializer
             obj.mode.magnet      = false;
             obj.mode.gravity     = false;
             obj.cfl              = 0.7;
-            obj.iterMax          = 10;
+            obj.iterMax          = 100;
             obj.bcMode.x         = 'trans';
             obj.bcMode.y         = 'fade';
             if input(3) > 1
@@ -71,17 +75,20 @@ classdef BowShockInitializer < Initializer
             obj.staticType       = BowShockInitializer.PRIMAY_MODE;
             obj.stencil          = 'SmallSphere_800x256.mat';
            
-            obj.ballCells = [32 32 32];
-            obj.ballCenter = round(input/2);
-	    obj.ballXRadius = 1;
+            obj.ballCells        = [32 32 32];
+            obj.ballCenter       = round(input/2);
+	    obj.ballXRadius      = 1;
 
-            obj.bgRho             = .125;
-            obj.bgVx         = 1;
-%            obj.bgPressure   = 1
+            obj.magX                = 0;
+            obj.magY                = .5;
 
-            obj.ballRho      = 1;
-            obj.ballVr       = 1;
-%            obj.ballPressure = 1;
+            obj.bgRho               = .125;
+            obj.bgVx                = 1;
+            obj.bgThermalPressure   = .03;
+
+            obj.ballRho             = 1;
+            obj.ballVr              = 1;
+            obj.ballThermalPressure = .25;
          
             obj.operateOnInput(input, [800, 256, 1]);
         end
@@ -100,11 +107,11 @@ classdef BowShockInitializer < Initializer
         function [mass, mom, ener, mag, statics] = calculateInitialConditions(obj)
         % Returns the initial conditions for a bow shock simulation
         % USAGE: [mass, mom, ener, mag, statics, run] = getInitialConditions();
-        
+ 
             %--- Background Values ---%
             mass        = zeros(obj.grid);
-            mom                = zeros([3 obj.grid]);
-            mag                = zeros([3 obj.grid]);
+            mom         = zeros([3 obj.grid]);
+            mag         = zeros([3 obj.grid]);
             ener        = zeros(obj.grid);
 
             %--- Static Values ---%
@@ -120,8 +127,40 @@ classdef BowShockInitializer < Initializer
             norm = sqrt((X/obj.ballCells(1)).^2 + (Y/obj.ballCells(2)).^2 + (Z/obj.ballCells(3)).^2);
             ball = (norm <= 1.0);
 
+% START: 
+%It's a...
+%fermi
+%tesla
+%oersted
+%maxwell
+%michaelson-morely, michael-soooo - ooo - ooo - ooooon!
+
+%OOOOOoh,
+%It's a...
+% rayleigh
+% kelvin
+% taylor
+% helmholtz
+% donnelly
+% and chandraseeeeee -eeee - eeekar!
+
+% Yeeees, it's an...
+% Dirac
+% Bell'n'Feynamnn
+% Hawking
+% Einstein and
+% Heisenberg, Heisenberg, ooooh, it's Heiiiii - iiiisenberg!
+%GOTO START
+
+%mag(1,:,:,:) = (3*(obj.magY*Y + obj.magX*X).*X - obj.magX) ./ norm.^3;
+%mag(2,:,:,:) = (3*(obj.magY*Y + obj.magX*X).*Y - obj.magY) ./ norm.^3;
+
             % set background values
             mom(1,1:round(obj.ballCenter(1) - obj.ballCells(1)-30),:,:) = obj.bgVx*obj.bgRho;
+%            mag(1,1:round(obj.ballCenter(1) - obj.ballCells(1)-30),:,:) = obj.magX;
+mag(1,:,:,:) = obj.magX;
+mag(2,:,:,:) = obj.magY;
+%            mag(2,1:round(obj.ballCenter(1) - obj.ballCells(1)-30),:,:) = obj.magY;
             mass(:) = obj.bgRho;
             ener(:) = obj.bgRho.^obj.gamma / (obj.gamma-1) + .5*squeeze(mom(1,:,:,:).^2)./mass;
 
@@ -132,20 +171,24 @@ classdef BowShockInitializer < Initializer
 
             xhat = X/obj.ballCells(1);
             yhat = Y/obj.ballCells(2);
-            zhat = Z/obj.ballCells(3);
-
+            zhat = Z/obj.ballCells(3); 
             ballMomRadial = obj.ballVr*obj.ballRho;
             ballEner      = (obj.ballRho^obj.gamma)/(obj.gamma-1) + .5*ballMomRadial^2.*norm(ball)/obj.ballRho;
 
             statics.valueSet = {0, obj.bgRho, obj.bgRho*obj.bgVx, ener(1), ...
-                obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballMomRadial*zhat(ball), ballEner};
+                obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballMomRadial*zhat(ball), ballEner, obj.magX, obj.magY };
 
             % Force a left-edge plane flow
             statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
+	    if obj.mode.magnet == true;
+                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(1), statics.CELLVAR, 2, 10);
+                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 2, 11);
+            end
             if obj.grid(3) > 1            
                 statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
+                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1); end
             end
             statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
         
@@ -153,17 +196,16 @@ classdef BowShockInitializer < Initializer
             statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
+            if obj.mode.magnet == true;
+                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(1), statics.CELLVAR, 1, 10);
+                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 1, 11);
+            end
             if obj.grid(3) > 1    
                 statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 8);
+                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1); end;
             end
             statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 9);
-        
-            % Zero flux at ball's surface.
-            %statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.FLUXL,   1, 1);
-            %statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.FLUXL,   1, 1);
-            %statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.FLUXL,   1, 1);
-            %statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.FLUXL,   1, 1);
-            %statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.FLUXL,   1, 1);
+
         end
 
     end%PROTECTED

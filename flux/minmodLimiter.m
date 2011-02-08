@@ -6,6 +6,6 @@ function minmodLimiter(flux, dLeft, dRight)
 %>> dLeft    Differences between left fluxVals.                             double(Nx,Ny,Nz)
 %>> dRight   Differences between right fluxVals.                            double(Nx,Ny,Nz)
 
-    correction = 0.5*(sign(dLeft) + sign(dRight)) .* min(abs(dLeft), abs(dRight));
+    correction = 0.125*(sign(dLeft) + sign(dRight)) .* min(abs(dLeft), abs(dRight));
     flux.array = flux.array + correction;
 end

@@ -21,7 +21,7 @@ MEX_LDIR  = -L$(CUDA_DIR)/$(CUDA_LDIR)
 MEX_LIBS  = -lcuda -lcudart -lcublas
 
 ###############################################################################
-all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate cudaArrayAtomic fluxLimiterKernels
+all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate cudaArrayAtomic fluxLimiterKernels directionalMaxFinder cudaMHDKernels
 
 
 kernels: cudaKernels.cu
@@ -78,6 +78,26 @@ cudaMHDKernels: cudaMHDKernels.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaMHDKernels.cpp
+
+cudaShift: cudaShift.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaShift.cu -o cudaShift.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaShift.cpp $(GPUMAT_CPP) -o cudaShift $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaShift.cpp
+
+cudaLinearSubsagn: cudaLinearSubsagn.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaLinearSubsagn.cu -o cudaLinearSubsagn.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaLinearSubsagn.cpp $(GPUMAT_CPP) -o cudaLinearSubsagn $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaLinearSubsagn.cpp
+
+freezeAndPtot: freezeAndPtot.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda freezeAndPtot.cu -o freezeAndPtot.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) freezeAndPtot.cpp $(GPUMAT_CPP) -o freezeAndPtot $(MEX_LDIR) $(MEX_LIBS)
+	rm -f freezeAndPtot.cpp
+
+cudaWstep: cudaWstep.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaWstep.cu -o cudaWstep.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaWstep.cpp $(GPUMAT_CPP) -o cudaWstep $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaWstep.cpp
 
 clean:
 	rm -f *mexa64 cudaKernels.cpp

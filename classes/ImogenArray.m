@@ -244,7 +244,7 @@ classdef ImogenArray < handle
 % Applies the static conditions for the ImogenArray to the data array. This method is called during
 % array assignment (set.array).
         function applyStatics(obj)
-            obj.pArray(obj.staticIndices) = obj.staticVals;
+                obj.pArray(obj.staticIndices) = obj.staticVals;
         end
         
 %___________________________________________________________________________________________________ readFades

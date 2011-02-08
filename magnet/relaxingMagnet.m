@@ -43,7 +43,7 @@ function relaxingMagnet(run, mag, velGrid, X, I)
             + ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,2) ) .* velocityFlow;
     dFluxL  = ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,-1) ) .* (1-velocityFlow) ...
             + ( mag(I).wMag(X).array - mag(I).flux(X).array ) .* velocityFlow;
-    run.magnet.limiter{X}(mag(I).flux(X), 0.5*dFluxL, 0.5*dFluxR);
+    run.magnet.limiter{X}(mag(I).flux(X), dFluxL, dFluxR); % This is doubled, appropriate halving done by limiter functions
 
     mag(I).array = mag(I).array - fluxFactor .* ( mag(I).flux(X).array - mag(I).flux(X).shift(X,-1) );
     

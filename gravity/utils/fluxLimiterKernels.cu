@@ -78,7 +78,7 @@ int xcount;
 double r;
 
 for(xcount = 0; xcount < nu; xcount++) {
-  r = 2*d1[myBaseaddr] * d2[myBaseaddr];
+  r = d1[myBaseaddr] * d2[myBaseaddr];
   if(r < 0.0) r = 0.0;
 
   r = r / (d1[myBaseaddr] + d2[myBaseaddr]);

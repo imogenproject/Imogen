@@ -84,7 +84,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1);
 
     cukern_MagneticPressure<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], destPtr[0], numel);
-    free(destPtr);
+    free(destPtr); free(srcs);
 
   } else if((operation == OP_TOTALANDSND)) {
     if( (nlhs != 2) || (nrhs != 10)) { mexErrMsgTxt("Soundspeed operator is [Ptot Cs] = cudaMHDKernels(5, rho, E, px, py, pz, bx, by, bz, gamma)"); }
@@ -95,7 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 2);
 
     cukern_TotalAndSound<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], destPtr[0], destPtr[1], gam, numel);
-    free(destPtr);
+    free(destPtr); free(srcs);
   } else if ((operation == OP_WARRAYS)) {
     if( (nlhs != 5) || (nrhs != 12)) { mexErrMsgTxt("solving W operator is [rhoW enerW pxW pyW pzW] = cudaMHDKernels(6, rho, E, px, py, pz, bx, by, bz, P, cFreeze, direction)"); }
     int dir = (int)*mxGetPr(prhs[11]);
@@ -105,7 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 5);
 
     cukern_CalcWArrays<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], srcs[8], srcs[9], destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], dir, numel);
-    free(destPtr);
+    free(destPtr); free(srcs);
   } else if ((operation == OP_RELAXINGFLUX)) {
     if( (nlhs != 1) || (nrhs != 8)) { mexErrMsgTxt("relaxing flux operator is fluxed = cudaMHDKernels(7, old, tempfreeze, right, right_shifted, left, left_shifted, lambda)"); }
     double lambda = *mxGetPr(prhs[7]);
@@ -115,7 +115,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1);
 
     cukern_PerformFlux<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], destPtr[0], lambda, numel);
-    free(destPtr);
+    free(destPtr); free(srcs);
   } else if ((operation == OP_SEPERATELRFLUX)) {
     if ((nlhs != 2) || (nrhs != 3)) { mexErrMsgTxt("flux seperation operator is [Fl Fr] = cudaMHDKernels(8, array, wArray)"); }
     double **srcs = getSourcePointers(prhs, 2, &numel);
@@ -124,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 2);
 
     cukern_SeperateLRFlux<<<gridsize, blocksize>>>(srcs[0], srcs[1], destPtr[0], destPtr[1], numel);
-    free(destPtr);
+    free(destPtr); free(srcs);
   }
 
 }
@@ -212,40 +212,47 @@ __global__ void cukern_TotalAndSound(double *rho, double *E, double *px, double 
 {
 //int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
 double gg1 = gam*(gam-1.0);
+double psqhf, bsqhf;
 
 KERNEL_PREAMBLE {
-	total[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x])) + .5*(2.0-gam)*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
-	sound[x]   = sqrt(abs( (gg1*(E[x] - .5*(px[x]*px[x] + py[x]*py[x] + pz[x]*pz[x])/rho[x]) + (2.0 -.5*gg1)*(bx[x]*bx[x] + by[x]*by[x] + bz[x]*bz[x]))/rho[x] ));
+	psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
+	bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
+	
+	total[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
+	sound[x]   = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] ));
 	}
 }
 
 __global__ void cukern_CalcWArrays(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, int dir, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
+double Cinv, rhoinv;
 
 KERNEL_PREAMBLE {
 
+Cinv = 1.0/Cfreeze[x];
+rhoinv = 1.0/rho[x];
+
 switch(dir) {
   case 1:
-    rhoW[x]  = px[x] / Cfreeze[x];
-    enerW[x] = (px[x] * (E[x] + P[x]) - bx[x]*(px[x]*bx[x]+py[x]*by[x]+pz[x]*bz[x]) ) / (rho[x] * Cfreeze[x]);
-    pxW[x]   = (px[x]*px[x]/rho[x] + P[x] - bx[x]*bx[x])/Cfreeze[x];
-    pyW[x]   = (px[x]*py[x]/rho[x]        - bx[x]*by[x])/Cfreeze[x];
-    pzW[x]   = (px[x]*pz[x]/rho[x]        - bx[x]*bz[x])/Cfreeze[x];
+    rhoW[x]  = px[x] * Cinv;
+    enerW[x] = (px[x] * (E[x] + P[x]) - bx[x]*(px[x]*bx[x]+py[x]*by[x]+pz[x]*bz[x]) ) * (rhoinv*Cinv);
+    pxW[x]   = (px[x]*px[x]*rhoinv + P[x] - bx[x]*bx[x])*Cinv;
+    pyW[x]   = (px[x]*py[x]*rhoinv        - bx[x]*by[x])*Cinv;
+    pzW[x]   = (px[x]*pz[x]*rhoinv        - bx[x]*bz[x])*Cinv;
     break;
   case 2:
-    rhoW[x]  = py[x] / Cfreeze[x];
-    enerW[x] = (py[x] * (E[x] + P[x]) - by[x]*(px[x]*bx[x]+py[x]*by[x]+pz[x]*bz[x]) ) / (rho[x] * Cfreeze[x]);
-    pxW[x]   = (py[x]*px[x]/rho[x]        - by[x]*bx[x])/Cfreeze[x];
-    pyW[x]   = (py[x]*py[x]/rho[x] + P[x] - by[x]*by[x])/Cfreeze[x];
-    pzW[x]   = (py[x]*pz[x]/rho[x]        - by[x]*bz[x])/Cfreeze[x];
+    rhoW[x]  = py[x] * Cinv;
+    enerW[x] = (py[x] * (E[x] + P[x]) - by[x]*(px[x]*bx[x]+py[x]*by[x]+pz[x]*bz[x]) ) * (rhoinv*Cinv);
+    pxW[x]   = (py[x]*px[x]*rhoinv        - by[x]*bx[x])*Cinv;
+    pyW[x]   = (py[x]*py[x]*rhoinv + P[x] - by[x]*by[x])*Cinv;
+    pzW[x]   = (py[x]*pz[x]*rhoinv        - by[x]*bz[x])*Cinv;
     break;
   case 3:
-    rhoW[x]  = pz[x] / Cfreeze[x];
-    enerW[x] = (pz[x] * (E[x] + P[x]) - bz[x]*(px[x]*bx[x]+py[x]*by[x]+pz[x]*bz[x]) ) / (rho[x] * Cfreeze[x]);
-    pxW[x]   = (pz[x]*px[x]/rho[x]        - bz[x]*bx[x])/Cfreeze[x];
-    pyW[x]   = (pz[x]*py[x]/rho[x]        - bz[x]*by[x])/Cfreeze[x];
-    pzW[x]   = (pz[x]*pz[x]/rho[x] + P[x] - bz[x]*bz[x])/Cfreeze[x];
+    rhoW[x]  = pz[x] * Cinv;
+    enerW[x] = (pz[x] * (E[x] + P[x]) - bz[x]*(px[x]*bx[x]+py[x]*by[x]+pz[x]*bz[x]) ) * (rhoinv*Cinv);
+    pxW[x]   = (pz[x]*px[x]*rhoinv        - bz[x]*bx[x])*Cinv;
+    pyW[x]   = (pz[x]*py[x]*rhoinv        - bz[x]*by[x])*Cinv;
+    pzW[x]   = (pz[x]*pz[x]*rhoinv + P[x] - bz[x]*bz[x])*Cinv;
     break;
   }
 

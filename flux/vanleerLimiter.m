@@ -30,7 +30,7 @@ function vanleerLimiter(flux, dLeft, dRight)
     else
         signTest = max(dLeft .* dRight, 0) ./ (dLeft + dRight); % 1. Harmonic average.
         signTest(isnan(signTest)) = 0;                          % 2. Remove NaN.
-	flux.array = flux.array + 2*signTest;                   % 3. Impose monotonicity.
+	flux.array = flux.array + signTest;                   % 3. Impose monotonicity.
     end
 
 end
