@@ -47,7 +47,7 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
     direction           = [1 -1];
 
     run.save.logPrint('\nBeginning simulation loop...\n');
-    
+
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
 
@@ -67,7 +67,7 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
 
     end
     %%%=== END MAIN LOOP ========================================================================%%%
-error('stop');
+
     run.postliminary();
 
 end

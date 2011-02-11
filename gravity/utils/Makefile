@@ -69,9 +69,9 @@ fluxLimiterKernels: fluxLimiterKernels.cu
 	mex $(MEX_OPTS) $(MEX_INCL) fluxLimiterKernels.cpp $(GPUMAT_CPP) -o fluxLimiterKernels $(MEX_LDIR) $(MEX_LIBS)
 	rm -f fluxLimiterKernels.cpp
 
-directionalMaxFinder: directionalMaxFinder.cu
+directionalMaxFinder: directionalMaxFinder.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda directionalMaxFinder.cu -o directionalMaxFinder.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) directionalMaxFinder.cpp $(GPUMAT_CPP) -o directionalMaxFinder $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) directionalMaxFinder.cpp cudaCommon.cpp $(GPUMAT_CPP) -o directionalMaxFinder $(MEX_LDIR) $(MEX_LIBS)
 	rm -f directionalMaxFinder.cpp
 
 cudaMHDKernels: cudaMHDKernels.cu cudaCommon

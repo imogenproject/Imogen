@@ -17,16 +17,26 @@
 static int init = 0;
 static GPUmat *gm;
 
+#include "cudaCommon.h"
+
 __global__ void cukern_DirectionalMax(double *d1, double *d2, double *out, int direct, int nx, int ny, int nz);
 __global__ void cukern_GlobalMax(double *din, int n, double *dout);
+__global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, double *py, double *pz, int n, double *dout, int *dirOut);
 
 #define BLOCKDIM 8
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
   // Input and result
-  if ( ( (nrhs!=3) && (nrhs!=1)) || (nlhs != 1) )
-     mexErrMsgTxt("Wrong number of arguments (require 3 rhs, 1 lhs or 1 rhs, 1 lhs)");
+  if((nlhs == 0) || (nlhs > 2))
+     mexErrMsgTxt("Either 1 return argument for simple & directional max or 2 for CFL max");
+
+  if((nlhs == 2) && (nrhs != 5))
+     mexErrMsgTxt("For CFL max require [max dir] = directionalMaxFinder(rho, soundspeed, px, py, pz)");
+
+  if((nlhs == 1) && ((nrhs != 3) && (nrhs != 1)))
+     mexErrMsgTxt("Either 1 or 3 arguments for one rturn argument");
+
   if (init == 0) {
     // Initialize function
     // mexLock();
@@ -35,7 +45,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     init = 1;
   }
 
-if (nrhs == 3) {
+switch(nrhs) {
+  case 3: {
 
   // Get GPU array pointers
   GPUtype srcA = gm->gputype.getGPUtype(prhs[0]);
@@ -76,52 +87,75 @@ if (nrhs == 3) {
   
   //printf("%i %i %i %i %i %i\n", gridsize.x, gridsize.y, gridsize.z, blocksize.x, blocksize.y, blocksize.z);
   cukern_DirectionalMax<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcA), (double*)gm->gputype.getGPUptr(srcB), (double*)gm->gputype.getGPUptr(dest), (int)*mxGetPr(prhs[2]), dims.x, dims.y, dims.z);
-  } else {
+
+  } break;
+  case 1: {
     GPUtype srcA       = gm->gputype.getGPUtype(prhs[0]);
     int numel          = gm->gputype.getNumel(srcA);
 
     dim3 blocksize, gridsize;
     blocksize.x = 256; blocksize.y = blocksize.z = 1;
-//printf("%i elements to start\n", numel);
 
-    gridsize.x = numel / 256; if(gridsize.x * 256 < numel) gridsize.x++;
+//    gridsize.x = numel / 256; if(gridsize.x * 256 < numel) gridsize.x++;
+    gridsize.x = 64;
     gridsize.y = gridsize.z =1;
-//printf("%i gridsize to start\n", gridsize.x);
-    double *blkA; double *blkB = NULL;
+
+    double *blkA;
     cudaMalloc(&blkA, gridsize.x * sizeof(double));
 
     cukern_GlobalMax<<<gridsize, blocksize>>>((double *)gm->gputype.getGPUptr(srcA), numel, blkA);
 
-    while(gridsize.x > 256) { // Perform successive factor-of-256 fanins until we're left with <= 256 elements to search by CPU
-      numel = gridsize.x;
-      gridsize.x = gridsize.x / 256;
-      if(gridsize.x * 256 < numel) gridsize.x++;
-//double maxI[numel];
-//cudaMemcpy(&maxI[0], blkA, sizeof(double)*numel, cudaMemcpyDeviceToHost);
-//printf("Intermediate maxima: ");
-//int q; for(q = 0; q < numel; q++) { printf("%.4lF ", maxI[q]); } printf("\n");
+    double maxes[gridsize.x];
+    cudaMemcpy(&maxes[0], blkA, sizeof(double)*gridsize.x, cudaMemcpyDeviceToHost);
+    cudaFree(blkA);
 
+    mwSize dims[2];
+    dims[0] = 1;
+    dims[1] = 1;
+    plhs[0] = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
 
-      if(blkB != NULL) cudaFree(blkB);
-      blkB = blkA;
-      cudaMalloc(&blkA, gridsize.x * sizeof(double));
-      cukern_GlobalMax<<<gridsize, blocksize>>>(blkB, numel, blkA);
+    double *d = mxGetPr(plhs[0]);
+    d[0] = maxes[0];
 
-    }
+    for(numel = 1; numel < gridsize.x; numel++) { if(maxes[numel] > d[0]) d[0] = maxes[numel];  }
+  } break;
+  case 5: {
+    int numel;
+    double **arraysIn = getGPUSourcePointers(prhs, 5, &numel, 0, gm);
 
-  double maxes[gridsize.x];
-  cudaMemcpy(&maxes[0], blkA, sizeof(double)*gridsize.x, cudaMemcpyDeviceToHost);
+    dim3 blocksize, gridsize;
+    blocksize.x = 256; blocksize.y = blocksize.z = 1;
 
-  mwSize dims[2];
-  dims[0] = 1;
-  dims[1] = 1;
-  plhs[0] = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
+//    gridsize.x = numel / 256; if(gridsize.x * 256 < numel) gridsize.x++;
+    gridsize.x = 64;
+    gridsize.y = gridsize.z =1;
 
-  double *d = mxGetPr(plhs[0]);
-  d[0] = maxes[0];
-//printf("final searching: ");
-  for(numel = 1; numel < gridsize.x; numel++) { if(maxes[numel] > d[0]) d[0] = maxes[numel];  }
-//printf("\n");
+    double *blkA; int *blkB;
+    cudaMalloc(&blkA, gridsize.x * sizeof(double));
+    cudaMalloc(&blkB, gridsize.x * sizeof(int));
+
+    cukern_GlobalMax_forCFL<<<gridsize, blocksize>>>(arraysIn[0], arraysIn[1], arraysIn[2], arraysIn[3], arraysIn[4], numel, blkA, blkB);
+
+    double maxes[gridsize.x]; int maxIndices[gridsize.x];
+    cudaMemcpy(&maxes[0], blkA, sizeof(double)*gridsize.x, cudaMemcpyDeviceToHost);
+    cudaMemcpy(&maxIndices[0], blkB, sizeof(int)*gridsize.x, cudaMemcpyDeviceToHost);
+    cudaFree(blkA);
+    cudaFree(blkB);
+
+    mwSize dims[2];
+    dims[0] = 1;
+    dims[1] = 1;
+    plhs[0] = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
+    plhs[1] = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
+
+    double *maxout = mxGetPr(plhs[0]);
+    double *dirout = mxGetPr(plhs[1]);
+    maxout[0] = maxes[0];
+    dirout[0] = maxIndices[0];
+    
+    for(numel = 1; numel < gridsize.x; numel++) { if(maxes[numel] > maxout[0]) { maxout[0] = maxes[numel]; dirout[0] = maxIndices[0]; }  }
+
+  } break;
   }
 
 }
@@ -162,7 +196,6 @@ switch(direct) {
 
     myBaseaddr = myU + nx*ny*myV;
     for(; myBaseaddr < addrMax ; myBaseaddr += nx) { out[myBaseaddr] = maxSoFar; }
-
   } break;
   case 3: { // Seeek maxima in the Z direction; U=x, V=y
   if ((myU >= nx) || (myV >= ny)) return;
@@ -182,50 +215,6 @@ switch(direct) {
 
 }
 
-// This must be invoked with 2^n threads, n >= 8 for efficiency
-__global__ void cukern_GlobalMax(double *din, int n, double *dout)
-{
-int addr = threadIdx.x + blockDim.x*blockIdx.x;
-__shared__ double loc[256];
-
-if (addr >= n) { loc[threadIdx.x] = -1e37; return; }
-
-loc[threadIdx.x] = din[addr];
-
-__syncthreads();
-
-// 256 threads here <-
-if(( threadIdx.x % 2) > 0 ) return;
-if (loc[threadIdx.x+1] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+1];
-__syncthreads();
-// 128 threads here <=
-if(threadIdx.x % 4) return;
-if (loc[threadIdx.x+2] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+2];
-__syncthreads();
-// 64 threads here <=
-if(threadIdx.x % 8) return;
-if (loc[threadIdx.x+4] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+4];
-__syncthreads();
-// 32 threads here <= (last full warp at n=8)
-if(threadIdx.x % 16) return;
-if (loc[threadIdx.x+8] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+8];
-__syncthreads();
-// 16 threads here <=
-if(threadIdx.x % 32) return;
-if (loc[threadIdx.x+16] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+16];
-__syncthreads();
-// 8 threads here <=
-
-// Continuing with a nigh-empty warp is not profitable
-// One serial loop over the last 8 values to identify the max.
-
-if(threadIdx.x > 0) return;
-for(addr = 32; addr < blockDim.x; addr += 32) { if (loc[addr] > loc[0]) loc[0] = loc[addr]; }
-
-dout[blockIdx.x] = loc[0];
-}
-
-/*
 __global__ void cukern_GlobalMax(double *din, int n, double *dout)
 {
 
@@ -234,22 +223,22 @@ __shared__ double locBloc[256];
 
 double CsMax = -1e37;
 locBloc[threadIdx.x] = -1e37;
+if(threadIdx.x == 0) dout[blockIdx.x] = locBloc[0]; // As a safety measure incase we return below
 
-if(x >= n) return; // If we get a very low resolution, save time & space on wasted threads
+if(x >= n) return; // If we're fed a very small array, this will be easy
 
-// Every block 
+// Threads step through memory with a stride of (total # of threads), finding the max in this space
 while(x < n) {
   if(din[x] > CsMax) CsMax = din[x];
   x += blockDim.x * gridDim.x;
   }
-
 locBloc[threadIdx.x] = CsMax;
 
-// Now we need the max of the stored shared array to write back to the global array
+// Synchronize, then logarithmically fan in to identify each block's maximum
 __syncthreads();
 
 x = 2;
-while(x < BLOCKDIM) {
+while(x < 256) {
   if(threadIdx.x % x != 0) break;
 
   if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
@@ -259,8 +248,65 @@ while(x < BLOCKDIM) {
 
 __syncthreads();
 
+// Make sure the max is written and visible; each block writes one value. We test these 30 or so in CPU.
 if(threadIdx.x == 0) dout[blockIdx.x] = locBloc[0];
+
+}
+
+// This is specifically for finding globalmax( max(abs(p_i))/rho + c_s) for the CFL constraint
+__global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, double *py, double *pz, int n, double *dout, int *dirOut)
+{
+
+int x = blockIdx.x * blockDim.x + threadIdx.x;
+__shared__ double locBloc[256];
+__shared__ double locDir[256];
+
+double CsMax = -1e37; int IndMax;
+double locRho, locCs, testV;
+locBloc[threadIdx.x] = -1e37;
+locDir[threadIdx.x] = 0;
+
+if(threadIdx.x == 0) { dout[blockIdx.x] = -1e37; dirOut[blockIdx.x] = 0; }
+
+if(x >= n) return; // If we get a very low resolution, save time & space on wasted threads
+
+// Every block 
+while(x < n) {
+  locRho = rho[x]; locCs = cs[x];
+
+  testV = abs(px[x]/locRho) + locCs; if(testV > CsMax) { CsMax = testV; IndMax = 1; }
+  testV = abs(py[x]/locRho) + locCs; if(testV > CsMax) { CsMax = testV; IndMax = 2; }
+  testV = abs(pz[x]/locRho) + locCs; if(testV > CsMax) { CsMax = testV; IndMax = 3; }
+
+  x += blockDim.x * gridDim.x;
+  }
+
+locBloc[threadIdx.x] = CsMax;
+locDir[threadIdx.x] = IndMax;
+
+// Now we need the max of the stored shared array to write back to the global array
+__syncthreads();
+
+x = 2;
+while(x < 256) {
+  if(threadIdx.x % x != 0) break;
+
+  if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) {
+	locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
+	locDir[threadIdx.x] = locDir[threadIdx.x + x/2];
+	}
+
+  x *= 2;
+  }
+
+__syncthreads();
+
+if(threadIdx.x == 0) {
+	dout[blockIdx.x] = locBloc[0];
+	dirOut[blockIdx.x] = locDir[0];
+	}
 
 
 }
-*/
+
+

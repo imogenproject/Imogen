@@ -16,7 +16,6 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
     fluxFactor = run.time.dTime ./ run.DGRID{X};
     v          = [mass, mom(1), mom(2), mom(3), ener];
 
-run.time.dTime    
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%                   Half-Timestep predictor step (first-order upwind,not TVD)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -68,24 +68,18 @@ classdef TimeManager < handle
             %--- Find max velocity ---%
             %           Find the maximum fluid velocity in the grid and its vector direction.
             soundSpeed = pressure('sound', obj.parent, mass, mom, ener, mag);
-            for i=1:3
-                if isa(mass.array, 'GPUdouble')
-                    c = directionalMaxFinder(abs(mom(i).array ./ mass.array) + soundSpeed);
-                else
+            if isa(mass.array, 'GPUdouble')
+                [cmax gridIndex] = directionalMaxFinder(mass.array, soundSpeed, mom(1).array, mom(2).array, mom(3).array);
+            else
+                for i=1:3
                     c = maxFinderND(abs(mom(i).array ./ mass.array) + soundSpeed);
-                end
-                if (c > cmax)
-                    cmax      = c;
-                    gridIndex = i;
+                    if (c > cmax)
+                        cmax      = c;
+                        gridIndex = i;
+                    end
                 end
             end
-%if isa(mass.array, 'GPUdouble')
-%[a b] = cmaxForTimestep(mass.array, soundSpeed, mom(1).array, mom(2).array, mom(3).array);
-%a-cmax
-%b
-%gridIndex
-%error('stop')
-%            end
+
             %--- Check for errors ---%
             % If the gridIndex isn't valid then a CFL error is the cause, which means that the 
             % propagation over the last step was too large and has corrupted the run.
