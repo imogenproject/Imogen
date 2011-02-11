@@ -74,14 +74,14 @@ directionalMaxFinder: directionalMaxFinder.cu
 	mex $(MEX_OPTS) $(MEX_INCL) directionalMaxFinder.cpp $(GPUMAT_CPP) -o directionalMaxFinder $(MEX_LDIR) $(MEX_LIBS)
 	rm -f directionalMaxFinder.cpp
 
-cudaMHDKernels: cudaMHDKernels.cu
+cudaMHDKernels: cudaMHDKernels.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaMHDKernels.cpp
 
-cudaShift: cudaShift.cu
+cudaShift: cudaShift.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaShift.cu -o cudaShift.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) cudaShift.cpp $(GPUMAT_CPP) -o cudaShift $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) cudaShift.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaShift $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaShift.cpp
 
 cudaLinearSubsagn: cudaLinearSubsagn.cu
@@ -89,15 +89,23 @@ cudaLinearSubsagn: cudaLinearSubsagn.cu
 	mex $(MEX_OPTS) $(MEX_INCL) cudaLinearSubsagn.cpp $(GPUMAT_CPP) -o cudaLinearSubsagn $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaLinearSubsagn.cpp
 
-freezeAndPtot: freezeAndPtot.cu
+freezeAndPtot: freezeAndPtot.cu cudaCommon.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda freezeAndPtot.cu -o freezeAndPtot.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) freezeAndPtot.cpp $(GPUMAT_CPP) -o freezeAndPtot $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) freezeAndPtot.cpp cudaCommon.cpp $(GPUMAT_CPP) -o freezeAndPtot $(MEX_LDIR) $(MEX_LIBS)
 	rm -f freezeAndPtot.cpp
 
 cudaWstep: cudaWstep.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaWstep.cu -o cudaWstep.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) cudaWstep.cpp $(GPUMAT_CPP) -o cudaWstep $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) cudaWstep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaWstep $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaWstep.cpp
+
+cmaxForTimestep: cmaxForTimestep.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cmaxForTimestep.cu -o cmaxForTimestep.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cmaxForTimestep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cmaxForTimestep $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cmaxForTimestep.cpp
+
+cudaCommon: cudaCommon.h cudaCommon.cu
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaCommon.cu -o cudaCommon.cpp
 
 clean:
 	rm -f *mexa64 cudaKernels.cpp

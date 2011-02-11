@@ -5,14 +5,14 @@ starterRun();
 
 %--- Initialize test ---%
 run                 = JetInitializer([512 256 1]);
-run.iterMax         = 15;
+run.iterMax         = 1000;
 run.offset          = [20 128 1];
 run.bcMode.x        = 'circ';
 run.bcMode.y        = 'circ';
 run.direction       = JetInitializer.X;
 run.flip            = false;
 
-run.image.interval  = 1;
+run.image.interval  = 10;
 run.image.mass      = true;
 run.image.speed     = true;
 

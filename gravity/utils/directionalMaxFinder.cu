@@ -224,3 +224,43 @@ for(addr = 32; addr < blockDim.x; addr += 32) { if (loc[addr] > loc[0]) loc[0] =
 
 dout[blockIdx.x] = loc[0];
 }
+
+/*
+__global__ void cukern_GlobalMax(double *din, int n, double *dout)
+{
+
+int x = blockIdx.x * blockDim.x + threadIdx.x;
+__shared__ double locBloc[256];
+
+double CsMax = -1e37;
+locBloc[threadIdx.x] = -1e37;
+
+if(x >= n) return; // If we get a very low resolution, save time & space on wasted threads
+
+// Every block 
+while(x < n) {
+  if(din[x] > CsMax) CsMax = din[x];
+  x += blockDim.x * gridDim.x;
+  }
+
+locBloc[threadIdx.x] = CsMax;
+
+// Now we need the max of the stored shared array to write back to the global array
+__syncthreads();
+
+x = 2;
+while(x < BLOCKDIM) {
+  if(threadIdx.x % x != 0) break;
+
+  if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
+
+  x *= 2;
+  }
+
+__syncthreads();
+
+if(threadIdx.x == 0) dout[blockIdx.x] = locBloc[0];
+
+
+}
+*/

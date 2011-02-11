@@ -79,7 +79,13 @@ classdef TimeManager < handle
                     gridIndex = i;
                 end
             end
-            
+%if isa(mass.array, 'GPUdouble')
+%[a b] = cmaxForTimestep(mass.array, soundSpeed, mom(1).array, mom(2).array, mom(3).array);
+%a-cmax
+%b
+%gridIndex
+%error('stop')
+%            end
             %--- Check for errors ---%
             % If the gridIndex isn't valid then a CFL error is the cause, which means that the 
             % propagation over the last step was too large and has corrupted the run.
@@ -109,15 +115,15 @@ classdef TimeManager < handle
             %--- Clock first loops ---%
             %           Clocks the first loop of execution and uses that to determine an estimated
             %           time to complete that is displayed in the UI and log files.
-            if obj.iteration < 3
+            if obj.iteration < 4
                 switch obj.iteration 
                     
                     case 1;        %Activate clock timer for the first loop        
                         tic; 
                         
-                    case 2;        %Stop clock timer and use the elapsed time to predict total run time
+                    case 3;        %Stop clock timer and use the elapsed time to predict total run time
                         elapsedMins = toc/60;
-                        save.logPrint('\nFirst loop completed in %0.5g minutes.', elapsedMins);
+                        save.logPrint('\nFirst two loops averaged %0.5g seconds.', 60*elapsedMins/2);
 
                         if (obj.iterPercent > obj.timePercent)
                             timeRemaining = elapsedMins*obj.ITERMAX;

@@ -33,7 +33,7 @@ double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany)
 __global__ void cudaWFluxKernel(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw, int direction);
 __global__ void nullStep(fluidVarPtrs fluid, int numel);
 
-#define BLOCKLEN 62
+#define BLOCKLEN 126
 
 /* Given the RHS and how many cuda arrays we expect, extracts a set of pointers to GPU memory for us
  Also conveniently checked for equal array extent and returns it for us */
@@ -147,37 +147,55 @@ if(nu > 1) {
 
 }
 
+
 __global__ void cudaWFluxKernel(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw, int direction)
 {
 
-__shared__ double fluxArrayL[2*BLOCKLEN+12];
+// This is the shared flux array.
+// It is long enough to hold both the left and right fluxes for a variable, with extra spaces that
+// strategically leave the next flux variables for the left edge behind when our fLeft pointer is decremented
+__shared__ double fluxArrayL[BLOCKLEN+6];
+__shared__ double fluxArrayR[BLOCKLEN+6];
 
+// Local copies of the hyperbolic state variables: The conserved quantities Qi (rho, energy,
+// momentum), a W variable, and local copies of the pressure, inverse freezing speed and B
 double Qi[5], Wi, lPress, Cinv, lBx, lBy, lBz;
 
-int indexBase = blockIdx.x * hv + blockIdx.y * hw + ((threadIdx.x-1)%nu)* hu;
-
-int endAddress = blockIdx.x * hv + blockIdx.y * hw + nu*hu;
+// IndexBase identifies where we go into the array, i is our generic counter variable
+int indexBase;// = blockIdx.x * hv + blockIdx.y * hw + ((threadIdx.x-1)%nu)* hu;
+//int endAddress = blockIdx.x * hv + blockIdx.y * hw + nu*hu;
 int i;
 
-double *fLeft; //double *fRight;
+// Pointer into the shared flux array that's strategically decremented to leave the variables we need next behind
+double *fLeft; double *fRight;
 double rhoinv;
 
-while(indexBase < endAddress) {
-	// Load local copies
-	for(i = 0; i < 5; i++) { Qi[i] = fluid.fluidIn[i][indexBase]; }
+// Loop index - controls the advancement of the thread block through the line; Doflux tells threads to flux or not flux
+int lpIdx;
 
+for(lpIdx = threadIdx.x-1; lpIdx <= nu; lpIdx += BLOCKLEN) {
+	// Our index in the U direction; If it exceeds the array size+1, return; If it equals it, don't flux that cell
+
+	// Convert i to an index; Circular boundary conditions
+	indexBase = blockIdx.x * hv + blockIdx.y * hw + (lpIdx % nu)* hu;
+if(lpIdx < 0) indexBase = blockIdx.x * hv + blockIdx.y * hw + (nu-1)* hu;
+
+	// Load local copies of hyperbolic state variables
+	for(i = 0; i < 5; i++) { Qi[i] = fluid.fluidIn[i][indexBase]; }
 	lPress = fluid.Ptotal[indexBase];
 	Cinv   = 1.0 / fluid.cFreeze[indexBase];
 	rhoinv = 1.0 / Qi[0];
-
 	lBx = fluid.B[0][indexBase];
 	lBy = fluid.B[1][indexBase];
 	lBz = fluid.B[2][indexBase];
 
+	// Start outselves off with 4 chances to move left
 	fLeft  = fluxArrayL + 4;
-//	fRight = fluxArrayR + 4;
+	fRight = fluxArrayR + 4;
 
+	// For each conserved quantity,
 	for(i = 0; i < 5; i++) {
+		// Calculate the W flux
 		switch(5*direction + i) {
 			case 5: Wi = Qi[2] * Cinv; break;
 			case 6: Wi = (Qi[2] * (Qi[1] + lPress) - lBx*(Qi[2]*lBx+Qi[3]*lBy+Qi[4]*lBz) ) * Cinv * rhoinv; break;
@@ -198,27 +216,33 @@ while(indexBase < endAddress) {
 			case 19: Wi = (Qi[4]*Qi[4]*rhoinv + lPress - lBz*lBz)*Cinv; break;
 			}
 
+		// Decouple into left & right going fluxes
 		fLeft[threadIdx.x]  = .25*(Qi[i] - Wi);
-//		fRight[threadIdx.x] = .25*(Qi[i] + Wi[i]);	
-		fLeft[threadIdx.x+BLOCKLEN+6] = .25*(Qi[i] + Wi);
+		fRight[threadIdx.x] = .25*(Qi[i] + Wi);
+//              fLeft[threadIdx.x]  = 5.0;
+//              fRight[threadIdx.x] = 4;
 
+
+		// Stop until all threads finish filling flux array
 		__syncthreads();
 
+		// Write updated quantities to global memory
 //		if((threadIdx.x > 0) && (threadIdx.x <= BLOCKLEN)) fluid.fluidOut[i][indexBase] = Qi[i] - lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fRight[threadIdx.x] - fRight[threadIdx.x-1] )/Cinv;
-		if((threadIdx.x > 0) && (threadIdx.x <= BLOCKLEN)) fluid.fluidOut[i][indexBase] = Qi[i] - lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fLeft[threadIdx.x+BLOCKLEN+6] - fLeft[threadIdx.x-1+BLOCKLEN+6] )/Cinv;
+		if((lpIdx >= 0) && (lpIdx < nu)) fluid.fluidOut[i][indexBase] = Qi[i] - lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fRight[threadIdx.x] - fRight[threadIdx.x-1] )/Cinv;
 
+		// Make sure everyone's done reading shared memory before we futz with it again; Move left
 		__syncthreads();
-
 		fLeft--;
-//		fRight--;
+		fRight--;
 		}
 
-	indexBase += BLOCKLEN*hu;
+;
+	// Thread zero is only to fill the left edge on the very first iteration - break
 	if(threadIdx.x == 0) break;
 
 	if(threadIdx.x < 6) {
-		fluxArrayL[threadIdx.x-1] = fluxArrayL[threadIdx.x + BLOCKLEN + 0];
-		fluxArrayL[threadIdx.x-1+BLOCKLEN+6] = fluxArrayL[threadIdx.x + 2*BLOCKLEN + 6];
+		fluxArrayL[threadIdx.x-1] = fluxArrayL[threadIdx.x + BLOCKLEN];
+		fluxArrayR[threadIdx.x-1] = fluxArrayR[threadIdx.x + BLOCKLEN];
 		}
 
 	}
@@ -240,3 +264,4 @@ while(idx0 < numel) {
   }
 
 }
+

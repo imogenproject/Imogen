@@ -17,8 +17,10 @@
 static int init = 0;
 static GPUmat *gm;
 
-double **getSourcePointers(const mxArray *prhs[], int num, int *retNumel);
-double **makeDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
+#include "cudaCommon.h"
+
+//double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel);
+//double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
 //double *makeDestinationArray(GPUtype src, mxArray *retArray[]);
 
 #define OP_SOUNDSPEED 1
@@ -63,10 +65,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if((operation == OP_SOUNDSPEED) || (operation == OP_GASPRESSURE) || (operation == OP_TOTALPRESSURE)) {
     if( (nlhs != 1) || (nrhs != 10)) { mexErrMsgTxt("Soundspeed operator is Cs = cudaMHDKernels(1, rho, E, px, py, pz, bx, by, bz, gamma)"); }
     double gam = *mxGetPr(prhs[9]);
-    double **srcs = getSourcePointers(prhs, 8, &numel);
+    double **srcs = getGPUSourcePointers(prhs, 8, &numel, 1, gm);
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
-    double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1);
+    double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1, gm);
 //printf("%i %i %i %i %i %i\n", blocksize.x, blocksize.y, blocksize.z, gridsize.x, gridsize.y, gridsize.z);
     switch(operation) {
       case OP_SOUNDSPEED:       cukern_Soundspeed<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], destPtr[0], gam, numel); break;
@@ -78,10 +80,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   } else if((operation == OP_MAGPRESSURE)) {
     if( (nlhs != 1) || (nrhs != 4)) { mexErrMsgTxt("Magnetic pressure operator is Pm = cudaMHDKernels(4, bx, by, bz)"); }
 
-    double **srcs = getSourcePointers(prhs, 3, &numel);
+    double **srcs = getGPUSourcePointers(prhs, 3, &numel, 1, gm);
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
-    double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1);
+    double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1, gm);
 
     cukern_MagneticPressure<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], destPtr[0], numel);
     free(destPtr); free(srcs);
@@ -89,82 +91,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   } else if((operation == OP_TOTALANDSND)) {
     if( (nlhs != 2) || (nrhs != 10)) { mexErrMsgTxt("Soundspeed operator is [Ptot Cs] = cudaMHDKernels(5, rho, E, px, py, pz, bx, by, bz, gamma)"); }
     double gam = *mxGetPr(prhs[9]);
-    double **srcs = getSourcePointers(prhs, 8, &numel);
+    double **srcs = getGPUSourcePointers(prhs, 8, &numel, 1, gm);
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
-    double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 2);
+    double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 2, gm);
 
     cukern_TotalAndSound<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], destPtr[0], destPtr[1], gam, numel);
     free(destPtr); free(srcs);
   } else if ((operation == OP_WARRAYS)) {
     if( (nlhs != 5) || (nrhs != 12)) { mexErrMsgTxt("solving W operator is [rhoW enerW pxW pyW pzW] = cudaMHDKernels(6, rho, E, px, py, pz, bx, by, bz, P, cFreeze, direction)"); }
     int dir = (int)*mxGetPr(prhs[11]);
-    double **srcs = getSourcePointers(prhs, 10, &numel);
+    double **srcs = getGPUSourcePointers(prhs, 10, &numel, 1, gm);
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
-    double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 5);
+    double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 5, gm);
 
     cukern_CalcWArrays<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], srcs[8], srcs[9], destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], dir, numel);
     free(destPtr); free(srcs);
   } else if ((operation == OP_RELAXINGFLUX)) {
     if( (nlhs != 1) || (nrhs != 8)) { mexErrMsgTxt("relaxing flux operator is fluxed = cudaMHDKernels(7, old, tempfreeze, right, right_shifted, left, left_shifted, lambda)"); }
     double lambda = *mxGetPr(prhs[7]);
-    double **srcs = getSourcePointers(prhs, 6, &numel);
+    double **srcs = getGPUSourcePointers(prhs, 6, &numel, 1, gm);
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
-    double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1);
+    double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1, gm);
 
     cukern_PerformFlux<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], destPtr[0], lambda, numel);
     free(destPtr); free(srcs);
   } else if ((operation == OP_SEPERATELRFLUX)) {
     if ((nlhs != 2) || (nrhs != 3)) { mexErrMsgTxt("flux seperation operator is [Fl Fr] = cudaMHDKernels(8, array, wArray)"); }
-    double **srcs = getSourcePointers(prhs, 2, &numel);
+    double **srcs = getGPUSourcePointers(prhs, 2, &numel, 1, gm);
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
-    double **destPtr = makeDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 2);
+    double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 2, gm);
 
     cukern_SeperateLRFlux<<<gridsize, blocksize>>>(srcs[0], srcs[1], destPtr[0], destPtr[1], numel);
     free(destPtr); free(srcs);
   }
-
-}
-
-// Given the RHS and how many cuda arrays we expect, extracts a set of pointers to GPU memory for us
-// Also conveniently checked for equal array extent and returns it for us
-double **getSourcePointers(const mxArray *prhs[], int num, int *retNumel)
-{
-  GPUtype src;
-  double **gpuPointers = (double **)malloc(num * sizeof(double *));
-  int iter;
-  int numel = gm->gputype.getNumel(gm->gputype.getGPUtype(prhs[1]));
-  for(iter = 0; iter < num; iter++) {
-    src = gm->gputype.getGPUtype(prhs[iter+1]);
-    if (gm->gputype.getNumel(src) != numel) { free(gpuPointers); mexErrMsgTxt("Fatal: Arrays contain nonequal number of elements."); }
-    gpuPointers[iter] = (double *)gm->gputype.getGPUptr(src);
-  }
-
-retNumel[0] = numel;
-return gpuPointers;
-}
-
-// Creates destination array that the kernels write to; Returns the GPU memory pointer, and assigns the LHS it's passed
-double **makeDestinationArrays(GPUtype src, mxArray *retArray[], int howmany)
-{
-int d = gm->gputype.getNdims(src);
-const int *ssize = gm->gputype.getSize(src);
-int x;
-int newsize[3];
-for(x = 0; x < 3; x++) (x < d) ? newsize[x] = ssize[x] : newsize[x] = 1;
-
-double **rvals = (double **)malloc(howmany*sizeof(double *));
-int i;
-for(i = 0; i < howmany; i++) {
-  GPUtype ra = gm->gputype.create(gpuDOUBLE, d, newsize, NULL);
-  retArray[i] = gm->gputype.createMxArray(ra);
-  rvals[i] = (double *)gm->gputype.getGPUptr(ra);
-  }
-
-return rvals;
 
 }
 
@@ -174,8 +137,6 @@ return rvals;
 // THIS KERNEL CALCULATES SOUNDSPEED 
 __global__ void cukern_Soundspeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *dout, double gam, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x;
-//if (x >= n) { return; }
 double gg1 = gam*(gam-1.0);
 
 KERNEL_PREAMBLE
@@ -185,8 +146,6 @@ dout[x] = sqrt(abs( (gg1*(E[x] - .5*(px[x]*px[x] + py[x]*py[x] + pz[x]*pz[x])/rh
 // THIS KERNEL CALCULATES GAS PRESSURE
 __global__ void cukern_GasPressure(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *dout, double gam, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
-
 KERNEL_PREAMBLE
 dout[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x] + bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]));
 }
@@ -194,8 +153,6 @@ dout[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x] 
 // THIS KERNEL CALCULATES TOTAL PRESSURE
 __global__ void cukern_TotalPressure(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *dout, double gam, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
-
 KERNEL_PREAMBLE
 dout[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x])) + .5*(2.0-gam)*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
 }
@@ -203,14 +160,12 @@ dout[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x])
 // THIS KERNEL CALCULATES MAGNETIC PRESSURE
 __global__ void cukern_MagneticPressure(double *bx, double *by, double *bz, double *dout, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
 KERNEL_PREAMBLE
 dout[x] = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
 }
 
 __global__ void cukern_TotalAndSound(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *total, double *sound, double gam, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
 double gg1 = gam*(gam-1.0);
 double psqhf, bsqhf;
 
@@ -276,7 +231,6 @@ switch(dir) {
 
 __global__ void cukern_PerformFlux(double *array0, double *Cfreeze, double *fluxRa, double *fluxRb, double *fluxLa, double *fluxLb, double *out, double lambda, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
 KERNEL_PREAMBLE 
 out[x] = array0[x] - lambda*Cfreeze[x]*(fluxRa[x] - fluxRb[x] + fluxLa[x] - fluxLb[x]);
 
@@ -287,11 +241,11 @@ out[x] = array0[x] - lambda*Cfreeze[x]*(fluxRa[x] - fluxRb[x] + fluxLa[x] - flux
 
 __global__ void cukern_SeperateLRFlux(double *arr, double *wArr, double *left, double *right, int n)
 {
-//int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
 KERNEL_PREAMBLE {
 	left[x]  = .5*(arr[x] - wArr[x]);
 	right[x] = .5*(arr[x] + wArr[x]);
 	}
 
 }
+
 

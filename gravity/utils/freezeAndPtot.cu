@@ -17,12 +17,11 @@
 static int init = 0;
 static GPUmat *gm;
 
-__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nx, int ny, int nz);
+#include "cudaCommon.h"
 
-double **getSourcePointers(const mxArray *prhs[], int num, int *retNumel);
-double **makeDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
+__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nu, int hu, int hv, int hw);
 
-#define BLOCKDIM 16
+#define BLOCKDIM 64
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
@@ -39,212 +38,103 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
 
   // Get GPU array pointers
-  double direction = *mxGetPr(prhs[9]);
+  int direction = (int)*mxGetPr(prhs[9]);
 
-  GPUtype srcA       = gm->gputype.getGPUtype(prhs[0]);
-  int numDims        = gm->gputype.getNdims(srcA);
-  const int *dimsA   = gm->gputype.getSize(srcA);
+  GPUtype srcReference = gm->gputype.getGPUtype(prhs[0]);
+  int numDims          = gm->gputype.getNdims(srcReference);
+  const int *dims      = gm->gputype.getSize(srcReference);
 
-  dim3 blocksize, gridsize, dims;
+  dim3 arraySize;
+  arraySize.x = dims[0];
+  numDims > 1 ? arraySize.y = dims[1] : arraySize.y = 1;
+  numDims > 2 ? arraySize.z = dims[2] : arraySize.z = 1;
 
-  dims.x = dimsA[0];
-  numDims > 1 ? dims.y = dimsA[1] : dims.y = 1;
-  numDims > 2 ? dims.z = dimsA[2] : dims.z = 1;
+  dim3 blocksize, gridsize;
+  int hu, hv, hw, nu;
 
-  blocksize.x = blocksize.y = BLOCKDIM; blocksize.z =1;
-
-  switch((int)direction) {
-    case 1:
-	if(dims.z > 1) {
-            gridsize.x = dims.y / BLOCKDIM; if (gridsize.x * BLOCKDIM < dims.y) gridsize.x++;
-            gridsize.y = dims.z / BLOCKDIM; if (gridsize.y * BLOCKDIM < dims.z) gridsize.y++;
-	} else {
-            blocksize.x = 128; blocksize.y = 1;
-            gridsize.x = dims.y / blocksize.x; if(gridsize.x * blocksize.x < dims.y) gridsize.x++;
-            gridsize.y = 1;
-	}
-	break;
-    case 2:
-	if(dims.z > 1) {
-            gridsize.x = dims.x / BLOCKDIM; if (gridsize.x * BLOCKDIM < dims.x) gridsize.x++;
-            gridsize.y = dims.z / BLOCKDIM; if (gridsize.y * BLOCKDIM < dims.z) gridsize.y++;
-	} else {
-            blocksize.x = 128; blocksize.y = 1;
-            gridsize.x = dims.x / blocksize.x; if(gridsize.x * blocksize.x < dims.x) gridsize.x++;
-            gridsize.y = 1;
-	}
-	break;
-    case 3:
-	gridsize.x = dims.x / BLOCKDIM; if (gridsize.x * BLOCKDIM < dims.x) gridsize.x++;
-        gridsize.y = dims.y / BLOCKDIM; if (gridsize.y * BLOCKDIM < dims.y) gridsize.y++;
-	break;
+  blocksize.x = BLOCKDIM; blocksize.y = blocksize.z = 1;
+  switch(direction) {
+    case 1: // X direction flux: u = x, v = y, w = z;
+      gridsize.x = arraySize.y;
+      gridsize.y = arraySize.z;
+      hu = 1; hv = arraySize.x; hw = arraySize.x * arraySize.x;
+      nu = arraySize.x; break;
+    case 2: // Y direction flux: u = y, v = x, w = z
+      gridsize.x = arraySize.x;
+      gridsize.y = arraySize.z;
+      hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
+      nu = arraySize.y; break;
+    case 3: // Z direction flux: u = z, v = x, w = y;
+      gridsize.x = arraySize.x;
+      gridsize.y = arraySize.y;
+      hu = arraySize.x * arraySize.y; hv = 1; hw = arraySize.x;
+      nu = arraySize.z; break;
     default: mexErrMsgTxt("Direction passed to directionalMaxFinder is not in { 1,2,3 }");
-  }
+    }
 
   int numel;
-  double **args = getSourcePointers(prhs, 8, &numel);
-  double **ret = makeDestinationArrays(gm->gputype.getGPUtype(prhs[0]), plhs, 2);
+  double **args = getGPUSourcePointers(prhs, 8, &numel, 0, gm);
+  double **ret = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[0]), plhs, 2, gm);
 
-  cukern_FreezeSpeed<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], *mxGetPr(prhs[8]), ret[0], ret[1], (int)direction, dims.x, dims.y, dims.z);
+  cukern_FreezeSpeed<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], *mxGetPr(prhs[8]), ret[0], ret[1], direction, nu, hu, hv, hw);
 //   b                                         (double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nx, int ny, int nz)
   free(ret);
   free(args);
 
 }
 
-double **getSourcePointers(const mxArray *prhs[], int num, int *retNumel)
-{
-  GPUtype src;
-  double **gpuPointers = (double **)malloc(num * sizeof(double *));
-  int iter;
-  int numel = gm->gputype.getNumel(gm->gputype.getGPUtype(prhs[0]));
-  for(iter = 0; iter < num; iter++) {
-    src = gm->gputype.getGPUtype(prhs[iter]);
-    if (gm->gputype.getNumel(src) != numel) { free(gpuPointers); mexErrMsgTxt("Fatal: Arrays contain nonequal number of elements."); }
-    gpuPointers[iter] = (double *)gm->gputype.getGPUptr(src);
-  }
-
-retNumel[0] = numel;
-return gpuPointers;
-}
-
-// Creates destination array that the kernels write to; Returns the GPU memory pointer, and assigns the LHS it's passed
-double **makeDestinationArrays(GPUtype src, mxArray *retArray[], int howmany)
-{
-int d = gm->gputype.getNdims(src);
-const int *ssize = gm->gputype.getSize(src);
-int x;
-int newsize[3];
-for(x = 0; x < 3; x++) (x < d) ? newsize[x] = ssize[x] : newsize[x] = 1;
-
-double **rvals = (double **)malloc(howmany*sizeof(double *));
-int i;
-for(i = 0; i < howmany; i++) {
-  GPUtype ra = gm->gputype.create(gpuDOUBLE, d, newsize, NULL);
-  retArray[i] = gm->gputype.createMxArray(ra);
-  rvals[i] = (double *)gm->gputype.getGPUptr(ra);
-  }
-
-return rvals;
-
-}
-
-__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nx, int ny, int nz)
+__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nu, int hu, int hv, int hw)
 {
 
-int myU = threadIdx.x + blockDim.x*blockIdx.x;
-int myV = threadIdx.y + blockDim.y*blockIdx.y;
+int x = blockIdx.x * hv + blockIdx.y * hw + threadIdx.x * hu;
+int addrMax = blockIdx.x * hv + blockIdx.y * hw + nu*hu;
 
-double maxSoFar = -1e37;
-double Cs;
+double Cs, CsMax;
 double psqhf, bsqhf;
 double gg1 = gam*(gam-1.0);
-int addrMax, x;
 
-switch(direct) {
-  case 1: { // Seek maxima in the X direction. U=y, V=z
-    if ((myU >= ny) || (myV >= nz)) return;
+__shared__ double locBloc[BLOCKDIM];
 
-    x = nx*(myU + ny*myV);
-    addrMax = x + nx;
+CsMax = 0.0;
+locBloc[threadIdx.x] = 0.0;
 
-    for(; x < addrMax ; x++) {
-      psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
-      bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
-      Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] )) + abs(px[x]/rho[x]);
-      ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
+if(x >= addrMax) return; // If we get a very low resolution, save time & space on wasted threads
 
-      if (Cs > maxSoFar) maxSoFar = Cs;
-      }
+while(x < addrMax) {
+  psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
+  bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
+  Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] )) + abs(px[x]/rho[x]);
+  ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
 
-    x = nx*(myU + ny*myV);
-    __syncthreads();
-    for(; x < addrMax ; x++) { freeze[x] = maxSoFar; }
+  if(Cs > CsMax) CsMax = Cs;
 
-  } break;
-  case 2: { // Seek maxima in the Y direction. U=x, V=z
-    if ((myU >= nx) || (myV >= nz)) return;
+  x += blockDim.x * hu;
+  }
 
-    x = myU + nx*ny*myV;
-    addrMax = x + ny*nx;
+locBloc[threadIdx.x] = CsMax;
 
-    for(; x < addrMax ; x += nx) {
-      psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
-      bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
-      Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] )) + abs(py[x]/rho[x]);
-      ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
+// Now we need the max of the stored shared array to write back to the global array
+__syncthreads();
 
-      if (Cs > maxSoFar) maxSoFar = Cs;
-      }
+x = 2;
+while((x < BLOCKDIM) && (x < 2*nu)) {
+  if(threadIdx.x % x != 0) break;
 
-    x = myU + nx*ny*myV;
-    __syncthreads();
-    for(; x < addrMax ; x += nx) { freeze[x] = maxSoFar; }
+  if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
 
-  } break;
-  case 3: { // Seeek maxima in the Z direction; U=x, V=y
-  if ((myU >= nx) || (myV >= ny)) return;
+  x *= 2;
+  }
 
-    x = myU + nx*myV;
-    addrMax = x + nx*ny*nz;
+__syncthreads();
 
-    for(; x < addrMax ; x += nx*ny) {
-      psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
-      bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
-      Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] )) + abs(pz[x]/rho[x]); // actual sound speed plus |advection|
-      ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
+CsMax = locBloc[0];
 
-      if (Cs > maxSoFar) maxSoFar = Cs;
-      }
+x = blockIdx.x * hv + blockIdx.y * hw + threadIdx.x * hu;
+while(x < addrMax) {
+  freeze[x] = CsMax;
+  x += blockDim.x * hu;
+  }
 
-    x = myU + nx*myV;
-    __syncthreads();
-    for(; x < addrMax ; x += nx*ny) { freeze[x] = maxSoFar; }
-
-  } break;
-}
 
 }
 
-// This must be invoked with 2^n threads, n >= 8 for efficiency
-__global__ void cukern_GlobalMax(double *din, int n, double *dout)
-{
-int addr = threadIdx.x + blockDim.x*blockIdx.x;
-__shared__ double loc[256];
-
-if (addr >= n) { loc[threadIdx.x] = -1e37; return; }
-
-loc[threadIdx.x] = din[addr];
-
-__syncthreads();
-
-// 256 threads here <-
-if(( threadIdx.x % 2) > 0 ) return;
-if (loc[threadIdx.x+1] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+1];
-__syncthreads();
-// 128 threads here <=
-if(threadIdx.x % 4) return;
-if (loc[threadIdx.x+2] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+2];
-__syncthreads();
-// 64 threads here <=
-if(threadIdx.x % 8) return;
-if (loc[threadIdx.x+4] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+4];
-__syncthreads();
-// 32 threads here <= (last full warp at n=8)
-if(threadIdx.x % 16) return;
-if (loc[threadIdx.x+8] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+8];
-__syncthreads();
-// 16 threads here <=
-if(threadIdx.x % 32) return;
-if (loc[threadIdx.x+16] > loc[threadIdx.x]) loc[threadIdx.x] = loc[threadIdx.x+16];
-__syncthreads();
-// 8 threads here <=
-
-// Continuing with a nigh-empty warp is not profitable
-// One serial loop over the last 8 values to identify the max.
-
-if(threadIdx.x > 0) return;
-for(addr = 32; addr < blockDim.x; addr += 32) { if (loc[addr] > loc[0]) loc[0] = loc[addr]; }
-
-dout[blockIdx.x] = loc[0];
-}

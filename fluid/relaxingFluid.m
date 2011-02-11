@@ -15,7 +15,8 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
     %--- Initialize ---%
     fluxFactor = run.time.dTime ./ run.DGRID{X};
     v          = [mass, mom(1), mom(2), mom(3), ener];
-    
+
+run.time.dTime    
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%                   Half-Timestep predictor step (first-order upwind,not TVD)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -32,6 +33,8 @@ if run.useGPU == 1
                                                                          mag(1).cellMag.array, mag(2).cellMag.array, mag(3).cellMag.array, ...
                                                                          pressa, freezea, fluxFactor, X);
 
+	cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
+
 else
     wFluidFlux(run, mass, mom, ener, mag, grav, run.fluid.freezeSpd(X), X);
     
@@ -45,16 +48,12 @@ else
                          + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
         end
         v(i).store.cleanup();
+
+    mass.store.array = max(mass.store.array, run.fluid.MINMASS);
 end
    
-    if run.useGPU == 1
-       cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
-    else
-        mass.store.array = max(mass.store.array, run.fluid.MINMASS);
-    end
-
 %imagesc(double(v(1).store.array));
-%input('continue: ');
+%input('cony: ');
 
     run.fluid.freezeSpd(X).cleanup();
 
