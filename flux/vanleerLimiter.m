@@ -18,9 +18,9 @@ function vanleerLimiter(flux, dLeft, dRight)
 %	signTest = double(signTest ./(dLeft+dRight));
 %	signTest(isnan(signTest)) = 0;
 %        signTest = GPUdouble(signTest);
-	signTest  = GPUdouble(); setReal(signTest); setSize(signTest, size(dLeft)); GPUallocVector(signTest);
+%	signTest  = GPUdouble(); setReal(signTest); setSize(signTest, size(dLeft)); GPUallocVector(signTest);
 	%signTest = zeros(size(dLeft), GPUdouble);
-	fluxLimiterKernels(dLeft, dRight, signTest, 1);
+	signTest = fluxLimiterKernels(dLeft, dRight, 1);
 
 %	sb = max(double(dLeft .* dRight), 0) ./ double(dLeft + dRight);
 %	sb(isnan(sb))=0;

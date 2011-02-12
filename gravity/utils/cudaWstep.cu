@@ -27,8 +27,10 @@ typedef struct {
 	double *cFreeze;
 	} fluidVarPtrs;
 
-double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int startat);
-double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
+#include "cudaCommon.h"
+
+//double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int startat);
+//double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
 
 __global__ void cudaWFluxKernel(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw, int direction);
 __global__ void nullStep(fluidVarPtrs fluid, int numel);
@@ -37,7 +39,7 @@ __global__ void nullStep(fluidVarPtrs fluid, int numel);
 
 /* Given the RHS and how many cuda arrays we expect, extracts a set of pointers to GPU memory for us
  Also conveniently checked for equal array extent and returns it for us */
-double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int startat)
+/*double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int startat)
 {
   GPUtype src;
   double **gpuPointers = (double **)malloc(num * sizeof(double *));
@@ -53,8 +55,9 @@ double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int
 retNumel[0] = numel;
 return gpuPointers;
 }
-
+*/
 /* Creates destination array that the kernels write to; Returns the GPU memory pointer, and assigns the LHS it's passed */
+/*
 double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany)
 {
 int d = gm->gputype.getNdims(src);
@@ -73,7 +76,7 @@ for(i = 0; i < howmany; i++) {
 
 return rvals;
 
-}
+}*/
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
@@ -86,15 +89,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
 
 
-double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int startat);
-double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
+//double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int startat);
+//double **makeGPUDestinationArrays(GPUtype src, mxArray *retArray[], int howmany);
 
   // Get source array info and create destination arrays
   int numel;
   GPUtype srcReference = gm->gputype.getGPUtype(prhs[0]);
 
-  double **srcs = getGPUSourcePointers(prhs, 10, &numel, 0);
-  double **dest = makeGPUDestinationArrays(srcReference,  plhs, 5);
+  double **srcs = getGPUSourcePointers(prhs, 10, &numel, 0, gm);
+  double **dest = makeGPUDestinationArrays(srcReference,  plhs, 5, gm);
 
   // Establish launch dimensions & a few other parameters
   int fluxDirection = (int)*mxGetPr(prhs[11]);

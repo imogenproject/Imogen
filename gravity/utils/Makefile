@@ -59,14 +59,14 @@ integralPoisson_mg: integralPoisson_mg.cu kernels
 	mex $(MEX_OPTS) $(MEX_INCL) integralPoisson_mg.cpp $(GPUMAT_CPP) cudaKernels.cpp -o integralPoisson_mg $(MEX_LDIR) $(MEX_LIBS)
 	rm -f integralPoisson_mg.cpp
 
-cudaArrayAtomic: cudaArrayAtomic.cu
+cudaArrayAtomic: cudaArrayAtomic.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaArrayAtomic.cu -o cudaArrayAtomic.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) cudaArrayAtomic.cpp $(GPUMAT_CPP) -o cudaArrayAtomic $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) cudaArrayAtomic.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaArrayAtomic $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaArrayAtomic.cpp
 
-fluxLimiterKernels: fluxLimiterKernels.cu
+fluxLimiterKernels: fluxLimiterKernels.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda fluxLimiterKernels.cu -o fluxLimiterKernels.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) fluxLimiterKernels.cpp $(GPUMAT_CPP) -o fluxLimiterKernels $(MEX_LDIR) $(MEX_LIBS)
+	mex $(MEX_OPTS) $(MEX_INCL) fluxLimiterKernels.cpp cudaCommon.cpp $(GPUMAT_CPP) -o fluxLimiterKernels $(MEX_LDIR) $(MEX_LIBS)
 	rm -f fluxLimiterKernels.cpp
 
 directionalMaxFinder: directionalMaxFinder.cu cudaCommon
@@ -94,7 +94,7 @@ freezeAndPtot: freezeAndPtot.cu cudaCommon.cu
 	mex $(MEX_OPTS) $(MEX_INCL) freezeAndPtot.cpp cudaCommon.cpp $(GPUMAT_CPP) -o freezeAndPtot $(MEX_LDIR) $(MEX_LIBS)
 	rm -f freezeAndPtot.cpp
 
-cudaWstep: cudaWstep.cu
+cudaWstep: cudaWstep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaWstep.cu -o cudaWstep.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaWstep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaWstep $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaWstep.cpp

@@ -17,11 +17,13 @@
 static int init = 0;
 static GPUmat *gm;
 
-__global__ void cukern_ArraySetMin(double *array, double min,    int nu, int nv, int nw);
-__global__ void cukern_ArraySetMax(double *array, double max,    int nu, int nv, int nw);
-__global__ void cukern_ArrayFixNaN(double *array, double fixval, int nu, int nv, int nw);
+#include "cudaCommon.h"
 
-#define BLOCKDIM 8
+__global__ void cukern_ArraySetMin(double *array, double min,    int n);
+__global__ void cukern_ArraySetMax(double *array, double max,    int n);
+__global__ void cukern_ArrayFixNaN(double *array, double fixval, int n);
+
+#define BLOCKDIM 128
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
@@ -42,98 +44,45 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   double val       = *mxGetPr(prhs[1]);
   double operation = *mxGetPr(prhs[2]);
 
-  int numDims        = gm->gputype.getNdims(srcArray);
-  const int *dims    = gm->gputype.getSize(srcArray);
+  int numel;
+  double **atomArray = getGPUSourcePointers(prhs, 1, &numel, 0, gm);
 
-  dim3 gridsize, blocksize;
-  int nzToPass;
+  dim3 blocksize; blocksize.x = BLOCKDIM; blocksize.y = blocksize.z = 1;
+  dim3 gridsize; gridsize.y = gridsize.z = 1;
 
-  switch(numDims) {
-    case 2:
-      gridsize.x = dims[1]/BLOCKDIM; if(gridsize.x * BLOCKDIM < dims[1]) gridsize.x++;
-      gridsize.y = 1;
-      gridsize.z = 1;
-      blocksize.x = BLOCKDIM;
-      blocksize.y = 1;
-      blocksize.z = 1;
-      nzToPass = 1;
-      break;
-    case 3:
-      gridsize.x = dims[1]/BLOCKDIM; if(gridsize.x * BLOCKDIM < dims[1]) gridsize.x++;
-      gridsize.y = dims[2]/BLOCKDIM; if(gridsize.y * BLOCKDIM < dims[2]) gridsize.y++;
-      gridsize.z = 1;
-      blocksize.x = BLOCKDIM;
-      blocksize.y = BLOCKDIM;
-      blocksize.z = 1;
-      nzToPass = dims[2];
-      break;
-  }
-
-//printf("%i %i %i %i %i %i\n", gridsize.x, gridsize.y, gridsize.z, blocksize.x, blocksize.y, blocksize.z);
+  gridsize.x = numel / BLOCKDIM;
+  if(gridsize.x * BLOCKDIM < numel) gridsize.x++;
 
   switch((int)operation) {
-    case 1: cukern_ArraySetMin<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], nzToPass); break;
-    case 2: cukern_ArraySetMax<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], nzToPass); break;
-    case 3: cukern_ArrayFixNaN<<<gridsize, blocksize>>>((double*)gm->gputype.getGPUptr(srcArray), val, dims[0], dims[1], nzToPass); break;
+    case 1: cukern_ArraySetMin<<<gridsize, blocksize>>>(atomArray[0], val, numel); break;
+    case 2: cukern_ArraySetMax<<<gridsize, blocksize>>>(atomArray[0], val, numel); break;
+    case 3: cukern_ArrayFixNaN<<<gridsize, blocksize>>>(atomArray[0], val, numel); break;
   }
 
 }
 
-__global__ void cukern_ArraySetMin(double *array, double min, int nu, int nv, int nw)
+__global__ void cukern_ArraySetMin(double *array, double min, int n)
 {
+int x = threadIdx.x + blockDim.x * blockIdx.x;
+if(x >= n) return;
 
-int myY = threadIdx.x + blockDim.x*blockIdx.x;
-int myZ = threadIdx.y + blockDim.y*blockIdx.y;
-
-int myBaseaddr = nu*(myY + nv*myZ);
-
-if((myY >= nv) || (myZ >= nw)) return;
-
-int xcount;
-for(xcount = 0; xcount < nu; xcount++) {
-  if (array[myBaseaddr] < min) { array[myBaseaddr] = min; }
-//array[myBaseaddr] = 5;
-  myBaseaddr++;
-  }
-
+if(array[x] < min) array[x] = min;
 }
 
-__global__ void cukern_ArraySetMax(double *array, double max, int nu, int nv, int nw)
+__global__ void cukern_ArraySetMax(double *array, double max, int n)
 {
+int x = threadIdx.x + blockDim.x * blockIdx.x;
+if(x >= n) return;
 
-int myY = threadIdx.x + blockDim.x*blockIdx.x;
-int myZ = threadIdx.y + blockDim.y*blockIdx.y;
-
-int myBaseaddr = nu*(myY + nv*myZ);
-
-if((myY >= nv) || (myZ >= nw)) return;
-
-int xcount;
-for(xcount = 0; xcount < nu; xcount++) {
-  if (array[myBaseaddr] > max) { array[myBaseaddr] = max; }
-
-  myBaseaddr++;
-  }
-
+if(array[x] > max) array[x] = max;
 }
 
-
-__global__ void cukern_ArrayFixNaN(double *array, double fixval, int nu, int nv, int nw)
+__global__ void cukern_ArrayFixNaN(double *array, double fixval, int n)
 {
+int x = threadIdx.x + blockDim.x * blockIdx.x;
+if(x >= n) return;
 
-int myY = threadIdx.x + blockDim.x*blockIdx.x;
-int myZ = threadIdx.y + blockDim.y*blockIdx.y;
-
-int myBaseaddr = nu*(myY + nv*myZ);
-
-if((myY >= nv) || (myZ >= nw)) return;
-
-int xcount;
-for(xcount = 0; xcount < nu; xcount++) {
-  if (isnan( array[myBaseaddr] )) { array[myBaseaddr] = fixval; }
-
-  myBaseaddr++;
-  }     
+if (isnan( array[x] )) { array[x] = fixval; }
 
 }
 

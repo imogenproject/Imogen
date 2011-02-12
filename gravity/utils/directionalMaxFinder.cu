@@ -24,6 +24,7 @@ __global__ void cukern_GlobalMax(double *din, int n, double *dout);
 __global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, double *py, double *pz, int n, double *dout, int *dirOut);
 
 #define BLOCKDIM 8
+#define GLOBAL_BLKDIM 128
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
@@ -124,7 +125,7 @@ switch(nrhs) {
     double **arraysIn = getGPUSourcePointers(prhs, 5, &numel, 0, gm);
 
     dim3 blocksize, gridsize;
-    blocksize.x = 256; blocksize.y = blocksize.z = 1;
+    blocksize.x = GLOBAL_BLKDIM; blocksize.y = blocksize.z = 1;
 
 //    gridsize.x = numel / 256; if(gridsize.x * 256 < numel) gridsize.x++;
     gridsize.x = 64;
@@ -258,8 +259,8 @@ __global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, dou
 {
 
 int x = blockIdx.x * blockDim.x + threadIdx.x;
-__shared__ double locBloc[256];
-__shared__ double locDir[256];
+__shared__ double locBloc[GLOBAL_BLKDIM];
+__shared__ double locDir[GLOBAL_BLKDIM];
 
 double CsMax = -1e37; int IndMax;
 double locRho, locCs, testV;
@@ -288,7 +289,7 @@ locDir[threadIdx.x] = IndMax;
 __syncthreads();
 
 x = 2;
-while(x < 256) {
+while(x < GLOBAL_BLKDIM) {
   if(threadIdx.x % x != 0) break;
 
   if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) {

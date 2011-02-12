@@ -48,6 +48,7 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
 
     run.save.logPrint('\nBeginning simulation loop...\n');
 
+clockA = clock;
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
 
@@ -67,6 +68,7 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
 
     end
     %%%=== END MAIN LOOP ========================================================================%%%
+fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
 
     run.postliminary();
 
