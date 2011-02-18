@@ -17,7 +17,7 @@ run.notes           = '';
 run.bcMode.x = 'circ';
 run.bcMode.y = 'circ';
 
-run.useGPU = true;
+run.useGPU = false;
 run.gpuDeviceNumber = 2;
 
 %--- Run tests ---%

@@ -31,6 +31,10 @@ timeVals = [];
 
 seedTime = 0;
 
+xran = input('X range to analyze: ');
+yran = input('Y range to analyze: ');
+zran = input('Z range to analyse: ');
+
 %--- Loop over given frame range ---%
 for ITER = 1:numel(range)
     % Take first guess; Always replace _START
@@ -57,7 +61,7 @@ for ITER = 1:numel(range)
     eval(sprintf('dataframe = %s;', structName));
     clear -regexp 'sx_';
 
-    fftVals(analyzedFrameNumber,:,:) = computeFrameFFT(dataframe);
+    fftVals(analyzedFrameNumber,:,:) = computeFrameFFT(dataframe, xran, yran, zran);
     timeVals(analyzedFrameNumber) = sum(dataframe.time.history);
     
     analyzedFrameNumber = analyzedFrameNumber + 1;
@@ -65,7 +69,7 @@ for ITER = 1:numel(range)
 
     if ITER ==1;
         velX = dataframe.momX(1,1,1) / dataframe.mass(1,1,1);
-	seedTime = 10*numel(find(dataframe.mass(1:floor(end/2),1,1) ~= 1));
+	seedTime = 2*numel(find(dataframe.mass(1:floor(end/2),1,1) ~= 1))
     end
 
     if ITER == numel(range)
@@ -73,11 +77,11 @@ for ITER = 1:numel(range)
 	OUTF = fopen('bestmodes.txt','w');
 
         fprintf('Identifying onset of nonlinearity...\n');
-        u = mean(abs(diff(dataframe.time.history(1000:min(2000,end))))); % get jumps in linear regime (i.e. small)
-        OoNL = min(find(abs(diff(dataframe.time.history(1000:end))) > 3*u));
+        u = mean(abs(diff(dataframe.time.history(200:min(2000,end))))); % get jumps in linear regime (i.e. small)
+        OoNL = min(find(abs(diff(dataframe.time.history(200:end))) > 3*u));
 %figure(); plot(dataframe.time.history);
         if isempty(OoNL);
-            fprintf(OUTF,'Run does not appear to enter nonlinear regime based on dt.\n');
+            fprintf(OUTF,'Run does not appear to enter nonlinear regime based on  drop in dt.\n');
             Tnonlinear = 1e18;
         else;
             OoNL = OoNL + 1000;

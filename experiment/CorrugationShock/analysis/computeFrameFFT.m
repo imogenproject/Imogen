@@ -1,10 +1,9 @@
-function result = computeFrameFFT(frame)
+function result = computeFrameFFT(frame, xset, yset, zset)
 
-dim = size(frame.mass);
+%dim = size(frame.mass);
+%xhalf = round(dim(1)/2);
 
-xhalf = round(dim(1)/2);
-
-rhohalf = frame.magZ(xhalf + 5,:,:);
-result = fft2(squeeze(rhohalf));
+fourierSet = frame.momY(xset, yset, zset) ./ frame.mass(xset, yset, zset);
+result = fft2(squeeze(fourierSet));
 
 end
