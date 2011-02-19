@@ -27,8 +27,8 @@ end
 Wre_norm = phaserate ./ (sqrt(Ky.^2 + Kz.^2) * velX);
 Wim_norm = grorate   ./ (sqrt(Ky.^2 + Kz.^2) * velX);
 
-growRmin = .95;
-phaseRmin = .85;
+growRmin = input('Minimum growth rate correlation to require: ');
+phaseRmin = input('Minimum phase rate correlation to require: ');
 
 ind1 = find(groR > growRmin);
 ind2 = find((groR > growRmin) & (phaseR > phaseRmin));

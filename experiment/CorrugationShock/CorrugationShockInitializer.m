@@ -123,17 +123,19 @@ classdef CorrugationShockInitializer < Initializer
         
                 %--- Load data from file ---%
                 %       Corrugation runs require loading initial condition data from files to run.                
-                filePath = fileparts(mfilename('fullpath'));
-                filePath = [filePath filesep 'data' filesep obj.dataFile];
-                data = load(filePath);
-            
-                obj.mass       = data.result.mass;
-                obj.pressure   = data.result.pressure;
-                obj.velocity   = data.result.velocity;
-                obj.magnet     = data.result.magnet;
-                obj.theta      = data.result.theta;
-                obj.sonicMach  = data.result.sonicMach;
-                obj.alfvenMach = data.result.alfvenMach;
+%                filePath = fileparts(mfilename('fullpath'));
+%                filePath = [filePath filesep 'data' filesep obj.dataFile];
+ %               data = load(filePath);
+           
+		result = MHDjumpSolver(obj.sonicMach, obj.alfvenMach, obj.theta, obj.gamma)
+ 
+                obj.mass       = result.mass;
+                obj.pressure   = result.pressure;
+                obj.velocity   = result.velocity;
+                obj.magnet     = result.magnet;
+                obj.theta      = result.theta;
+                obj.sonicMach  = result.sonicMach;
+                obj.alfvenMach = result.alfvenMach;
             %catch MERR
             %    error('Corrugation:Initialize','Unable to load or parse data file. Run aborted.');
             %end
