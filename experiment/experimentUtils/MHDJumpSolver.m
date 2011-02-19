@@ -30,29 +30,33 @@ function result = MHDJumpSolver(ms, ma, theta, GAMMA)
     Ppre = 1;
     g = GAMMA;
     tt = tan(theta);
-    
+   
     % Solve for postshock vx: Use quartic solver
-    a4 = (rhopre^3 *vxpre^3 + g *rhopre^3 *vxpre^3);
-    a3 = (-2 *bx^2 *rhopre^2 *vxpre^2 - 2 *bx^2 *g *rhopre^2 *vxpre^2 - 2 *g *Ppre *rhopre^2 *vxpre^2 - 2 *bx^2 *g *rhopre^2 *tt^2 *vxpre^2 - 2 *g *rhopre^3 *vxpre^4);
-    a2 = (bx^4 *g *rhopre* vxpre + 4 *bx^2 *g *Ppre *rhopre *vxpre + 3 *bx^4 *g *rhopre *tt^2 *vxpre + bx^4 *rhopre *(1 + tt^2)* vxpre + 4* bx^2* g *rhopre^2 *vxpre^3 + 2 *g *Ppre* rhopre^2 *vxpre^3 - 2 *bx^2 *rhopre^2 *tt^2 *vxpre^3 + 2 *bx^2 *g *rhopre^2 *tt^2* vxpre^3 - rhopre^3 *vxpre^5 + g* rhopre^3 *vxpre^5);
-    a1 = (-2 *bx^4 *g *Ppre - 2 *bx^4* g *rhopre *vxpre^2 - 4 *bx^2* g *Ppre* rhopre* vxpre^2 - 4* bx^4 *g *rhopre *tt^2 *vxpre^2 + 2 *bx^2* rhopre^2* vxpre^4 - 2 *bx^2 *g *rhopre^2 *vxpre^4 + 2 *bx^2 *rhopre^2 *tt^2 *vxpre^4);
-    a0 = (2 *bx^4 *g *Ppre *vxpre + bx^4 *g *rhopre *vxpre^3 + bx^4 *g *rhopre *tt^2* vxpre^3 - bx^4 *rhopre* (1 + tt^2) *vxpre^3);
+    a4 = vpa((rhopre^3 *vxpre^3 + g *rhopre^3 *vxpre^3),64);
+    a3 = vpa((-2 *bx^2 *rhopre^2 *vxpre^2 - 2 *bx^2 *g *rhopre^2 *vxpre^2 - 2 *g *Ppre *rhopre^2 *vxpre^2 - 2 *bx^2 *g *rhopre^2 *tt^2 *vxpre^2 - 2 *g *rhopre^3 *vxpre^4),64);
+    a2 = vpa((bx^4 *g *rhopre* vxpre + 4 *bx^2 *g *Ppre *rhopre *vxpre + 3 *bx^4 *g *rhopre *tt^2 *vxpre + bx^4 *rhopre *(1 + tt^2)* vxpre + 4* bx^2* g *rhopre^2 *vxpre^3 + 2 *g *Ppre* rhopre^2 *vxpre^3 - 2 *bx^2 *rhopre^2 *tt^2 *vxpre^3 + 2 *bx^2 *g *rhopre^2 *tt^2* vxpre^3 - rhopre^3 *vxpre^5 + g* rhopre^3 *vxpre^5),64);
+    a1 = vpa((-2 *bx^4 *g *Ppre - 2 *bx^4* g *rhopre *vxpre^2 - 4 *bx^2* g *Ppre* rhopre* vxpre^2 - 4* bx^4 *g *rhopre *tt^2 *vxpre^2 + 2 *bx^2* rhopre^2* vxpre^4 - 2 *bx^2 *g *rhopre^2 *vxpre^4 + 2 *bx^2 *rhopre^2 *tt^2 *vxpre^4),64);
+    a0 = vpa((2 *bx^4 *g *Ppre *vxpre + bx^4 *g *rhopre *vxpre^3 + bx^4 *g *rhopre *tt^2* vxpre^3 - bx^4 *rhopre* (1 + tt^2) *vxpre^3),64);
     
+%[a0 a1 a2 a3 a4]
+
     vpost = solveQuartic(a4, a3, a2, a1, a0);
-    vpost = vpost(imag(vpost) == 0); % Two real solutions should exist
+    vpost = double(vpost);
+
+    vpost = real(vpost(imag(vpost) < 1e-30)); % The MHD equations are assholes and the quartic solver is an asshole so this is necessary.
     vxpost = min(vpost); % The lesser is the one containing a discontinuity; The other corresponds to no jump.
-    
+
     bypost = (-bx^2*bypre + bypre*rhopre*vxpre^2)/(rhopre*vxpost*vxpre - bx^2);
     vypost = (bx*bypost - bx*bypre + rhopre*vxpre*vypre) / (rhopre*vxpre);
     Ppost = -bypost^2 + bypre^2 + Ppre - rhopre *vxpost *vxpre + rhopre *vxpre^2;
     rhopost = rhopre *vxpre / vxpost;
 
-    result.mass       = rhopost;
-    result.pressure   = Ppost;
-    result.velocity   = [vxpost vypost];
-    result.magnet     = [bx bypost];
+    result.mass       = [1; rhopost];
+    result.pressure   = [1; Ppost];
+    result.velocity   = [vxpre vxpost; vypre vypost; 0 0;];
+    result.magnet     = [bx bx; bypre bypost; 0 0];
     result.theta      = theta;
     result.sonicMach  = ms;
-    result.alfvenmach = ma;
+    result.alfvenMach = ma;
 
 end

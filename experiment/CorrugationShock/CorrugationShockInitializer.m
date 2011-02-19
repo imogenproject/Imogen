@@ -127,7 +127,7 @@ classdef CorrugationShockInitializer < Initializer
 %                filePath = [filePath filesep 'data' filesep obj.dataFile];
  %               data = load(filePath);
            
-		result = MHDjumpSolver(obj.sonicMach, obj.alfvenMach, obj.theta, obj.gamma)
+		result = MHDJumpSolver(obj.sonicMach, obj.alfvenMach, obj.theta, obj.gamma);
  
                 obj.mass       = result.mass;
                 obj.pressure   = result.pressure;
