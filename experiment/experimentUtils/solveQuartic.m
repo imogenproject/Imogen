@@ -15,6 +15,9 @@ else
     Q = -(alpha^3) / 108 + alpha*gamma/3 - .125*beta^2;
     R = -Q/2 + sqrt(.25*Q^2 + (P^3)/27);
     U = R^(1/3);
+%R alpha U P Q]'
+
+%25*Q^2 + (P^3)/27
 
     if U ~= 0
         y = -5*alpha/6 + U - P/(3*U);

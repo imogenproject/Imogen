@@ -1,4 +1,4 @@
-function [grorate phaserate groR phaseR timeVals fftVals] = growthAnalysis(inBasename, padlength, range, timeNormalization)
+function [grorate phaserate groR phaseR timeVals fftVals front] = growthAnalysis(inBasename, padlength, range, timeNormalization)
 %>> inBasename:        Input filename for Imogen .mat savefiles
 %>> padlength:         Number of zeros in Imogen filenames
 %>> range:             Set of .mats to export
@@ -35,6 +35,9 @@ xran = input('X range to analyze: ');
 yran = input('Y range to analyze: ');
 zran = input('Z range to analyse: ');
 
+front.X = [];
+lastframe = [];
+
 %--- Loop over given frame range ---%
 for ITER = 1:numel(range)
     % Take first guess; Always replace _START
@@ -49,73 +52,65 @@ for ITER = 1:numel(range)
             error('UNRECOVERABLE: File existed when checked but is not openable.\n');
         end
     end
-    
-%    fprintf('Analyzing frame %i... ', analyzedFrameNumber);
-    load(fname);
 
-    fprintf('*');
-
+    % Load the next frame into workspace; Assign it to a standard variable name.    
+    load(fname); fprintf('*');
     structName = who('sx_*');
     structName = structName{1};
 
     eval(sprintf('dataframe = %s;', structName));
     clear -regexp 'sx_';
 
+    %  Acquire mode and time data for the block requested to be examined
     fftVals(analyzedFrameNumber,:,:) = computeFrameFFT(dataframe, xran, yran, zran);
     timeVals(analyzedFrameNumber) = sum(dataframe.time.history);
     
     analyzedFrameNumber = analyzedFrameNumber + 1;
-%    fprintf('done.\n');
 
-    if ITER ==1;
-        velX = dataframe.momX(1,1,1) / dataframe.mass(1,1,1);
-	seedTime = 10*numel(find(dataframe.mass(1:floor(end/2),1,1) ~= 1))
-    end
+    % This uses a linear extrapolation to track linear-regime sub-cell variations in the shock front's position
+    % We define that position as being when density is exactly halfway between analytic equilibrium pre & post values
+    front.X(:,:,ITER) = squeeze(trackFront(dataframe));
 
-    if ITER == numel(range)
-
-	OUTF = fopen('bestmodes.txt','w');
-
-        fprintf('Identifying onset of nonlinearity...\n');
-        u = mean(abs(diff(dataframe.time.history(200:min(2000,end))))); % get jumps in linear regime (i.e. small)
-        OoNL = min(find(abs(diff(dataframe.time.history(200:end))) > 3*u));
-	OoNL = [];
-%figure(); plot(dataframe.time.history);
-        if isempty(OoNL);
-            fprintf(OUTF,'Run does not appear to enter nonlinear regime based on  drop in dt.\n');
-            Tnonlinear = 1e18;
-        else;
-            OoNL = OoNL + 1000;
-            Tnonlinear = sum(dataframe.time.history(1:OoNL));
-            fprintf(OUTF, 'Run appears to go nonlinear at step %i, time %g\n', OoNL, Tnonlinear);
-        end
-
-	seedTime = sum(dataframe.time.history(1:seedTime));
-
-        fprintf(OUTF, 'Linear values extracted from saveframes %i to %i\n', 1+numel(find(timeVals < seedTime)), numel(find(timeVals < Tnonlinear)));
-	fclose(OUTF);
-
-    end
+    % Hold onto final data frame - it's got all the timesteps stored for us to look at
+    if ITER == numel(range); lastframe = dataframe; end
 end
 
-fprintf('\nRunning FFT perturbation analyis.\n')
+% Use the Grad Student Algorithm to find when the run stops its initial transients and when it goes nonlinear
+figno = figure(); plot(diff(dataframe.time.history(50:end)));
+tl = input('Input frame 2x that where dt stops wobbling at the start: ');
+th = input('Input frame where dt plunges or last frame: ');
+close(figno);
 
+tl = 1+numel(find(timeVals < sum(dataframe.time.history(1:tl))));
+th = numel(find(timeVals < sum(dataframe.time.history(1:th))));
+linearFrames = tl:th;
+
+fprintf('Run indicated as being in linear regime for frames %i to %i inclusive.\n', tl, th);
+
+fprintf('\nRunning FFT perturbation analyis of selected region.\n')
 analyzedFrameNumber = analyzedFrameNumber - 2;
 fftVals = fftVals(2:end,:,:); timeVals = timeVals(2:end);
 
 bigtime = ones(size(fftVals));
 for t = 1:analyzedFrameNumber; bigtime(t,:,:) = timeVals(t); end
 
-N = numel(timeVals(timeVals < Tnonlinear));
-M = numel(timeVals(timeVals < seedTime  ))+1;
+logfftAmp = log(abs(fftVals(linearFrames,:,:)));
+fftPhase = unwrap(angle(fftVals(linearFrames,:,:)), 1.5*pi, 1);
 
-logfftAmp = log(abs(fftVals(M:N,:,:)));
-fftPhase = unwrap(angle(fftVals(M:N,:,:)), 1.5*pi, 1);
+[grorate groR] = linearValueFit(bigtime(linearFrames,:,:), logfftAmp, numel(linearFrames));
+[phaserate phaseR] = linearValueFit(bigtime(linearFrames,:,:), fftPhase, numel(linearFrames));
 
-[grorate groR] = linearValueFit(bigtime(M:N,:,:), logfftAmp, N-M+1);
-[phaserate phaseR] = linearValueFit(bigtime(M:N,:,:), fftPhase, N-M+1);
+%printoutBestModes(grorate, phaserate, groR, phaseR, velX); 
 
-printoutBestModes(grorate, phaserate, groR, phaseR, velX); 
+fprintf('\n Running FFT analysis and linear fit of shock front\n');
+
+front.FFT = zeros(size(front.X));
+for ITER = 1:size(front.X,3)
+    front.FFT(:,:,ITER) = fft2(front.X(:,:,ITER));
+end
+
+[front.growthRate front.residualNorm] = analyzeFront(front.FFT, timeVals, linearFrames);
+
 
 end
 
