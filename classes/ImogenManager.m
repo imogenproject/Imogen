@@ -28,6 +28,7 @@ classdef ImogenManager < handle
         fades;          %
 
         useGPU;         % if true, Imogen is running on a GPU device - some changes in behavior necessary.
+        pureHydro;      % if true, stores no magnetic information; 
         
         %--- Manager Classes ---%
         bc;             % Manages boundary conditions.                              BCManager
@@ -388,6 +389,9 @@ classdef ImogenManager < handle
             obj.DGRID       = num2cell(ones(1,3));
             obj.MINDGRID    = ones(1,3);
             
+
+            obj.useGPU      = false;
+            obj.pureHydro   = false;
         end
         
     end%PRIVATE

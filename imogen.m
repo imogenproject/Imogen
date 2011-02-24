@@ -69,7 +69,7 @@ clockA = clock;
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-error('stop')
+%error('stop')
     run.postliminary();
 
 end

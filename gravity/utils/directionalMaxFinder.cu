@@ -259,29 +259,44 @@ __global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, dou
 {
 
 int x = blockIdx.x * blockDim.x + threadIdx.x;
+// In the end threads must share their maxima and fold them in logarithmically
 __shared__ double locBloc[GLOBAL_BLKDIM];
-__shared__ double locDir[GLOBAL_BLKDIM];
+__shared__ int locDir[GLOBAL_BLKDIM];
 
-double CsMax = -1e37; int IndMax;
-double locRho, locCs, testV;
+// Threadwise: The largest sound speed and it's directional index yet seen; Local comparision direction.
+// temporary float values used to evaluate each cell
+double CsMax = -1e37; int IndMax, locImax;
+double tmpA, tmpB;
+
+// Set all maxima to ~-infinity and index to invalid.
 locBloc[threadIdx.x] = -1e37;
 locDir[threadIdx.x] = 0;
 
+// Have thread 0 write such to the globally shared values (overwrite garbage before we possibly get killed next line)
 if(threadIdx.x == 0) { dout[blockIdx.x] = -1e37; dirOut[blockIdx.x] = 0; }
 
 if(x >= n) return; // If we get a very low resolution, save time & space on wasted threads
 
-// Every block 
+// Jumping through memory,
 while(x < n) {
-  locRho = rho[x]; locCs = cs[x];
+  // Find the maximum |momentum| first; Convert it to velocity and add to soundspeed, then compare with this thread's previous max.
+  tmpA = abs(px[x]);
+  tmpB = abs(py[x]);
 
-  testV = abs(px[x]/locRho) + locCs; if(testV > CsMax) { CsMax = testV; IndMax = 1; }
-  testV = abs(py[x]/locRho) + locCs; if(testV > CsMax) { CsMax = testV; IndMax = 2; }
-  testV = abs(pz[x]/locRho) + locCs; if(testV > CsMax) { CsMax = testV; IndMax = 3; }
+  if(tmpB > tmpA) { tmpA = tmpB; locImax = 2; } else { locImax = 1; }
+  tmpB = abs(pz[x]);
+  if(tmpB > tmpA) { tmpA = tmpB; locImax = 3; }  
 
+  tmpA = tmpA / rho[x] + cs[x];
+
+  if(tmpA > CsMax) { CsMax = tmpA; IndMax = locImax; }
+
+  // Jump to next address to compare
   x += blockDim.x * gridDim.x;
   }
 
+// Between them threads have surveyed entire array
+// Flush threadwise maxima to shared memory
 locBloc[threadIdx.x] = CsMax;
 locDir[threadIdx.x] = IndMax;
 
@@ -290,7 +305,7 @@ __syncthreads();
 
 x = 2;
 while(x < GLOBAL_BLKDIM) {
-  if(threadIdx.x % x != 0) break;
+  if(threadIdx.x % x != 0) return;
 
   if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) {
 	locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
