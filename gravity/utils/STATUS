@@ -1,0 +1,31 @@
+This page compares the speed of the MHD kernels with the theoretical speed, either IO or FPU limited.
+
+The reference run is 512x256.
+The reference main memory bandwidth is 100GBps - Tesla c1060
+
+Theoretical IO limit = 10.5us per full array read
+
+Potential solver related files:
+accumulateBterm.cu
+cudaKernels.cu
+integralPoisson_mg.cu
+interpolateGPUvar.cu
+mgbc_gpukern.cu
+symmetricLinearOperator.cu
+
+GPU MHD related files:
+cudaArrayAtomic.cu
+cudaCommon.cu
+cudaFLstep.cu
+cudaKernels.cu
+cudaLinearSubsagn.cu
+cudaMHDKernels.cu
+cudaShift.cu
+cudaWstep.cu
+directionalMaxFinder.cu
+	GlobalMax:
+	DirectionalMax:
+	CFL Direct. Max: Acheived = 130uS; theoretical IO = 52us;
+fluxLimiterKernels.cu
+freezeAndPtot.cu
+

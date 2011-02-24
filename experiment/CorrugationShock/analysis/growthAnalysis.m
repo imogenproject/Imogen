@@ -1,4 +1,4 @@
-function [timeVals front selectRegion] = growthAnalysis(inBasename, padlength, range, timeNormalization)
+function [timeVals front selectRegion lastframe] = growthAnalysis(inBasename, padlength, range, timeNormalization)
 %>> inBasename:        Input filename for Imogen .mat savefiles
 %>> padlength:         Number of zeros in Imogen filenames
 %>> range:             Set of .mats to export
