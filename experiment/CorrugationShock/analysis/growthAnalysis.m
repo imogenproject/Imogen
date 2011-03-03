@@ -1,4 +1,4 @@
-function [timeVals front selectRegion lastframe] = growthAnalysis(inBasename, padlength, range, timeNormalization)
+function [timeVals front kxInfo lastframe] = growthAnalysis(inBasename, padlength, range, timeNormalization)
 %>> inBasename:        Input filename for Imogen .mat savefiles
 %>> padlength:         Number of zeros in Imogen filenames
 %>> range:             Set of .mats to export
@@ -31,17 +31,18 @@ timeVals = [];
 
 seedTime = 0;
 
-xran = input('X range to analyze: ');
+%xran = input('X range to analyze: ');
 yran = input('Y range to analyze: ');
 zran = input('Z range to analyse: ');
 
 front.X = [];
 lastframe = [];
-selectRegion = [];
+kxInfo = [];
 
 rhoside(1) = 1;
 rhoside(2) = 1;
 whichside = 0;
+
 
 %--- Loop over given frame range ---%
 for ITER = 1:numel(range)
@@ -58,7 +59,6 @@ for ITER = 1:numel(range)
         end
     end
 
-
     % Load the next frame into workspace; Assign it to a standard variable name.    
     load(fname); fprintf('*');
     structName = who('sx_*');
@@ -68,18 +68,22 @@ for ITER = 1:numel(range)
     clear -regexp 'sx_';
 
     % Grab the mass density postshock.
-    if ITER == 1;
+%    if ITER == 1;
         rhoside(2) = dataframe.mass(end,1,1);
-        if max(xran) < size(dataframe.mass,1)/2; whichside = 1; end
-        if min(xran) > size(dataframe.mass,1)/2; whichside = 2; end
-    end
+%        if max(xran) < size(dataframe.mass,1)/2; whichside = 1; end
+%        if min(xran) > size(dataframe.mass,1)/2; whichside = 2; end
+%    end
+
+    xd = size(dataframe.mass,1);
+    xpre = round(xd/2 - xd/6):round(xd/2 - 6);
+    xpost = round(xd/2 + 6):round(xd/2 + xd/6);
 
     %  Acquire mode and time data for the block requested to be examined
-    if whichside > 0
-        [selectRegion.damp(ITER,:,:) selectRegion.corr(ITER,:,:) selectRegion.mdr(ITER)] = analyzeDampRates(dataframe, xran, yran, zran, rhoside(whichside), dataframe.dGrid{1}(round(end/2),1,1) );
-    end
+%    if whichside > 0
+        [kxInfo.dampPre(ITER,:,:) kxInfo.corrPre(ITER,:,:) kxInfo.mdrPre(ITER)] = analyzeDampRates(dataframe, xpre, yran, zran, rhoside(1), dataframe.dGrid{1}(round(end/2),1,1) );
+        [kxInfo.dampPost(ITER,:,:) kxInfo.corrPost(ITER,:,:) kxInfo.mdrPost(ITER)] = analyzeDampRates(dataframe, xpost, yran, zran, rhoside(2), dataframe.dGrid{1}(round(end/2),1,1) );
+%    end
 
-%    fftVals(ITER,:,:) = computeFrameFFT(dataframe, xran, yran, zran);
     timeVals(ITER) = sum(dataframe.time.history);
     
     % This uses a linear extrapolation to track linear-regime sub-cell variations in the shock front's position

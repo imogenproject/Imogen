@@ -1,4 +1,4 @@
-function plotFrontAnalysis_2d(front, timeVals, linearFrames)
+function plotFrontAnalysis_2d(front, timeVals, linearFrames, fixfsize)
 % Generates a nice plot using the front tracking information outputted by the growth analyzer.
 
 
@@ -7,11 +7,14 @@ phase = squeeze(angle(front.FFT));
 
 wavenum = 1:size(amp,1);
 wavevec = wavenum * 2*pi/(.01*size(amp,1));
-
+fsize=16; if nargin == 4; fsize = fixfsize; end
 figure();
 
 reliableWaves = 1:round(numel(wavenum)/15);
 kMax = round(numel(wavenum)/15);
+
+subpltSize = .35;
+subplotOffset = .07;
 
 subplot(2,2,1);
 	plot(wavenum(reliableWaves)-1, front.growthRate(reliableWaves), 'b');
@@ -22,42 +25,43 @@ subplot(2,2,1);
 	hold off;
 	grid on;
 
-	xlabel('Wavevector');
-	ylabel('B: Growth rate linear fit; R: residual norm');
-	title('Growth rate and error norms');
-	set(gca,'position', [.05 .55 .4 .4]);
+	xlabel('Wavevector','fontsize',fsize);
+	ylabel('B: Growth rate linear fit; R: residual norm','fontsize',fsize);
+	title('Growth rate and error norms','fontsize',fsize);
+	set(gca,'position',[subplotOffset .5+subplotOffset subpltSize subpltSize]);
 
 subplot(2,2,2);
 	a = round(kMax/3);
 	b = round(2*kMax/3);
 
-	plot(timeVals, amp(2:a,2:end),'r');
+	plot(timeVals, amp(2:a,1:end),'r');
         hold on;
-        plot(timeVals, amp((a+1):b,2:end),'g');
-        plot(timeVals, amp((b+1):kMax,2:end),'b');
+        plot(timeVals, amp((a+1):b,1:end),'g');
+        plot(timeVals, amp((b+1):kMax,1:end),'b');
 	hold off;
 
 	xlabel('Time, simulation units');
-	ylabel('log(abs(fourier amplitude))');
+	ylabel('log(abs(fourier amplitude))','fontsize',fsize);
 
-	title('Fourier spectrum of shock surface''s position over time');
-	set(gca,'position', [.55 .55 .4 .4]);
+	title('Fourier spectrum of shock surface''s position over time','fontsize',fsize);
+	set(gca,'position', [.5+subplotOffset .5+subplotOffset subpltSize subpltSize]);
 
 subplot(2,2,3);
 	imagesc(phase(reliableWaves,:));
-	xlabel(['Frame no; timespan 0 to ' timeVals(end)]);
-	ylabel('Mode # + 1');
-	title('Phase of shock front''s modes');
-	set(gca,'position', [.05 .05 .4 .4]);
+    labelstring = sprintf('Frame #; Times 0 to %.4g', timeVals(end));
+    xlabel(labelstring,'fontsize',fsize);
+	ylabel('Mode # + 1','fontsize',fsize);
+	title('Phase of shock front''s modes','fontsize',fsize);
+	set(gca,'position', [subplotOffset subplotOffset subpltSize subpltSize]);
 
 subplot(2,2,4);
-	plot(timeVals, phase(round(kMax/3):round(kMax*2/3),2:end)');
+	plot(timeVals, phase(round(kMax/3):round(kMax*2/3),1:end)');
 	
 	grid on;
-	xlabel('Time, simulation units');
-	ylabel('Mode phase, radians');
-	title(['Phase over time of modes 1-' kMax]);
-	set(gca,'position', [.55 .05 .4 .4]);
+	xlabel('Time, simulation units','fontsize',fsize);
+	ylabel('Mode phase, radians','fontsize',fsize);
+	title(['Phase over time of modes 1-' kMax],'fontsize',fsize);
+	set(gca,'position', [.5+subplotOffset subplotOffset subpltSize subpltSize]);
 
 
 end 
