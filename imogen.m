@@ -1,4 +1,5 @@
-function imogen(massDen, momDen, enerDen, magnet, ini, statics)
+%function imogen(massDen, momDen, enerDen, magnet, ini, statics)
+function imogen(icfile)
 % This is the main entry point for the Imogen MHD code. It contains the primary evolution loop and 
 % the hooks for writing the results to disk.
 %
@@ -8,6 +9,16 @@ function imogen(massDen, momDen, enerDen, magnet, ini, statics)
 %>> magnet      Magnetic field strength array (face-centered).              double  [3 nx ny nz]
 %>> ini         Listing of properties and settings for the run.             struct
 %>> statics     Static arrays with lookup to static values.                 struct
+
+    load(icfile);
+    massDen = IC.mass;
+    momDen  = IC.mom;
+    enerDen = IC.ener;
+    magnet  = IC.magnet;
+    ini     = IC.ini;
+    statics = IC.statics;
+    clear IC;
+    !rm icfile;
 
     %--- Parse initial parameters from ini input ---%
     %       The initialize function parses the ini structure input and populates all of the manager

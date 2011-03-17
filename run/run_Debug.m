@@ -36,7 +36,17 @@ run.notes                       = '';
 if (true)
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
     ini.runCode = 'Debug';
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 enderRun();

@@ -61,7 +61,7 @@ classdef HachisuDiskInitializer < Initializer
             obj.iterMax           = 300;
             obj.bcMode.x          = ENUM.BCMODE_FADE;
             obj.bcMode.y          = ENUM.BCMODE_FADE;
-            obj.bcMode.z          = ENUM.BCMODE_CONST;
+            obj.bcMode.z          = ENUM.BCMODE_FADE;
 %            obj.bcMode.mom.z      = ENUM.BCMODE_FLIP;
 %            obj.bcMode.mom.flux.z = ENUM.BCMODE_FLIP;
             

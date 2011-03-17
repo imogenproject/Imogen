@@ -109,7 +109,7 @@ function createSparseMatrix(obj, grid, dgrid)
             end
 
             if ~strcmp(obj.TYPE, ENUM.GRAV_SOLVER_EMPTY)
-                grav.array = obj.fixedPotential + obj.solve(run, mass, grav.array);
+                grav.array = obj.fixedPotential + obj.solve(run, mass.array, mass.gridSize, 0);
             end
 
 
