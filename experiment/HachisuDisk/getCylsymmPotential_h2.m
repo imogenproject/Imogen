@@ -51,7 +51,7 @@ for a = 1:D(1)
     end
 end
 
-phi(:,(D(2)/2+1):end) = phi(:,(D(2)/2):-1:1)
+phi(:,(D(2)/2+1):end) = phi(:,(D(2)/2):-1:1);
 
 phi = -da * phi;
 

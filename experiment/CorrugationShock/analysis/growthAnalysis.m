@@ -32,66 +32,27 @@ timeVals = [];
 seedTime = 0;
 
 %xran = input('X range to analyze: ');
-yran = input('Y range to analyze: ');
-zran = input('Z range to analyse: ');
+yran = input('# of Y modes to analyze: ');
+zran = input('# of Z modes to analyze: ');
 
 front.X = [];
 lastframe = [];
 kxInfo = [];
 
-rhoside(1) = 1;
-rhoside(2) = 1;
-whichside = 0;
-
-
 %--- Loop over given frame range ---%
 for ITER = 1:numel(range)
-    % Take first guess; Always replace _START
-    fname = sprintf('%s_%0*i.mat', inBasename, padlength, range(ITER));
-    if range(ITER) == 0; fname = sprintf('%s_START.mat', inBasename); end
-
-    % Check existance; if fails, try _FINAL then give up
-    if (exist(fname, 'file') == 0) && (ITER == numel(range))
-        fname = sprintf('%s_FINAL.mat', inBasename);
-        if exist(fname, 'file') == 0
-            % Weird shit is going on. Run away.
-            error('UNRECOVERABLE: File existed when checked but is not openable.\n');
-        end
-    end
-
-    % Load the next frame into workspace; Assign it to a standard variable name.    
-    load(fname); fprintf('*');
-    structName = who('sx_*');
-    structName = structName{1};
-
-    eval(sprintf('dataframe = %s;', structName));
-    clear -regexp 'sx_';
-
-    % Grab the mass density postshock.
-%    if ITER == 1;
-        rhoside(2) = dataframe.mass(end,1,1);
-%        if max(xran) < size(dataframe.mass,1)/2; whichside = 1; end
-%        if min(xran) > size(dataframe.mass,1)/2; whichside = 2; end
-%    end
-
-    xd = size(dataframe.mass,1);
-    xpre = round(xd/2 - xd/6):round(xd/2 - 6);
-    xpost = round(xd/2 + 6):round(xd/2 + xd/6);
-
-    %  Acquire mode and time data for the block requested to be examined
-%    if whichside > 0
-        [kxInfo.dampPre(ITER,:,:) kxInfo.corrPre(ITER,:,:) kxInfo.mdrPre(ITER)] = analyzeDampRates(dataframe, xpre, yran, zran, rhoside(1), dataframe.dGrid{1}(round(end/2),1,1) );
-        [kxInfo.dampPost(ITER,:,:) kxInfo.corrPost(ITER,:,:) kxInfo.mdrPost(ITER)] = analyzeDampRates(dataframe, xpost, yran, zran, rhoside(2), dataframe.dGrid{1}(round(end/2),1,1) );
-%    end
+    
+    dataframe = frameNumberToData(inBasename, padlength, range(ITER) );
+    fprintf('*');
+    if mod(ITER, 100) == 0; fprintf('\n'); end
 
     timeVals(ITER) = sum(dataframe.time.history);
     
     % This uses a linear extrapolation to track linear-regime sub-cell variations in the shock front's position
     % We define that position as being when density is exactly halfway between analytic equilibrium pre & post values
+    % This is used to calculate growth rates & omega.
+    % It can presumably remain meaningful into the nonlinear regime as long as the shock's position is still functional in Y and Z.
     front.X(:,:,ITER) = squeeze(trackFront(dataframe));
-
-    % Hold onto final data frame - it's got all the timesteps stored for us to look at
-    if ITER == numel(range); lastframe = dataframe; end
 end
 
 % Use the Grad Student Algorithm to find when the run stops its initial transients and when it goes nonlinear
@@ -104,24 +65,11 @@ tl = 1+numel(find(timeVals < sum(dataframe.time.history(1:tl))));
 th = numel(find(timeVals < sum(dataframe.time.history(1:th))));
 linearFrames = tl:th;
 
-fprintf('Run indicated as being in linear regime for frames %i to %i inclusive.\n', tl, th);
+fprintf('Run indicated as being in linear regime for saveframes %i to %i inclusive.\n', tl, th);
 
-%fprintf('\nRunning FFT perturbation analyis of selected region.\n')
-%analyzedFrameNumber = ITER - 2;
-%fftVals = fftVals(2:end,:,:); timeVals = timeVals(2:end);
+lastframe = frameNumberToData(inBasename, padlength, range(th) );
 
-%bigtime = ones(size(fftVals));
-%for t = 1:analyzedFrameNumber; bigtime(t,:,:) = timeVals(t); end
-
-%logfftAmp = log(abs(fftVals(linearFrames,:,:)));
-%fftPhase = unwrap(angle(fftVals(linearFrames,:,:)), 1.5*pi, 1);
-
-%[grorate groR] = linearValueFit(bigtime(linearFrames,:,:), logfftAmp, numel(linearFrames));
-%[phaserate phaseR] = linearValueFit(bigtime(linearFrames,:,:), fftPhase, numel(linearFrames));
-
-%printoutBestModes(grorate, phaserate, groR, phaseR, velX); 
-
-fprintf('\nDoing FFT analysis and linear fit of shock front\n');
+fprintf('\nDoing FFT analysis to find mode growth rates\n');
 
 front.FFT = zeros(size(front.X));
 for ITER = 1:size(front.X,3)
@@ -131,6 +79,17 @@ end
 
 [front.growthRate front.residualNorm] = analyzeFront(front.FFT, timeVals, linearFrames);
 
+fprintf('\nUsing indicated last linear frame to calculate pre & postshock damping rates\n');
+
+
+
+xd = size(lastframe.mass,1);
+xpre = round(xd/2 - xd/6):round(xd/2 - 6);
+xpost = round(xd/2 + 6):round(xd/2 + xd/6);
+middleDx = lastframe.dGrid{1}(round(end/2),1,1);
+
+[kxInfo.dampPre kxInfo.corrPre kxInfo.KY, kxInfo.KZ]   = analyzeDampRates(lastframe, xpre,  yran, zran, middleDx);
+[kxInfo.dampPost kxInfo.corrPost] = analyzeDampRates(lastframe, xpost, yran, zran, middleDx);
 
 end
 
@@ -164,3 +123,25 @@ end
 
 end
 
+function dataframe = frameNumberToData(inBasename, padlength, frameno)
+    % Take first guess; Always replace _START
+    fname = sprintf('%s_%0*i.mat', inBasename, padlength, frameno);
+    if frameno == 0; fname = sprintf('%s_START.mat', inBasename); end
+
+    % Check existance; if fails, try _FINAL then give up
+    if exist(fname, 'file') == 0
+        fname = sprintf('%s_FINAL.mat', inBasename);
+        if exist(fname, 'file') == 0
+            % Weird shit is going on. Run away.
+            error('UNRECOVERABLE: File existed when checked but is not openable.\n');
+        end
+    end
+
+    % Load the next frame into workspace; Assign it to a standard variable name.    
+    load(fname);
+    structName = who('sx_*');
+    structName = structName{1};
+
+    eval(sprintf('dataframe = %s;', structName));
+end
+    

@@ -212,7 +212,7 @@ switch(dir) {
   }
 
 }
-/*mass.wArray    = mom(X).array ./ freezeSpd.array;
+/*  mass.wArray    = mom(X).array ./ freezeSpd.array;
 
     %--- ENERGY DENSITY ---%
     ener.wArray    = velocity .* (ener.array + press) - mag(X).cellMag.array .* ...
@@ -249,3 +249,79 @@ KERNEL_PREAMBLE {
 }
 
 
+/* blockidx.{xy} is our index in {yz}, and gridDim.{xy} gives the {yz} size */
+/* Expect invocation with n+4 threads */
+__global__ void cukern_doCorrectorStep_uniform(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx)
+{
+double Cinv, rhoinv;
+double q_i[5];
+double w_i;
+__shared__ double fluxLR[2][36];
+__shared__ derivLR[2][36];
+double *fluxdest;
+
+/* Step 0 - obligatory annoying setup stuff (ASS) */
+int I0 = nx*(blockIdx.x + gridDim.x * blockIdx.y);
+int Xindex = (threadIdx.x-2);
+int x; /* = Xindex % nx; */
+int i;
+
+/* Step 1 - calculate W values */
+Cinv = 1.0/Cfreeze[I0];
+
+    while(Xindex < nx+2) {
+
+    x = Xindex % nx
+
+    rhoinv = 1.0/rho[I0+x];
+    q_i[0] = rho[I0+x];
+    q_i[1] = E[I0+x];
+    q_i[2] = px[I0+x];
+    q_i[3] = py[I0+x];
+    q_i[4] = pz[I0+x];
+
+    /* rho, E, px, py, pz going down */
+    /* Iterate over variables to flux */
+    for(i = 0; i < 5; i++) {
+        switch(i) {
+            case 0: w_i = px[I0+x] * Cinv; break;
+            case 1: w_i = (px[I0+x] * (E[I0+x] + P[I0+x]) - bx[I0+x]*(px[I0+x]*bx[I0+x]+py[I0+x]*by[I0+x]+pz[I0+x]*bz[I0+x]) ) * (rhoinv*Cinv); break;
+            case 2: w_i = (px[I0+x]*px[I0+x]*rhoinv + P[I0+x] - bx[I0+x]*bx[I0+x])*Cinv; break;
+            case 3: w_i = (px[I0+x]*py[I0+x]*rhoinv        - bx[I0+x]*by[I0+x])*Cinv; break;
+            case 4: w_i = (px[I0+x]*pz[I0+x]*rhoinv        - bx[I0+x]*bz[I0+x])*Cinv; break;
+            }
+
+        /* Step 2 - decouple to L/R flux */
+        fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i);
+        fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); 
+
+        /* Step 3 - Differentiate fluxes & call limiter */
+        derivLR[0][threadIdx.x] = fluxLR[0][threadIdx.x]        - fluxLR[0][(threadIdx.x-1)%36];
+        derivLR[1][threadIdx.x] = fluxLR[0][(threadIdx.x+1)%36] - fluxLR[0][threadIdx.x];
+        __syncthreads();
+        fluxLimiter(derivLR, fluxLR, 0);
+
+        derivLR[0][threadIdx.x] = fluxLR[1][threadIdx.x]        - fluxLR[1][(threadIdx.x-1)%36];
+        derivLR[1][threadIdx.x] = fluxLR[1][(threadIdx.x+1)%36] - fluxLR[1][threadIdx.x];
+        __syncthreads();
+        fluxLimiter(derivLR, fluxLR, 1);
+
+        /* Step 4 - Perform flux and write to output array */
+        __syncthreads();
+        if( (threadIdx.x > 1) && (threadIdx.x < 34) && (Xindex < nx) ) {
+            switch(i) {
+		case 0: fluxdest = rhoW; break;
+		case 1: fluxdest = enerW; break;
+		case 2: fluxdest = pxW; break;
+		case 3: fluxdest = pyW; break;
+		case 4: fluxdest = pzW; break;
+                }
+
+            fluxdest[I0+x] -= lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv;
+            }
+        }
+
+    Xindex += 32;
+    }
+
+}

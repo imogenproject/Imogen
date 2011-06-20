@@ -74,6 +74,11 @@ directionalMaxFinder: directionalMaxFinder.cu cudaCommon
 	mex $(MEX_OPTS) $(MEX_INCL) directionalMaxFinder.cpp cudaCommon.cpp $(GPUMAT_CPP) -o directionalMaxFinder $(MEX_LDIR) $(MEX_LIBS)
 	rm -f directionalMaxFinder.cpp
 
+cudaArrayRotate: cudaArrayRotate.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaArrayRotate.cu -o cudaArrayRotate.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaArrayRotate.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaArrayRotate $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaArrayRotate.cpp
+
 cudaMHDKernels: cudaMHDKernels.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
@@ -98,6 +103,11 @@ cudaWstep: cudaWstep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaWstep.cu -o cudaWstep.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaWstep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaWstep $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaWstep.cpp
+
+cudaCorrectorStep: cudaCorrectorStep.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaCorrectorStep.cu -o cudaCorrectorStep.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaCorrectorStep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaCorrectorStep $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaCorrectorStep.cpp
 
 cmaxForTimestep: cmaxForTimestep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cmaxForTimestep.cu -o cmaxForTimestep.cpp

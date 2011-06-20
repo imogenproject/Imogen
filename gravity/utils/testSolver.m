@@ -8,8 +8,8 @@ run.gravity.constant = 1;
 run.gravity.info='eh';
 run.gravity.mirrorZ = 0;
 
-R = [16 32 64 128 256];
-%R = [16 32 64 96 ];
+%R = [16 32 64 128 256];
+R = [128];
 enorm = zeros(size(R));
 
 for a = 1:numel(R);

@@ -138,12 +138,14 @@ zMin = max(obj.offset(3)-obj.injectorSize,1);        zMax = min(obj.offset(3)+ob
 statics.valueSet = {0, obj.jetMass, jetMom, jetEner, obj.jetMags(1), ...
                             obj.jetMags(2), obj.jetMags(3), obj.backMass};
 
-iBack = lind((xMin-2):(xMin-1),(yMin-2):(yMax+2), zMin:zMax);
-iTop  = lind(xMin:xMax,    (yMax+1):(yMax+2), zMin:zMax);
-iBot  = lind(xMin:xMax,    (yMin-2):(yMin-1), zMin:zMax);
-injCase = [iBack(:)' iTop(:)' iBot(:)' ];
 
-statics.indexSet = {lind(xMin:xMax+1,yMin:yMax,zMin:zMax), injCase};
+iBack = indexSet(obj.grid, (xMin-2):(xMin-1),(yMin-2):(yMax+2), zMin:zMax);
+iTop  = indexSet(obj.grid, xMin:xMax,    (yMax+1):(yMax+2), zMin:zMax);
+iBot  = indexSet(obj.grid, xMin:xMax,    (yMin-2):(yMin-1), zMin:zMax);
+
+injCase = [iBack; iTop; iBot];
+
+statics.indexSet = {indexSet(obj.grid,xMin:xMax+1,yMin:yMax,zMin:zMax), injCase};
 
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 1, 2);
 statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 1, 4);
@@ -158,7 +160,6 @@ statics.associateStatics(ENUM.MAG, ENUM.VECTOR(1), statics.CELLVAR, 1, 5);
 statics.associateStatics(ENUM.MAG, ENUM.VECTOR(2), statics.CELLVAR, 1, 6);
 statics.associateStatics(ENUM.MAG, ENUM.VECTOR(3), statics.CELLVAR, 1, 7);
 end
-
             
             if obj.mode.magnet;     obj.runCode = [obj.runCode 'Mag'];  end
             if obj.mode.gravity;    obj.runCode = [obj.runCode 'Grav']; end

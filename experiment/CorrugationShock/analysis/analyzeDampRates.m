@@ -1,23 +1,28 @@
-function [damprate corr mdr] = findDampRates(dataframe, xran, yran, zran, fbar, dx)
+function [damprate corr wavevectorsY wavevectorsZ] = analyzeDampRates(dataframe, xran, yran, zran, dx)
 
-sr = log(abs(dataframe.mass(xran, yran, zran) - fbar));
+sa = dataframe.mass(xran, :,:);
 
-damprate = zeros(size(sr,2), size(sr,3) );
-corr = zeros(size(sr,2), size(sr,3) );
+sr = zeros(size(sa));
+for u = 1:size(sr, 1)
+   sr(u,:,:) = fft2(squeeze(sa(u,:,:))); 
+end
+
+damprate = zeros(yran, zran);
+corr = zeros(yran, zran);
 
 % The x position of the cells
 W = dx*(1:size(sr,1))';
 
-for u = 1:size(sr,2); for v = 1:size(sr,3)
-    % Calculate d(log amp)/dx -> exponential for exp. fit
-    [f s]= polyfit(W, sr(:,u,v), 1);
+for u = 1:yran; for v = 1:zran
+    % Calculate d(log amp)/dx mode by mode -> exponential coefficents for exp. fit
+    [f s]= polyfit(W, log(abs(sr(:,u,v))), 1);
     damprate(u,v) = f(1);
     corr(u,v) = s.normr;
 
 end; end
 
-% Mean Damp Rate - provide an inverse-residual-weighted mean estimate of the damp rate
-mdr = sum(sum(damprate ./ corr)) / sum(sum(1./corr));
+wavevectorsY = (0:(yran-1))'*2*pi/((size(dataframe.mass,2)*dataframe.dGrid{2}));
+wavevectorsZ = (0:(zran-1))'*2*pi/((size(dataframe.mass,2)*dataframe.dGrid{3}));
 
 end
 

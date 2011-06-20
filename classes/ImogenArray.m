@@ -14,9 +14,12 @@ classdef ImogenArray < handle
         bcInfinity;     % Number of cells to infinity for edges.                    int
         edgeStore;      % Stored edge values for shifting.                          Edges
         staticActive;   % Determines if statics should be applied.                  logical
-%       staticArray;    % [Start End] indices into static array.                    uint8
         staticVals;     % Values for static array indices.                          double(? < 256)
         staticIndices;  % Indices of staticVals used by StaticArray.                int(? < 256)
+	staticX; % Used to recompute linear indices upon index interchange
+	staticY;
+	staticZ;
+
         edgeshifts;     % Handles to shifting fucntions for each grid direction.    handle(2,3)
         isZero;         % Specifies that the array is statically zero.              logical
     end %PROPERTIES
@@ -218,6 +221,29 @@ classdef ImogenArray < handle
         function result = calculate2PtDerivative(obj,X,dGrid)
             result = ( obj.shift(X,1) - obj.pArray ) ./ dGrid;
         end
+
+%___________________________________________________________________________________________________ arrayIndexExchange
+% Flips the array and all associated subarrays such that direction i and the x (stride-of-1) direction
+% exchange places. Updates the array, all subarrays, and the static indices.
+        function arrayIndexExchange(obj, toex)
+
+            l = [1 2 3];
+            l(1)=toex; l(toex)=1;
+
+            if numel(obj.staticIndices) > 0
+                ad = obj.gridSize;
+                ad = ad(l);
+
+                obj.staticIndices(:,2:4) = obj.staticIndices(:,l+1);
+                obj.staticIndices(:,1)   = obj.staticIndices(:,2) + ...
+                                          (obj.staticIndices(:,3)-1)*ad(1) + ...
+                                          (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
+            end
+            % Do this the retarded slow way just to make 100% sure it can't possibly be wrong.
+            obj.array = cudaArrayRotate(obj.array, toex);
+
+        end
+
         
     end%PUBLIC
     
@@ -244,9 +270,9 @@ classdef ImogenArray < handle
 % Applies the static conditions for the ImogenArray to the data array. This method is called during
 % array assignment (set.array).
         function applyStatics(obj)
-                obj.pArray(obj.staticIndices) = obj.staticVals;
+            obj.pArray(obj.staticIndices(:,1)) = obj.staticVals;
         end
-        
+
 %___________________________________________________________________________________________________ readFades
 % Reads the fades stored in the ImogenManager object and applies the appropriate ones to this
 % ImogenManager object. Note, fades cannot be applied to the FluxArray subclass because they result

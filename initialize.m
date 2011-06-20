@@ -27,6 +27,7 @@ if ini.useGPU == true
     tmpdir = pwd();
     cd('~/GPUmat');
     GPUstart_auto(ini.gpuDeviceNumber);
+    cd(tmpdir);
 end
         
 %% .bcMode                      Edge condition modes

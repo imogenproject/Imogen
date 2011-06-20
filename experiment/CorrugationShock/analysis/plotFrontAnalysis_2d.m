@@ -5,7 +5,7 @@ function plotFrontAnalysis_2d(front, timeVals, linearFrames, fixfsize)
 amp   = squeeze(log(abs(front.FFT)));
 phase = squeeze(angle(front.FFT));
 
-wavenum = 1:size(amp,1);
+wavenum = (1:size(amp,1))-1;
 wavevec = wavenum * 2*pi/(.01*size(amp,1));
 fsize=16; if nargin == 4; fsize = fixfsize; end
 figure();
@@ -17,11 +17,13 @@ subpltSize = .35;
 subplotOffset = .07;
 
 subplot(2,2,1);
-	plot(wavenum(reliableWaves)-1, front.growthRate(reliableWaves), 'b');
+%size(front.growthRate(reliableWaves))
+%size(wavenum(reliableWaves))
+	plot(wavenum(reliableWaves), front.growthRate(reliableWaves)./wavenum(reliableWaves), 'b');
 
 	sFactor = max(front.growthRate(reliableWaves)) / max(front.residualNorm(reliableWaves));
 	hold on;
-	plot(wavenum(reliableWaves)-1, front.residualNorm(reliableWaves)*sFactor*.75, 'r');
+	plot(wavenum(reliableWaves), front.residualNorm(reliableWaves)*sFactor*.75, 'r');
 	hold off;
 	grid on;
 

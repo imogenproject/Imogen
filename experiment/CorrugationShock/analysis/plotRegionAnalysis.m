@@ -1,8 +1,8 @@
-function plotRegionAnalysis(front, searchRegion, timeVals, lastframe, linearFrames, fixfsize)
+function plotRegionAnalysis(front, damping, timeVals, lastframe, fixfsize)
 % Generates a nice plot using the front tracking information outputted by the growth analyzer.
 
 figure();
-fsize=16; if nargin == 6; fsize = fixfsize; end
+fsize=16; if nargin == 5; fsize = fixfsize; end
 
 subpltSize = .35;
 subplotOffset = .07;
@@ -16,26 +16,23 @@ subplot(2,2,1);
 	set(gca,'position', [subplotOffset .5+subplotOffset subpltSize subpltSize]);
 
 subplot(2,2,2);
-	plot(timeVals, searchRegion.mdrPre,'r');
-	dev = searchRegion.corrPre; dev(isnan(dev)) = 0;
-	dev = sum(dev');
-	sFactor = max(abs(dev)) / max(searchRegion.mdrPre);
-	hold on;
-	plot(timeVals, dev / sFactor,'r-.');
-   
-    plot(timeVals, searchRegion.mdrPost,'g');
-	dev = searchRegion.corrPost; dev(isnan(dev)) = 0;
-	dev = sum(dev');
-	sFactor = max(abs(dev)) / max(searchRegion.mdrPost);
-	hold on;
-	plot(timeVals, dev / sFactor,'g-.');
-    
-	plot(timeVals, zeros(size(timeVals)),'k');
-    
-	xlabel('Time, simulation units','fontsize',fsize);
-	ylabel('B: Exponent; Red: residual','fontsize',fsize);
+    waveVec = damping.KY;
 
-	title('Fitted decay rate of pre (r) and post(g) waves','fontsize',fsize);
+    plot(waveVec, damping.dampPre./waveVec,'g');
+    hold on;
+sfact = max(max(abs(damping.corrPre)), max(abs(damping.corrPost))) / ...
+        max(max(abs(damping.dampPre./waveVec)), max(abs(damping.dampPost./waveVec)));
+    
+    plot(waveVec, damping.corrPre/sfact,'g.');
+    plot(waveVec, damping.dampPost./waveVec,'b')
+    plot(waveVec, damping.corrPost/sfact,'b.');
+    
+	plot(waveVec, zeros(size(waveVec)),'k-');
+    
+	xlabel('Wavevector','fontsize',fsize);
+	ylabel('B: im(kxpost*), G: im(kxpre*)','fontsize',fsize);
+
+	title('Ky-normalized imaginary part of postshock waves','fontsize',fsize);
 	set(gca,'position', [.5+subplotOffset .5+subplotOffset subpltSize subpltSize]);
 
 subplot(2,2,3);

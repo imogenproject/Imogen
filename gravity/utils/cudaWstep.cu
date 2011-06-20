@@ -66,7 +66,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     case 2: // Y direction flux: u = y, v = x, w = z
       gridsize.x = arraySize.x;
       gridsize.y = arraySize.z;
-      hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
+//      hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
+      hv = arraySize.x; hu = 1; hw = arraySize.x * arraySize.y;
       nu = arraySize.y; break;
     case 3: // Z direction flux: u = z, v = x, w = y;
       gridsize.x = arraySize.x;

@@ -61,11 +61,11 @@ classdef StaticsInitializer < handle
                     newVal = obj.valueSet{AS.valueId(x)};
 
                     % Expand array-scalar pairs to array-array pairs; This can be done
-                    if numel(newVal) == 1; newVal = newVal * ones(size(newIdx)); end
+                    if numel(newVal) == 1; newVal = newVal * ones(size(newIdx,1),1); end
 
                     % Fail if nonequally sized arrays are paired; This cannot be done
-                    if size(newVal) ~= size(newIdx)
-                    error(sprintf('Unrecoverable error preparing statics; numel(index set %i) = %i but numel(value set %i) = %i.\n', x, numel(obj.indexSet{x}), x, numel(obj.valueSet{x})));
+                    if size(newVal) ~= size(newIdx,1)
+                    error(sprintf('Unrecoverable error preparing statics; numel(index set %i) = %i but numel(value set %i) = %i.\n', x, size(obj.indexSet{x},1), x, numel(obj.valueSet{x})));
                     end
 
                     indices = [indices; newIdx]; % cat indices
@@ -80,8 +80,8 @@ classdef StaticsInitializer < handle
             % Reshape them to be Nx1 arrays so we can cat using [u; v]
             for x = 1:numel(obj.indexSet)
                 % Reshape them to be Nx1
-                obj.indexSet{x} = reshape(obj.indexSet{x}, [numel(obj.indexSet{x}) 1]);
-                obj.valueSet{x} = reshape(obj.valueSet{x}, [numel(obj.valueSet{x}) 1]);
+%                obj.indexSet{x} = reshape(obj.indexSet{x}, [numel(obj.indexSet{x}) 1]);
+%                obj.valueSet{x} = reshape(obj.valueSet{x}, [numel(obj.valueSet{x}) 1]);
             end
 
             obj.readyForReadout = 1;
