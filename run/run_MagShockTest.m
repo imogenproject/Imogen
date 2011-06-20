@@ -19,7 +19,17 @@ if (true) % Primary test
     run.zField = false;
     run.direction = MagneticShockTubeInitializer.X;
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 if (false) % Secondary test
@@ -29,7 +39,17 @@ if (false) % Secondary test
     run.zField = true;
     run.direction = MagneticShockTubeInitializer.X;
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 enderRun();

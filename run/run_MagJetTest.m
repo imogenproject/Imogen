@@ -33,24 +33,54 @@ enderRun();
 % Run tests
 %----------
 if (true) %Parallel Magnetic field 
-	ics.jetMags	 = [magAmp 0 0];
-	ics.backMags = [magAmp 0 0];
+    ics.jetMags	 = [magAmp 0 0];
+    ics.backMags = [magAmp 0 0];
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 if (false) %Non-Zero By test
-	ics.jetMags	 = [0 magAmp 0];
-	ics.backMags = [0 magAmp 0];
+    ics.jetMags	 = [0 magAmp 0];
+    ics.backMags = [0 magAmp 0];
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 if (false) %Non-Zero Bx By test
-	run.jetMags	 = [magAmp magAmp 0];
-	run.backMags = [magAmp magAmp 0];
+    run.jetMags	 = [magAmp magAmp 0];
+    run.backMags = [magAmp magAmp 0];
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 enderRun();

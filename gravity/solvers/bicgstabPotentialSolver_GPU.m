@@ -12,18 +12,9 @@ function phi = bicgstabPotentialSolver_GPU(run, mass, gridsize, iamrecursed)
     %       Poisson's equation.
     if run.time.iteration < 4; tic; end
 
-    if isstruct(mass);
-        gridsize = mass.gridSize;
-        mass = mass.array;
-        iamrecursed = 0;
-    end
-
     % Recursively coarsen in order to propagate low-mode data faster
     if prod(gridsize) > 64^3 % If we > 64^3 on a side
-%gridsize
         mprime = interpolateGPUvar(GPUdouble(mass), -2);
-%size(mprime)
- %       if run.time.iteration < 4; fprintf('Recursing to lower resolution...\n'); end
         philo = GPUdouble(bicgstabPotentialSolver_GPU(run, mprime, gridsize/2,1))/2;
 
         philo = reshape(philo, gridsize/2);

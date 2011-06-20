@@ -186,12 +186,13 @@ diffme = (speed ~= 0);
 rhomaxidx = find(rho == max(rho(:)));
 fprintf('MIRP = %g\n', 2*pi*R(rhomaxidx) / speed(rhomaxidx));
 
-for q = 1:2;
-    speed = hscf_diffuse(speed,.25);
-end
+%for q = 1:2;
+%    speed = hscf_diffuse(speed,.25);
+%end
+linMomDensity = smoothVelocity(rho, linMomDensity);
 
 rho(speed > 0) = max(rho(speed > 0), 1.5*sgThreshold*rhoScale);
-linMomDensity = rho .* speed;
+%linMomDensity = rho .* speed;
 
 end
 

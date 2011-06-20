@@ -53,5 +53,7 @@ for ord = 2:numPolyTerms;
 
 end
 
+clear Bn_x;
 Ax = reshape(Ax, [Npoints 1]);
+
 end

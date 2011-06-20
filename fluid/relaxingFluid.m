@@ -91,9 +91,9 @@ end
     end
 
     if run.useGPU == 1
-        cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
+        cudaArrayAtomic(mass.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
     else
-        mass.store.array = max(mass.store.array, run.fluid.MINMASS);
+        mass.array = max(mass.array, run.fluid.MINMASS);
     end
 
 

@@ -6,12 +6,12 @@ starterRun();
 %--- Initialize test ---%
 run         = CorrugationShockInitializer([1024 1024 1]);
 
-run.iterMax     = 10000;
+run.iterMax     = 20000;
 run.theta       = 0;
 run.sonicMach   = 3;
-run.alfvenMach  = .125;
+run.alfvenMach  = .5;
 
-run.ppSave.dim2 = .2;
+run.ppSave.dim2 = .1;
 run.ppSave.dim3 = 100;
 run.seedAmplitude = 1e-5;
 
@@ -23,7 +23,17 @@ run.notes       = 'Corrugation instability test with maximal transverse resoluti
 %--- Run tests ---%
 if (true) %Primary test
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
-    imogen(mass, mom, ener, magnet, ini, statics);
+    IC.mass = mass;
+    IC.mom = mom;
+    IC.ener = ener;
+    IC.magnet = magnet;
+    IC.statics = statics;
+    IC.ini = ini;
+    icfile = [tempname '.mat'];
+
+    save(icfile, 'IC');
+    clear IC mass mom ener magnet statics ini run;
+    imogen(icfile);
 end
 
 enderRun();
