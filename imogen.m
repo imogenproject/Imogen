@@ -60,7 +60,7 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-dbstop in relaxingFluid.m at 129
+%dbstop in relaxingFluid.m at 129
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
         %run.time.updateUI();
@@ -80,7 +80,7 @@ dbstop in relaxingFluid.m at 129
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-error('emergency stop')
+%error('emergency stop')
     run.postliminary();
 
 end

@@ -62,18 +62,18 @@ end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%                   Full-Timestep corrector step (second-order relaxed TVD)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    momStore = [mom(L(1)).store, mom(L(2)).store, mom(L(3)).store];
-    wFluidFlux(run, mass.store, momStore, ener.store, mag, grav, run.fluid.freezeSpdTVD(1), 1);
+%    momStore = [mom(L(1)).store, mom(L(2)).store, mom(L(3)).store];
+%    wFluidFlux(run, mass.store, momStore, ener.store, mag, grav, run.fluid.freezeSpdTVD(1), 1);
     
-    tempFreeze = run.fluid.freezeSpdTVD(1).array;
+%    tempFreeze = run.fluid.freezeSpdTVD(1).array;
 
 if run.useGPU
 
-r1 = 1.0*mass.array;
-r2 = 1.0*ener.array;
-r3 = 1.0*mom(L(1)).array;
-r4 = 1.0*mom(L(2)).array;
-r5 = 1.0*mom(L(3)).array;
+%1 = 1.0*mass.array;
+%2 = 1.0*ener.array;
+%3 = 1.0*mom(L(1)).array;
+%r4 = 1.0*mom(L(2)).array;
+%r5 = 1.0*mom(L(3)).array;
 
 
    [freezea pressa] = freezeAndPtot(mass.store.array, ener.store.array, ...
@@ -84,10 +84,19 @@ r5 = 1.0*mom(L(3)).array;
     cudaCorrectorStep(mass.store.array, ener.store.array, ...
                       mom(L(1)).store.array, mom(L(2)).store.array, mom(L(3)).store.array, ...
                       mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-                      pressa, r1, r2, r3, r4, r5, tempFreeze, fluxFactor, 0);
+                      pressa, ...
+                      mass.array, ener.array, mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
+                      freezea, fluxFactor, 0);
 
+    mass.applyStatics();
+    ener.applyStatics();
+    mom(1).applyStatics();
+    mom(2).applyStatics();
+    mom(3).applyStatics();
+    
+    cudaArrayAtomic(mass.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
 
-
+return;
 end
 
     for i=1:5

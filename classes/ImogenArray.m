@@ -225,7 +225,7 @@ classdef ImogenArray < handle
 %___________________________________________________________________________________________________ arrayIndexExchange
 % Flips the array and all associated subarrays such that direction i and the x (stride-of-1) direction
 % exchange places. Updates the array, all subarrays, and the static indices.
-        function arrayIndexExchange(obj, toex)
+        function arrayIndexExchange(obj, toex, type)
 
             l = [1 2 3];
             l(1)=toex; l(toex)=1;
@@ -240,8 +240,15 @@ classdef ImogenArray < handle
                                           (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
             end
             % Do this the retarded slow way just to make 100% sure it can't possibly be wrong.
-            obj.array = cudaArrayRotate(obj.array, toex);
+            if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
 
+        end
+
+%___________________________________________________________________________________________________ applyStatics
+% Applies the static conditions for the ImogenArray to the data array. This method is called during
+% array assignment (set.array).
+        function applyStatics(obj)
+            if numel(obj.staticVals > 0); obj.pArray(obj.staticIndices(:,1)) = obj.staticVals; end
         end
 
         
@@ -266,13 +273,6 @@ classdef ImogenArray < handle
             end
         end
         
-%___________________________________________________________________________________________________ applyStatics
-% Applies the static conditions for the ImogenArray to the data array. This method is called during
-% array assignment (set.array).
-        function applyStatics(obj)
-            obj.pArray(obj.staticIndices(:,1)) = obj.staticVals;
-        end
-
 %___________________________________________________________________________________________________ readFades
 % Reads the fades stored in the ImogenManager object and applies the appropriate ones to this
 % ImogenManager object. Note, fades cannot be applied to the FluxArray subclass because they result

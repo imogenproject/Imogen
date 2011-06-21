@@ -76,6 +76,7 @@ __global__ void cukern_doCorrectorStep_uniform(double *rho, double *E, double *p
 {
 double Cinv, rhoinv;
 double q_i[5];
+double b_i[3];
 double w_i;
 __shared__ double fluxLR[2][36];
 __shared__ double derivLR[2][36];
@@ -84,37 +85,43 @@ double *fluxdest;
 /* Step 0 - obligatory annoying setup stuff (ASS) */
 int I0 = nx*(blockIdx.x + gridDim.x * blockIdx.y);
 int Xindex = (threadIdx.x-2);
+int Xtrack = Xindex;
+Xindex += nx*(threadIdx.x < 2);
+
 int x; /* = Xindex % nx; */
 int i;
+bool doIflux = (threadIdx.x > 1) && (threadIdx.x < 34);
 
 /* Step 1 - calculate W values */
 Cinv = 1.0/Cfreeze[I0];
 
-while(Xindex < nx+2) {
+while(Xtrack < nx+2) {
+    x = I0 + (Xindex % nx);
 
-    x = Xindex % nx;
-
-    rhoinv = 1.0/rho[I0+x];
-    q_i[0] = rho[I0+x];
-    q_i[1] = E[I0+x];
-    q_i[2] = px[I0+x];
-    q_i[3] = py[I0+x];
-    q_i[4] = pz[I0+x];
+    rhoinv = 1.0/rho[x]; /* Preload all these out here */
+    q_i[0] = rho[x];
+    q_i[1] = E[x];       /* So we avoid multiple loops */
+    q_i[2] = px[x];      /* over them inside the flux loop */
+    q_i[3] = py[x];
+    q_i[4] = pz[x];
+    b_i[0] = bx[x];
+    b_i[1] = by[x];
+    b_i[2] = bz[x];
 
     /* rho, E, px, py, pz going down */
     /* Iterate over variables to flux */
     for(i = 0; i < 5; i++) {
         switch(i) {
-            case 0: w_i = px[I0+x] * Cinv; break;
-            case 1: w_i = (px[I0+x] * (E[I0+x] + P[I0+x]) - bx[I0+x]*(px[I0+x]*bx[I0+x]+py[I0+x]*by[I0+x]+pz[I0+x]*bz[I0+x]) ) * (rhoinv*Cinv); break;
-            case 2: w_i = (px[I0+x]*px[I0+x]*rhoinv + P[I0+x] - bx[I0+x]*bx[I0+x])*Cinv; break;
-            case 3: w_i = (px[I0+x]*py[I0+x]*rhoinv        - bx[I0+x]*by[I0+x])*Cinv; break;
-            case 4: w_i = (px[I0+x]*pz[I0+x]*rhoinv        - bx[I0+x]*bz[I0+x])*Cinv; break;
+            case 0: w_i = q_i[2] * Cinv; break;
+            case 1: w_i = (q_i[2] * (q_i[1] + P[x]) - b_i[0]*(q_i[2]*b_i[0]+q_i[3]*b_i[1]+q_i[4]*b_i[2]) ) * (rhoinv*Cinv); break;
+            case 2: w_i = (q_i[2]*q_i[2]*rhoinv + P[x] - b_i[0]*b_i[0])*Cinv; break;
+            case 3: w_i = (q_i[2]*q_i[3]*rhoinv        - b_i[0]*b_i[1])*Cinv; break;
+            case 4: w_i = (q_i[2]*q_i[4]*rhoinv        - b_i[0]*b_i[2])*Cinv; break;
             }
 
         /* Step 2 - decouple to L/R flux */
-        fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i); /* Left  going */
-        fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); /* Right going */
+        fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i); /* Left  going flux */
+        fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); /* Right going flux */
         __syncthreads();
 
         /* Step 3 - Differentiate fluxes & call limiter */
@@ -129,11 +136,11 @@ while(Xindex < nx+2) {
         derivLR[0][threadIdx.x] = fluxLR[1][threadIdx.x] - fluxLR[1][(threadIdx.x-1)%36]; /* left derivative */
         derivLR[1][threadIdx.x] = fluxLR[1][(threadIdx.x+1)%36] - fluxLR[1][threadIdx.x]; /* right derivative */
         __syncthreads();
-        cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 1);
+        cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 1); 
 
         /* Step 4 - Perform flux and write to output array */
         __syncthreads();
-        if( (threadIdx.x > 1) && (threadIdx.x < 34) && (Xindex < nx) ) {
+        if( doIflux && (Xindex < nx) ) {
             switch(i) {
                 case 0: fluxdest = rhoW; break;
                 case 1: fluxdest = enerW; break;
@@ -142,13 +149,14 @@ while(Xindex < nx+2) {
                 case 4: fluxdest = pzW; break;
                 }
 
-            fluxdest[I0+x] -= lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
-                                         fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv;
+            fluxdest[x] -= lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
+                                      fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv; 
             }
         __syncthreads();
         }
 
     Xindex += 32;
+    Xtrack += 32;
     }
 
 }
