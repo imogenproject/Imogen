@@ -30,6 +30,13 @@ if (mass.gridSize(2) == 1) && (mass.gridSize(3) == 1); dim = 1; end
 %1D
 % F; S; F
 
+%        case 1;
+%            directVec       = [1; 2; 3];
+%            magneticIndices = [2 3; 1 3; 1 2];
+%        case -1;
+%            directVec       = [3; 2; 1];
+%            magneticIndices = [2 1; 3 1; 3 2];
+
 switch(dim) 
   case 1;
     if order == 1
@@ -62,7 +69,7 @@ switch(dim)
     switch( mod(run.time.iteration, 3) )
         case 1; rots = [0 2 3 0  0 3 2 0];
                  fdir = [1 2 3 0  3 2 1 0];
-%                 mdir = [ ];
+                 mdir = [ ];
         case 2; rots = [3 3 2  2 3 3];
                  fdir = [3 1 2  2 1 3];
 %                 mdir = [ ];

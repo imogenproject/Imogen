@@ -19,11 +19,12 @@ static GPUmat *gm;
 
 #include "cudaCommon.h"
 
+#define BLOCKLEN 48
+#define BLOCKLENP2 50
+#define BLOCKLENP4 52
+
 __global__ void cukern_doCorrectorStep_uniform(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx);
-__device__ void cukern_FluxLimiter_VanLeer(double deriv[2][36], double flux[2][36], int who);
-
-
-#define BLOCKLEN 32
+__device__ void cukern_FluxLimiter_VanLeer(double deriv[2][BLOCKLENP4], double flux[2][BLOCKLENP4], int who);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
@@ -78,8 +79,8 @@ double Cinv, rhoinv;
 double q_i[5];
 double b_i[3];
 double w_i;
-__shared__ double fluxLR[2][36];
-__shared__ double derivLR[2][36];
+__shared__ double fluxLR[2][BLOCKLENP4];
+__shared__ double derivLR[2][BLOCKLENP4];
 double *fluxdest;
 
 /* Step 0 - obligatory annoying setup stuff (ASS) */
@@ -90,7 +91,7 @@ Xindex += nx*(threadIdx.x < 2);
 
 int x; /* = Xindex % nx; */
 int i;
-bool doIflux = (threadIdx.x > 1) && (threadIdx.x < 34);
+bool doIflux = (threadIdx.x > 1) && (threadIdx.x < BLOCKLEN+2);
 
 /* Step 1 - calculate W values */
 Cinv = 1.0/Cfreeze[I0];
@@ -126,15 +127,15 @@ while(Xtrack < nx+2) {
 
         /* Step 3 - Differentiate fluxes & call limiter */
             /* left flux */
-        derivLR[0][threadIdx.x] = fluxLR[0][(threadIdx.x-1)%36] - fluxLR[0][threadIdx.x]; /* left derivative */
-        derivLR[1][threadIdx.x] = fluxLR[0][threadIdx.x] - fluxLR[0][(threadIdx.x+1)%36]; /* right derivative */
+        derivLR[0][threadIdx.x] = fluxLR[0][(threadIdx.x-1)%BLOCKLENP4] - fluxLR[0][threadIdx.x]; /* left derivative */
+        derivLR[1][threadIdx.x] = fluxLR[0][threadIdx.x] - fluxLR[0][(threadIdx.x+1)%BLOCKLENP4]; /* right derivative */
         __syncthreads();
         cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 0);
         __syncthreads();
 
             /* Right flux */
-        derivLR[0][threadIdx.x] = fluxLR[1][threadIdx.x] - fluxLR[1][(threadIdx.x-1)%36]; /* left derivative */
-        derivLR[1][threadIdx.x] = fluxLR[1][(threadIdx.x+1)%36] - fluxLR[1][threadIdx.x]; /* right derivative */
+        derivLR[0][threadIdx.x] = fluxLR[1][threadIdx.x] - fluxLR[1][(threadIdx.x-1)%BLOCKLENP4]; /* left derivative */
+        derivLR[1][threadIdx.x] = fluxLR[1][(threadIdx.x+1)%BLOCKLENP4] - fluxLR[1][threadIdx.x]; /* right derivative */
         __syncthreads();
         cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 1); 
 
@@ -155,13 +156,13 @@ while(Xtrack < nx+2) {
         __syncthreads();
         }
 
-    Xindex += 32;
-    Xtrack += 32;
+    Xindex += BLOCKLEN;
+    Xtrack += BLOCKLEN;
     }
 
 }
 
-__device__ void cukern_FluxLimiter_VanLeer(double deriv[2][36], double flux[2][36], int who)
+__device__ void cukern_FluxLimiter_VanLeer(double deriv[2][BLOCKLENP4], double flux[2][BLOCKLENP4], int who)
 {
 
 double r;

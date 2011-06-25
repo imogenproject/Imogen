@@ -107,7 +107,7 @@ cudaWstep: cudaWstep.cu cudaCommon
 cudaCorrectorStep: cudaCorrectorStep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaCorrectorStep.cu -o cudaCorrectorStep.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaCorrectorStep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaCorrectorStep $(MEX_LDIR) $(MEX_LIBS)
-	rm -f cudaCorrectorStep.cpp
+	#rm -f cudaCorrectorStep.cpp
 
 cmaxForTimestep: cmaxForTimestep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cmaxForTimestep.cu -o cmaxForTimestep.cpp
