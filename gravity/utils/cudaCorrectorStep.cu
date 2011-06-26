@@ -65,6 +65,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   gridsize.y = arraySize.z;
 
   if(arraySize.x > 1) {
+    
+
     cukern_doCorrectorStep_uniform<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], srcs[8], gpu_cf, srcs[9], srcs[10], srcs[11], srcs[12], srcs[13], lambda, arraySize.x);
   }
 
@@ -94,7 +96,7 @@ int i;
 bool doIflux = (threadIdx.x > 1) && (threadIdx.x < BLOCKLEN+2);
 
 /* Step 1 - calculate W values */
-Cinv = 1.0/Cfreeze[I0];
+Cinv = 1.0/Cfreeze[blockIdx.x + gridDim.x * blockIdx.y];
 
 while(Xtrack < nx+2) {
     x = I0 + (Xindex % nx);

@@ -18,7 +18,7 @@ function imogen(icfile)
     ini     = IC.ini;
     statics = IC.statics;
     clear IC;
-    !rm icfile;
+    delete icfile;
 
     %--- Parse initial parameters from ini input ---%
     %       The initialize function parses the ini structure input and populates all of the manager
@@ -60,7 +60,7 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-%dbstop in relaxingFluid.m at 129
+%dbstop in relaxingFluid.m at 32
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
         %run.time.updateUI();

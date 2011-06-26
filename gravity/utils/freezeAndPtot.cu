@@ -19,16 +19,18 @@ static GPUmat *gm;
 
 #include "cudaCommon.h"
 
-__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nu, int hu, int hv, int hw);
+__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int nx);
+__global__ void cukern_FreezeSpeed_hydro(double *rho, double *E, double *px, double *py, double *pz, double gam, double *freeze, double *ptot, int nx);
 
 #define BLOCKDIM 64
+#define MAXPOW   5
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   // At least 2 arguments expected
   // Input and result
   if ( (nrhs!=10) && (nrhs!=2))
-     mexErrMsgTxt("Wrong number of arguments (require rhs, 1 lhs or 1 rhs, 1 lhs)");
+     mexErrMsgTxt("Wrong number of arguments. Call using [ptot freeze] = FreezeAndPtot(mass, ener, momx, momy, momz, bz, by, bz, gamma, 1)");
   if (init == 0) {
     // Initialize function
     // mexLock();
@@ -50,44 +52,42 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   numDims > 2 ? arraySize.z = dims[2] : arraySize.z = 1;
 
   dim3 blocksize, gridsize;
-  int hu, hv, hw, nu;
 
   blocksize.x = BLOCKDIM; blocksize.y = blocksize.z = 1;
-  switch(direction) {
-    case 1: // X direction flux: u = x, v = y, w = z;
-      gridsize.x = arraySize.y;
-      gridsize.y = arraySize.z;
-      hu = 1; hv = arraySize.x; hw = arraySize.x * arraySize.x;
-      nu = arraySize.x; break;
-    case 2: // Y direction flux: u = y, v = x, w = z
-      gridsize.x = arraySize.x;
-      gridsize.y = arraySize.z;
-      hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
-      nu = arraySize.y; break;
-    case 3: // Z direction flux: u = z, v = x, w = y;
-      gridsize.x = arraySize.x;
-      gridsize.y = arraySize.y;
-      hu = arraySize.x * arraySize.y; hv = 1; hw = arraySize.x;
-      nu = arraySize.z; break;
-    default: mexErrMsgTxt("Direction passed to directionalMaxFinder is not in { 1,2,3 }");
-    }
+  gridsize.x = arraySize.y;
+  gridsize.y = arraySize.z;
 
   int numel;
   double **args = getGPUSourcePointers(prhs, 8, &numel, 0, gm);
-  double **ret = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[0]), plhs, 2, gm);
+  double **ret = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[0]), plhs, 1, gm); // ptotal array
 
-  cukern_FreezeSpeed<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], *mxGetPr(prhs[8]), ret[0], ret[1], direction, nu, hu, hv, hw);
-//   b                                         (double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nx, int ny, int nz)
+  double *freezea;
+  int newsize[2];
+  newsize[0] = arraySize.y;
+  newsize[1] = arraySize.z;
+  GPUtype ra = gm->gputype.create(gpuDOUBLE, 2, newsize, NULL);
+  plhs[1] = gm->gputype.createMxArray(ra);
+  freezea = (double *)gm->gputype.getGPUptr(ra);
+
+  int ispurehydro = (int)*mxGetPr(prhs[9]);
+
+  if(ispurehydro) {
+    cukern_FreezeSpeed_hydro<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4],  *mxGetPr(prhs[8]), freezea, ret[0], arraySize.x);
+//                                                   (*rho,    *E,      *px,     *py,     *pz,      gam,              *freeze,  *ptot,  nx)
+  } else {
+    cukern_FreezeSpeed<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], *mxGetPr(prhs[8]), freezea, ret[0], arraySize.x);
+//                                             (*rho,    *E,      *px,     *py,     *pz,     *bx,     *by,     *bz,     gam,              *freeze,  *ptot,  nx)
+  }
   free(ret);
   free(args);
 
 }
 
-__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int direct, int nu, int hu, int hv, int hw)
+__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int nx)
 {
-
-int x = blockIdx.x * hv + blockIdx.y * hw + threadIdx.x * hu;
-int addrMax = blockIdx.x * hv + blockIdx.y * hw + nu*hu;
+/* gridDim = [ny nz], nx = nx */
+int x = threadIdx.x + nx*(blockIdx.x + gridDim.x*blockIdx.y);
+int addrMax = nx + nx*(blockIdx.x + gridDim.x*blockIdx.y);
 
 double Cs, CsMax;
 double psqhf, bsqhf;
@@ -98,7 +98,7 @@ __shared__ double locBloc[BLOCKDIM];
 CsMax = 0.0;
 locBloc[threadIdx.x] = 0.0;
 
-if(x >= addrMax) return; // If we get a very low resolution, save time & space on wasted threads
+if(x >= addrMax) return; // If we get a very low resolution
 
 while(x < addrMax) {
   psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
@@ -108,33 +108,80 @@ while(x < addrMax) {
 
   if(Cs > CsMax) CsMax = Cs;
 
-  x += blockDim.x * hu;
+  x += BLOCKDIM;
   }
 
 locBloc[threadIdx.x] = CsMax;
 
-// Now we need the max of the stored shared array to write back to the global array
+// Now we need the max of the shared array to write back to the global C_f array
 __syncthreads();
 
 x = 2;
-while((x < BLOCKDIM) && (x < 2*nu)) {
-  if(threadIdx.x % x != 0) break;
+addrMax = 1;
 
-  if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
+while(x <= BLOCKDIM) {
+  if(threadIdx.x % x != 0) return;
 
+  if(locBloc[threadIdx.x + addrMax] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + addrMax];
+
+  addrMax = x;
   x *= 2;
   }
+//if (threadIdx.x > 0) return;
+//CsMax = 0;
+//for(x = 0; x < 64; x++) { if(locBloc[x] > CsMax) CsMax = locBloc[x]; }
 
-__syncthreads();
-
-CsMax = locBloc[0];
-
-x = blockIdx.x * hv + blockIdx.y * hw + threadIdx.x * hu;
-while(x < addrMax) {
-  freeze[x] = CsMax;
-  x += blockDim.x * hu;
-  }
-
+freeze[blockIdx.x + gridDim.x*blockIdx.y] = locBloc[0];
 
 }
 
+__global__ void cukern_FreezeSpeed_hydro(double *rho, double *E, double *px, double *py, double *pz, double gam, double *freeze, double *ptot, int nx)
+{
+int x = threadIdx.x + nx*(blockIdx.x + gridDim.x*blockIdx.y);
+int addrMax = nx + nx*(blockIdx.x + gridDim.x*blockIdx.y);
+
+double Cs, CsMax;
+double psqhf;
+double gg1 = gam*(gam-1.0);
+
+__shared__ double locBloc[BLOCKDIM];
+
+CsMax = 0.0;
+locBloc[threadIdx.x] = 0.0;
+
+if(x >= addrMax) return; // If we get a very low resolution
+
+while(x < addrMax) {
+  psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
+  Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) )/rho[x] )) + abs(px[x]/rho[x]);
+  ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]);
+
+  if(Cs > CsMax) CsMax = Cs;
+
+  x += BLOCKDIM;
+  }
+
+locBloc[threadIdx.x] = CsMax;
+
+// Now we need the max of the shared array to write back to the global C_f array
+__syncthreads();
+
+x = 2;
+addrMax = 1;
+
+while(x <= BLOCKDIM) {
+  if(threadIdx.x % x != 0) return;
+
+  if(locBloc[threadIdx.x + addrMax] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + addrMax];
+
+  addrMax = x;
+  x *= 2;
+  }
+//if (threadIdx.x > 0) return;
+//CsMax = 0;
+//for(x = 0; x < 64; x++) { if(locBloc[x] > CsMax) CsMax = locBloc[x]; }
+
+freeze[blockIdx.x + gridDim.x*blockIdx.y] = locBloc[0];
+
+
+}
