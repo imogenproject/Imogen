@@ -26,7 +26,7 @@ double **getGPUSourcePointers(const mxArray *prhs[], int num, int *retNumel, int
 
   for(iter = 0; iter < num; iter++) {
     src = gm->gputype.getGPUtype(prhs[startat + iter]);
-    if (gm->gputype.getNumel(src) != numel) { free(gpuPointers); mexErrMsgTxt("Fatal: Arrays contain nonequal number of elements."); }
+/*    if (gm->gputype.getNumel(src) != numel) { free(gpuPointers); mexErrMsgTxt("Fatal: Arrays contain nonequal number of elements."); } */
     gpuPointers[iter] = (double *)gm->gputype.getGPUptr(src);
   }
 

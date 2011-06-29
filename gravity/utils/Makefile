@@ -21,8 +21,10 @@ MEX_LDIR  = -L$(CUDA_DIR)/$(CUDA_LDIR)
 MEX_LIBS  = -lcuda -lcudart -lcublas
 
 ###############################################################################
-all: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate cudaArrayAtomic fluxLimiterKernels directionalMaxFinder cudaMHDKernels
+all: gravity fluid
 
+gravity: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate
+fluid: cudaArrayAtomic fluxLimiterKernels directionalMaxFinder cudaMHDKernels cudaArrayRotate cudaWstep cudaTVDStep freezeAndPtot cudaShift
 
 kernels: cudaKernels.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaKernels.cu -o cudaKernels.cpp
@@ -79,15 +81,16 @@ cudaArrayRotate: cudaArrayRotate.cu cudaCommon
 	mex $(MEX_OPTS) $(MEX_INCL) cudaArrayRotate.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaArrayRotate $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaArrayRotate.cpp
 
+cudaShift: cudaShift.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaShift.cu -o cudaShift.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaShift.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaShift $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaShift.cpp
+
 cudaMHDKernels: cudaMHDKernels.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaMHDKernels.cpp
 
-cudaShift: cudaShift.cu cudaCommon
-	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaShift.cu -o cudaShift.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) cudaShift.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaShift $(MEX_LDIR) $(MEX_LIBS)
-	rm -f cudaShift.cpp
 
 cudaLinearSubsagn: cudaLinearSubsagn.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaLinearSubsagn.cu -o cudaLinearSubsagn.cpp
@@ -104,10 +107,10 @@ cudaWstep: cudaWstep.cu cudaCommon
 	mex $(MEX_OPTS) $(MEX_INCL) cudaWstep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaWstep $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaWstep.cpp
 
-cudaCorrectorStep: cudaCorrectorStep.cu cudaCommon
-	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaCorrectorStep.cu -o cudaCorrectorStep.cpp
-	mex $(MEX_OPTS) $(MEX_INCL) cudaCorrectorStep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaCorrectorStep $(MEX_LDIR) $(MEX_LIBS)
-	#rm -f cudaCorrectorStep.cpp
+cudaTVDStep: cudaTVDStep.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaTVDStep.cu -o cudaTVDStep.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaTVDStep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaTVDStep $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaTVDStep.cpp
 
 cmaxForTimestep: cmaxForTimestep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cmaxForTimestep.cu -o cmaxForTimestep.cpp

@@ -80,7 +80,7 @@ function imogen(icfile)
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-%error('emergency stop')
+error('devel prevent-matlab-exiting stop')
     run.postliminary();
 
 end

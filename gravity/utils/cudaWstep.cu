@@ -19,21 +19,16 @@ static GPUmat *gm;
 
 #include "cudaCommon.h"
 
-__global__ void cukern_WFlux(fluidVarPtrs fluid, double lambda, int nu);
-__global__ void cukern_WFlux_hydro(fluidVarPtrs fluid, double lambda, int nu);
+__global__ void cukern_WFlux_mhd_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw);
+__global__ void cukern_WFlux_hydro_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw);
 __global__ void nullStep(fluidVarPtrs fluid, int numel);
 
 #define BLOCKLEN 126
 
-//cudaWstep(mass.array, ener.array, ...
-//                                                                         mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
-//                                                                         mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-//                                                                         pressa, freezea, fluxFactor, 1, run.pureHydro);
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
   // Input and result
-  if ((nrhs!=12) || (nlhs != 5)) mexErrMsgTxt("Wrong number of arguments: need [5] = cudaWflux(rho, E, px, py, pz, bx, by, bz, P, C_freeze, lambda, purehydro?))\n");
+  if ((nrhs!=12) || (nlhs != 5)) mexErrMsgTxt("Wrong number of arguments: need [5] = cudaWflux(rho, E, px, py, pz, bx, by, bz, Ptot, c_f, lambda, purehydro?)\n");
 
   if (init == 0) {
     gm = gmGetGPUmat();
@@ -44,11 +39,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   int numel;
   GPUtype srcReference = gm->gputype.getGPUtype(prhs[0]);
 
-  double **srcs = getGPUSourcePointers(prhs, 9, &numel, 0, gm);
+  double **srcs = getGPUSourcePointers(prhs, 10, &numel, 0, gm);
   double **dest = makeGPUDestinationArrays(srcReference,  plhs, 5, gm);
-  
 
   // Establish launch dimensions & a few other parameters
+  int fluxDirection = 1;
   double lambda     = *mxGetPr(prhs[10]);
   int numDims        = gm->gputype.getNdims(srcReference);
   const int *dims    = gm->gputype.getSize(srcReference);
@@ -59,12 +54,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   numDims > 2 ? arraySize.z = dims[2] : arraySize.z = 1;
 
   dim3 blocksize, gridsize;
-  int nu;
+  int hu, hv, hw, nu;
 
   blocksize.x = BLOCKLEN+2; blocksize.y = blocksize.z = 1;
-  gridsize.x = arraySize.y;
-  gridsize.y = arraySize.z;
-  nu = arraySize.x;
+  switch(fluxDirection) {
+    case 1: // X direction flux: u = x, v = y, w = z;
+      gridsize.x = arraySize.y;
+      gridsize.y = arraySize.z;
+      hu = 1; hv = arraySize.x; hw = arraySize.x * arraySize.x;
+      nu = arraySize.x; break;
+    case 2: // Y direction flux: u = y, v = x, w = z
+      gridsize.x = arraySize.x;
+      gridsize.y = arraySize.z;
+//      hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
+      hv = arraySize.x; hu = 1; hw = arraySize.x * arraySize.y;
+      nu = arraySize.y; break;
+    case 3: // Z direction flux: u = z, v = x, w = y;
+      gridsize.x = arraySize.x;
+      gridsize.y = arraySize.y;
+      hu = arraySize.x * arraySize.y; hv = 1; hw = arraySize.x;
+      nu = arraySize.z; break;
+    }
 
 fluidVarPtrs fluid;
 int i;
@@ -74,15 +84,15 @@ fluid.B[1] = srcs[6];
 fluid.B[2] = srcs[7];
 
 fluid.Ptotal = srcs[8];
-fluid.cFreeze = (double*)gm->gputype.getGPUptr(gm->gputype.getGPUtype(prhs[9]));
+fluid.cFreeze = srcs[9];
 
 if(nu > 1) {
   int hydroOnly = (int)*mxGetPr(prhs[11]);
 
   if(hydroOnly == 1) {
-    cukern_WFlux_hydro<<<gridsize, blocksize>>>(fluid, lambda, nu);
+    cukern_WFlux_hydro_uniform<<<gridsize, blocksize>>>(fluid, lambda, nu, hu, hv, hw);
     } else {
-    cukern_WFlux<<<gridsize, blocksize>>>(fluid, lambda, nu);
+    cukern_WFlux_mhd_uniform<<<gridsize, blocksize>>>(fluid, lambda, nu, hu, hv, hw);
     }
   } else {
   nullStep<<<32, 128>>>(fluid, numel);
@@ -91,7 +101,7 @@ if(nu > 1) {
 }
 
 
-__global__ void cukern_WFlux(fluidVarPtrs fluid, double lambda, int nu)
+__global__ void cukern_WFlux_mhd_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw)
 {
 
 // This is the shared flux array.
@@ -116,18 +126,19 @@ double rhoinv;
 // Loop index - controls the advancement of the thread block through the line; Doflux tells threads to flux or not flux
 int lpIdx;
 
-Cinv   = 1.0 / fluid.cFreeze[blockDim.x + gridDim.x*blockDim.y];
+Cinv = 1.0/fluid.cFreeze[blockIdx.x + gridDim.x * blockIdx.y];
 
 for(lpIdx = threadIdx.x-1; lpIdx <= nu; lpIdx += BLOCKLEN) {
 	// Our index in the U direction; If it exceeds the array size+1, return; If it equals it, don't flux that cell
 
 	// Convert i to an index; Circular boundary conditions
-	indexBase = nu*(blockIdx.x + blockIdx.y * gridDim.x) + (lpIdx % nu);
-if(lpIdx < 0) indexBase = nu*(blockIdx.x + blockIdx.y * gridDim.x) + (nu-1);
+	indexBase = blockIdx.x * hv + blockIdx.y * hw + (lpIdx % nu)* hu;
+if(lpIdx < 0) indexBase = blockIdx.x * hv + blockIdx.y * hw + (nu-1)* hu;
 
 	// Load local copies of hyperbolic state variables
 	for(i = 0; i < 5; i++) { Qi[i] = fluid.fluidIn[i][indexBase]; }
 	lPress = fluid.Ptotal[indexBase];
+/*	Cinv   = 1.0 / fluid.cFreeze[indexBase]; */
 	rhoinv = 1.0 / Qi[0];
 	lBx = fluid.B[0][indexBase];
 	lBy = fluid.B[1][indexBase];
@@ -140,27 +151,13 @@ if(lpIdx < 0) indexBase = nu*(blockIdx.x + blockIdx.y * gridDim.x) + (nu-1);
 	// For each conserved quantity,
 	for(i = 0; i < 5; i++) {
 		// Calculate the W flux
-//		switch(5*direction + i) {
-                switch(i) {
+		switch(i) {
 			case 0: Wi = Qi[2] * Cinv; break;
 			case 1: Wi = (Qi[2] * (Qi[1] + lPress) - lBx*(Qi[2]*lBx+Qi[3]*lBy+Qi[4]*lBz) ) * Cinv * rhoinv; break;
 			case 2: Wi = (Qi[2]*Qi[2]*rhoinv + lPress - lBx*lBx)*Cinv; break;
 			case 3: Wi = (Qi[2]*Qi[3]*rhoinv          - lBx*lBy)*Cinv; break;
 			case 4: Wi = (Qi[2]*Qi[4]*rhoinv          - lBx*lBz)*Cinv; break;
-
-/*			case 10: Wi = Qi[3] * Cinv; break;
-			case 11: Wi = (Qi[3] * (Qi[1] + lPress) - lBy*(Qi[2]*lBx+Qi[3]*lBy+Qi[4]*lBz) ) * Cinv * rhoinv; break;
-			case 12: Wi = (Qi[3]*Qi[2]*rhoinv          - lBy*lBx)*Cinv; break;
-			case 13: Wi = (Qi[3]*Qi[3]*rhoinv + lPress - lBy*lBy)*Cinv; break;
-			case 14: Wi = (Qi[3]*Qi[4]*rhoinv          - lBy*lBz)*Cinv; break;
-  
-			case 15: Wi = Qi[4] * Cinv; break;
-			case 16: Wi = (Qi[4] * (Qi[1] + lPress) - lBz*(Qi[2]*lBx+Qi[3]*lBy+Qi[4]*lBz) ) * Cinv * rhoinv; break;
-			case 17: Wi = (Qi[4]*Qi[2]*rhoinv          - lBz*lBx)*Cinv; break;
-			case 18: Wi = (Qi[4]*Qi[3]*rhoinv          - lBz*lBy)*Cinv; break;
-			case 19: Wi = (Qi[4]*Qi[4]*rhoinv + lPress - lBz*lBz)*Cinv; break;*/
-			}
-
+                        }
 		// Decouple into left & right going fluxes
 		fLeft[threadIdx.x]  = .25*(Qi[i] - Wi);
 		fRight[threadIdx.x] = .25*(Qi[i] + Wi);
@@ -192,7 +189,7 @@ if(lpIdx < 0) indexBase = nu*(blockIdx.x + blockIdx.y * gridDim.x) + (nu-1);
 }
 
 
-__global__ void cukern_WFlux_hydro(fluidVarPtrs fluid, double lambda, int nu)
+__global__ void cukern_WFlux_hydro_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw)
 {
 
 // This is the shared flux array.
@@ -217,18 +214,19 @@ double rhoinv;
 // Loop index - controls the advancement of the thread block through the line; Doflux tells threads to flux or not flux
 int lpIdx;
 
-Cinv   = 1.0 / fluid.cFreeze[blockDim.x + gridDim.x*blockDim.y];
+Cinv = 1.0/fluid.cFreeze[blockIdx.x + gridDim.x * blockIdx.y];
 
 for(lpIdx = threadIdx.x-1; lpIdx <= nu; lpIdx += BLOCKLEN) {
         // Our index in the U direction; If it exceeds the array size+1, return; If it equals it, don't flux that cell
 
         // Convert i to an index; Circular boundary conditions
-        indexBase = nu*(blockIdx.x + blockIdx.y * gridDim.x) + (lpIdx % nu);
-if(lpIdx < 0) indexBase = nu*(blockIdx.x + blockIdx.y * gridDim.x) + (nu-1);
+        indexBase = blockIdx.x * hv + blockIdx.y * hw + (lpIdx % nu)* hu;
+if(lpIdx < 0) indexBase = blockIdx.x * hv + blockIdx.y * hw + (nu-1)* hu;
 
         // Load local copies of hyperbolic state variables
         for(i = 0; i < 5; i++) { Qi[i] = fluid.fluidIn[i][indexBase]; }
         lPress = fluid.Ptotal[indexBase];
+/*        Cinv   = 1.0 / fluid.cFreeze[indexBase];*/
         rhoinv = 1.0 / Qi[0];
 
         // Start outselves off with 4 chances to move left
