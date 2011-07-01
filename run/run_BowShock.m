@@ -2,9 +2,9 @@
 starterRun();
 
 %--- Initialize bow shock ---%
-grid = [768 768 1];
+grid = [2048 2048 1];
 run                 = BowShockInitializer(grid);
-run.iterMax         = 1000;
+run.iterMax         = 30000;
 %run.bcMode.z	    = 'circ';
 
 run.bcMode.x = 'circ';
@@ -17,26 +17,26 @@ run.gpuDeviceNumber = 2;
 
 run.ballXRadius = 1;
 run.ballCells = [31.5 31.5 31.5];
-run.ballCenter =  [128 384 1];
+run.ballCenter =  [512 1024 1];
 
-run.mode.magnet = true;
+run.mode.magnet = false;
 
-run.magX = 1;
-run.magY = 0;
+%run.magX = 1;
+%run.magY = 0;
 
 run.bgVx      = 3;
 run.bgRho     = .25;
-run.ballVr    = 0;
+run.ballVr    = 1.5;
 run.ballRho   = 1;
 
 %--- Adjustable output parameters ---%
-run.image.interval  = 8;
+run.image.interval  = 20;
 run.image.mass      = true;
 run.image.speed     = true;
-run.image.magX      = true;
-run.image.magY = true;
+%run.image.magX      = true;
+%run.image.magY = true;
 
-run.activeSlices.xyz = true;
+%run.activeSlices.xyz = true;
 
 run.ppSave.dim2     = 25;
 run.ppSave.dim3     = 5;

@@ -60,28 +60,32 @@ switch(dim)
     if order == 1; i0 = 1; else; i0 = 4; end
 
     for i = i0:(i0+2)
-        if rots(i) > 0; xchgIndices(mass, mom, ener, mag, grav, rots(i)); end
+        if (rots(i) > 0) && (run.useGPU); xchgIndices(mass, mom, ener, mag, grav, rots(i)); end
         if run.fluid.ACTIVE && fdir(i) > 0; relaxingFluid(run, mass, mom, ener, mag, grav, fdir(i)); end
 %        if run.magnet.ACTIVE; magnetFlux(run, mass, mom, mag, directVec(n), magneticIndices(n,:)); end
     end
 
   case 3;
-    switch( mod(run.time.iteration, 3) )
-        case 1; rots = [0 2 3 0  0 3 2 0];
-                 fdir = [1 2 3 0  3 2 1 0];
-                 mdir = [ ];
-        case 2; rots = [3 3 2  2 3 3];
-                 fdir = [3 1 2  2 1 3];
-%                 mdir = [ ];
-        case 3; rots = [2 3 2  2 3 2];
-                 fdir = [2 3 1  1 3 2];
-%                 mdir = [ ];
+    if mod(run.time.iteration,3) == 1
+        rots = [0 2 3 0  0 3 2 0];
+        fdir = [1 2 3 0  3 2 1 0];
+        mdir = [ ];
+    end;
+    if mod(run.time.iteration, 3) == 2
+        rots = [3 3 2 0  0 2 3 3];
+        fdir = [3 1 2 0  2 1 3 0];
+        mdir = [ ];
+    end
+    if mod(run.time.iteration, 3) == 0
+        rots = [2 3 2 0  0 2 3 2];
+        fdir = [2 3 1 0  1 3 2 0];
+        mdir = [ ];
     end
 
     if order == 1; i0 = 1; else; i0 = 5; end
 
     for i = i0:(i0+3)
-        if rots(i) > 0; xchgIndices(mass, mom, ener, mag, grav, rots(i)); end
+        if (rots(i) > 0) && (run.useGPU); xchgIndices(mass, mom, ener, mag, grav, rots(i)); end
         if run.fluid.ACTIVE && fdir(i) > 0; relaxingFluid(run, mass, mom, ener, mag, grav, fdir(i)); end
 %        if run.magnet.ACTIVE; magnetFlux(run, mass, mom, mag, directVec(n), magneticIndices(n,:)); end
     end

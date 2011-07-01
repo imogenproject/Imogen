@@ -62,7 +62,7 @@ classdef KelvinHelmholtzInitializer < Initializer
             obj.mach             = 0.25;
             obj.perturb          = true;
             
-            obj.operateOnInput(input, [256 256 1]);
+            obj.operateOnInput(input);
         end
                
         

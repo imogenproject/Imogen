@@ -4,15 +4,17 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = KelvinHelmholtzInitializer();
-run.iterMax         = 1000;
+run                 = KelvinHelmholtzInitializer([512 256 1]);
+run.iterMax         = 10000;
 run.direction       = KelvinHelmholtzInitializer.X;
-run.image.interval	= 2;
+run.image.interval	= 10;
 run.image.mass		= true;
 run.image.mach		= true;
 run.info            = 'Kelvin-Helmholtz instability test.';
 run.notes           = '';
 
+run.useGPU = true;
+run.gpuDeviceNumber = 0;
 
 %--- Run tests ---%
 if (true)

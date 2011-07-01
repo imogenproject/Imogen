@@ -65,8 +65,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   gridsize.y = arraySize.z;
 
   if(arraySize.x > 1) {
-    
-
     cukern_TVDStep_mhd_uniform<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], srcs[8], gpu_cf, srcs[9], srcs[10], srcs[11], srcs[12], srcs[13], lambda, arraySize.x);
   }
 
@@ -154,6 +152,7 @@ while(Xtrack < nx+2) {
 
             fluxdest[x] -= lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
                                       fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv; 
+            //fluxdest[x] = threadIdx.x;
             }
         __syncthreads();
         }

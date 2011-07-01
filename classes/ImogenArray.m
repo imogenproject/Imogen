@@ -240,7 +240,8 @@ classdef ImogenArray < handle
                                           (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
             end
             % Do this the retarded slow way just to make 100% sure it can't possibly be wrong.
-            if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
+%           if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
+            if type == 1; obj.array = 1.0*obj.array'; end
 
         end
 

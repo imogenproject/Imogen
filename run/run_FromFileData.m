@@ -5,32 +5,34 @@ starterRun();
 
 %--- Initialize test ---%
 %        The number of X cells is the controlling variable in grid step size.
-run                 = ExperimentFromFileInitializer([256 256 160]);
-run.iterMax         = 1000;
+run                 = ExperimentFromFileInitializer([256 256 64]);
+run.iterMax         = 10000;
 
-run.fname = '/home/erik/tor1.mat';
-run.latheAboutZ = 1;
-run.momFormat = 3; 
+run.fname = '/home/erik/newspheroid2.mat';
+run.latheAboutZ = 0;
+run.momFormat = 1; 
 
 %run.rhoSphere;
 %run.rhoBG;
 %rho.enerSphere
-obj.mode.gravity = true;
+run.mode.gravity = true;
 run.gravity.constant    = 1;
 
-run.image.interval	= 2;
+run.bgDensityCoeff = 3e-5;
+
+run.image.interval	= 1;
 run.image.mass		= true;
 run.image.speed		= true;
-run.image.grav          = true;
-run.image.ener          = true;
+run.image.grav          = false;
+run.image.ener          = false;
 
-run.activeSlices.xy     = false;
+run.activeSlices.xy     = true;
 run.activeSlices.yz     = true;
-run.activeSlices.xz     = false;
+%run.activeSlices.xz     = false;
 run.activeSlices.xyz 	= true;
 
-run.ppSave.dim3 = 100*(20/1000); % every 20 steps
-%run.ppSave.dim2 = 10;
+run.ppSave.dim3 = 100*(100/10000); % every 20 steps
+run.ppSave.dim2 = 10;
 
 run.info            = 'First test of self gravitating toroid.';
 run.notes           = '';

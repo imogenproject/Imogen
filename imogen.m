@@ -18,7 +18,8 @@ function imogen(icfile)
     ini     = IC.ini;
     statics = IC.statics;
     clear IC;
-    delete icfile;
+%   delete icfile;
+    system(['rm -f ' icfile ]);
 
     %--- Parse initial parameters from ini input ---%
     %       The initialize function parses the ini structure input and populates all of the manager
@@ -60,7 +61,11 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-%dbstop in relaxingFluid.m at 32
+%dbstop in relaxingFluid.m at 33
+%dbstop in relaxingFluid.m at 70
+%dbstop in relaxingFluid.m at 84
+%dbstop in imogen.m at 82
+
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
         %run.time.updateUI();
@@ -80,7 +85,7 @@ function imogen(icfile)
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-error('devel prevent-matlab-exiting stop')
+%error('devel prevent-matlab-exiting stop')
     run.postliminary();
 
 end

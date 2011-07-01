@@ -117,7 +117,7 @@ classdef ExperimentFromFileInitializer < Initializer
             tempd{1} = obj.dGrid(1); tempd{2} = obj.dGrid(2); tempd{3} = obj.dGrid(3);
  
             obj.minMass = maxFinderND(mass) * obj.bgDensityCoeff;
-            obj.thresholdMass = 2*obj.minMass;
+            obj.thresholdMass = 10*obj.minMass;
 
             mass    = max(mass, obj.minMass);
             mag     = zeros([3 obj.grid]);
