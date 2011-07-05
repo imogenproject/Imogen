@@ -4,23 +4,23 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = JetInitializer([512 256 1]);
-run.iterMax         = 1000;
-run.offset          = [20 128 1];
+run                 = JetInitializer([3072 1024 1]);
+run.iterMax         = 10000;
+run.offset          = [40 512 1];
 run.bcMode.x        = 'circ';
 run.bcMode.y        = 'circ';
 run.direction       = JetInitializer.X;
 run.flip            = false;
 
-run.image.interval  = 5;
+run.image.interval  = 15;
 run.image.mass      = true;
 run.image.speed     = true;
 
 run.info            = 'Fluid jet test.';
 run.notes           = '';
 
-run.injectorSize = 8;
-run.jetMass = .7;
+run.injectorSize = 30;
+run.jetMass = .65;
 run.jetMach = 3;
 
 run.useGPU = true;

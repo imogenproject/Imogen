@@ -42,6 +42,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   double **srcs = getGPUSourcePointers(prhs, 10, &numel, 0, gm);
   double **dest = makeGPUDestinationArrays(srcReference,  plhs, 5, gm);
 
+int jj;
+for(jj=0; jj<10;jj++) { printf("%i, %i\n", jj, srcs[jj]); }
+
   // Establish launch dimensions & a few other parameters
   int fluxDirection = 1;
   double lambda     = *mxGetPr(prhs[10]);
@@ -159,14 +162,21 @@ if(lpIdx < 0) indexBase = blockIdx.x * hv + blockIdx.y * hw + (nu-1)* hu;
 			case 4: Wi = (Qi[2]*Qi[4]*rhoinv          - lBx*lBz)*Cinv; break;
                         }
 		// Decouple into left & right going fluxes
-		fLeft[threadIdx.x]  = .25*(Qi[i] - Wi);
-		fRight[threadIdx.x] = .25*(Qi[i] + Wi);
+		fLeft[threadIdx.x]  = .5*(Qi[i] - Wi);
+		fRight[threadIdx.x] = .5*(Qi[i] + Wi);
 
 		// Stop until all threads finish filling flux array
 		__syncthreads();
 
 		// Write updated quantities to global memory
-		if((lpIdx >= 0) && (lpIdx < nu)) fluid.fluidOut[i][indexBase] = Qi[i] - lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fRight[threadIdx.x] - fRight[threadIdx.x-1] )/Cinv;
+		if((lpIdx >= 0) && (lpIdx < nu)) {
+fluid.fluidOut[i][indexBase] = Qi[i] - .5*lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fRight[threadIdx.x] - fRight[threadIdx.x-1] )/Cinv;
+//fluid.fluidOut[0][indexBase] = Qi[2];
+//fluid.fluidOut[1][indexBase] = Qi[1];
+//fluid.fluidOut[2][indexBase] = lPress;
+//fluid.fluidOut[3][indexBase] = fLeft[threadIdx.x];
+//fluid.fluidOut[4][indexBase] = fRight[threadIdx.x];
+}
 
 		// Make sure everyone's done reading shared memory before we futz with it again; Move left
 		__syncthreads();

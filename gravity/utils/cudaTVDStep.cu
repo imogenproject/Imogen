@@ -42,8 +42,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   double **srcs   = getGPUSourcePointers(prhs, 14, &numel, 0, gm);
 
+//int qq;
+//for(qq = 0; qq < 14; qq++) {
+//printf("%i %i\n", qq, srcs[qq]);
+//}
+
   GPUtype cfreeze  = gm->gputype.getGPUtype(prhs[14]);
   double *gpu_cf = (double *)gm->gputype.getGPUptr(cfreeze);
+//printf("c_f: %i\n", gpu_cf);
 
   double lambda   = *mxGetPr(prhs[15]);
   int isPureHydro = (int)*mxGetPr(prhs[16]);
@@ -124,7 +130,7 @@ while(Xtrack < nx+2) {
         fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i); /* Left  going flux */
         fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); /* Right going flux */
         __syncthreads();
-
+if(doIflux && (Xindex < nx)) { rhoW[x] = fluxLR[0][threadIdx.x]; enerW[x] = fluxLR[1][threadIdx.x]; }
         /* Step 3 - Differentiate fluxes & call limiter */
             /* left flux */
         derivLR[0][threadIdx.x] = fluxLR[0][(threadIdx.x-1)%BLOCKLENP4] - fluxLR[0][threadIdx.x]; /* left derivative */
@@ -141,7 +147,7 @@ while(Xtrack < nx+2) {
 
         /* Step 4 - Perform flux and write to output array */
         __syncthreads();
-        if( doIflux && (Xindex < nx) ) {
+       if( doIflux && (Xindex < nx) ) {
             switch(i) {
                 case 0: fluxdest = rhoW; break;
                 case 1: fluxdest = enerW; break;
@@ -150,10 +156,15 @@ while(Xtrack < nx+2) {
                 case 4: fluxdest = pzW; break;
                 }
 
-            fluxdest[x] -= lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
+            fluxdest[x] -= .5 * lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
                                       fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv; 
             //fluxdest[x] = threadIdx.x;
+
+//pxW[x]  = fluxLR[0][threadIdx.x];
+//pyW[x] = fluxLR[1][threadIdx.x];
+//pzW[x] = w_i;
             }
+
         __syncthreads();
         }
 
@@ -171,7 +182,7 @@ double r;
 r = deriv[0][threadIdx.x] * deriv[1][threadIdx.x];
 if(r < 0.0) r = 0.0;
 
-r = r / ( deriv[0][threadIdx.x] + deriv[1][threadIdx.x] );
+r = r / ( deriv[0][threadIdx.x] + deriv[1][threadIdx.x]);
 if (isnan(r)) { r = 0.0; }
 
 flux[who][threadIdx.x] += r;

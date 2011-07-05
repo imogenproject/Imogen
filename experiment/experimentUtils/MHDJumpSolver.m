@@ -13,14 +13,16 @@ function result = MHDJumpSolver(ms, ma, theta, GAMMA)
 
     %--- Define jump conditions ---%
     %   Knowns:
-    %            pre: pr, rho, ms, ma, vz=0, bz=0, tang=tan(theta) gamma=5/3
+    %            pre: pr, rho, ms, ma, vz=0, bz=0
     %           post: BX = bx (divergance eqn), VZ=0, BZ=0
     %   Uknowns:
     %            pre: vx, vj, bx, bj
     %           post: RHO, VX, VJ, PR, BJ 
-    
-    % Translate these into names used in Mathematica formulation
-    vxpre = ms * sqrt(5/3);
+
+    theta = theta * pi / 180; 
+
+    % Solve the preshock flow in terms of the 3 free quantities
+    vxpre = ms * sqrt(GAMMA);
     vypre = vxpre * tan(theta);
     
     bx = vxpre / ma;
@@ -29,26 +31,27 @@ function result = MHDJumpSolver(ms, ma, theta, GAMMA)
     rhopre = 1;
     Ppre = 1;
     g = GAMMA;
-    tt = tan(theta);
-   
-    % Solve for postshock vx: Use quartic solver
-    a4 = ((rhopre^3 *vxpre^3 + g *rhopre^3 *vxpre^3));
-    a3 = ((-2 *bx^2 *rhopre^2 *vxpre^2 - 2 *bx^2 *g *rhopre^2 *vxpre^2 - 2 *g *Ppre *rhopre^2 *vxpre^2 - 2 *bx^2 *g *rhopre^2 *tt^2 *vxpre^2 - 2 *g *rhopre^3 *vxpre^4));
-    a2 = ((bx^4 *g *rhopre* vxpre + 4 *bx^2 *g *Ppre *rhopre *vxpre + 3 *bx^4 *g *rhopre *tt^2 *vxpre + bx^4 *rhopre *(1 + tt^2)* vxpre + 4* bx^2* g *rhopre^2 *vxpre^3 + 2 *g *Ppre* rhopre^2 *vxpre^3 - 2 *bx^2 *rhopre^2 *tt^2 *vxpre^3 + 2 *bx^2 *g *rhopre^2 *tt^2* vxpre^3 - rhopre^3 *vxpre^5 + g* rhopre^3 *vxpre^5));
-    a1 = ((-2 *bx^4 *g *Ppre - 2 *bx^4* g *rhopre *vxpre^2 - 4 *bx^2* g *Ppre* rhopre* vxpre^2 - 4* bx^4 *g *rhopre *tt^2 *vxpre^2 + 2 *bx^2* rhopre^2* vxpre^4 - 2 *bx^2 *g *rhopre^2 *vxpre^4 + 2 *bx^2 *rhopre^2 *tt^2 *vxpre^4));
-    a0 = ((2 *bx^4 *g *Ppre *vxpre + bx^4 *g *rhopre *vxpre^3 + bx^4 *g *rhopre *tt^2* vxpre^3 - bx^4 *rhopre* (1 + tt^2) *vxpre^3));
-    
-%[a0 a1 a2 a3 a4]
+  
+    pxpre = rhopre*vxpre;
+    txpre = rhopre*vxpre^2;
 
+    % The following equations could be rewritten in terms of the 3 free quantities only (since they
+    % completely determine the flow) but writing in terms of physical quantities gives some idea where
+    % the terms come from.
+
+    % These define a quartic equation sum(vxpost^n a_n) = 0 that determines vxpost
+    a4 = (1+g)*pxpre^3;
+    a3 = -pxpre^2*(2*bx^2*(g+1) + g*(bypre^2 + 2*Ppre + 2*txpre));
+    a2 = pxpre*(bx^4*(g+1) + txpre*(2*bypre^2*(g-1) + 2*g*Ppre +(g-1)*txpre) + bx^2*(bypre^2*(g+1) + 4*g*(Ppre+txpre)));
+    a1 = -bypre^2*(g-2)*txpre^2 - 2*bx^4*g*(Ppre+txpre) - 2*bx^2*txpre*(bypre^2*g + 2*g*Ppre +(g-1)*txpre);
+    a0 = bx^2*vxpre*(bypre^2*(g-1)*txpre + bx^2*(2*g*Ppre +(g-1)*txpre));
     vpost = solveQuartic(a4, a3, a2, a1, a0);
-%    imag(vpost)
+    vpost = real(vpost(imag(vpost) < 1e-11)); % There is a potential numerical instability in the equation solver that this avoids.
 
-    vpost = real(vpost(imag(vpost) < 1e-11)); % The MHD equations are assholes and the quartic solver is an asshole so this is necessary.
-    vxpost = min(vpost); % The lesser is the one containing a discontinuity; The other corresponds to no jump.
-
+    vxpost = min(vpost); % The lesser is the one containing a discontinuity; The other corresponds to no jump and the complex options are unphysical.
     bypost = (-bx^2*bypre + bypre*rhopre*vxpre^2)/(rhopre*vxpost*vxpre - bx^2);
     vypost = (bx*bypost - bx*bypre + rhopre*vxpre*vypre) / (rhopre*vxpre);
-    Ppost = -bypost^2 + bypre^2 + Ppre - rhopre *vxpost *vxpre + rhopre *vxpre^2;
+    Ppost = .5*(-bypost^2 + bypre^2 + 2*Ppre - 2*rhopre*vxpost*vxpre + 2*rhopre*vxpre^2);
     rhopost = rhopre *vxpre / vxpost;
 
     result.mass       = [1; rhopost];
@@ -59,4 +62,21 @@ function result = MHDJumpSolver(ms, ma, theta, GAMMA)
     result.sonicMach  = ms;
     result.alfvenMach = ma;
 
+    err = evalRankineHugoniotConditions(rhopre, vxpre, vypre, bx, bypre, Ppre, rhopost, vxpost, vypost, bypost, Ppost, GAMMA);
+
+    fprintf('Norm for obediance of Rankine-Hugoniot equations (lower=better): %g', norm(err));
+
 end
+
+function f = evalRankineHugoniotConditions(rho1, vx1, vy1, bx, by1, P1, rho2, vx2, vy2, by2, P2, g)
+
+f(1) = vx2*by2 - vy2*bx - vx1*by1 + vy1*bx;
+f(2) = rho2*vx2 - rho1*vx1;
+f(3) = rho2*vx2*vx2 + P2 + by2*by2/2 - rho1*vx1*vx1 - P1 - by1*by1/2;
+f(4) = rho2*vx2*vy2 - bx*by2 - rho1*vx1*vy1 + bx*by1;
+f(5) = .5*rho2*(vx2^2+vy2^2)*vx2 + g*P2*vx2/(g-1) + by2*(vx2*by2-bx*vy2) -  .5*rho1*(vx1^2+vy1^2)*vx1 - g*P1*vx1/(g-1) - by1*(vx1*by1-bx*vy1);
+
+f=f';
+
+end
+

@@ -33,7 +33,7 @@ if run.useGPU
          v(L(1)+1).store.array v(L(2)+1).store.array v(L(3)+1).store.array] = cudaWstep(mass.array, ener.array, ...
                                                                          mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
                                                                          mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-                                                                         pressa, freezea, fluxFactor, run.pureHydro);
+                                                                         pressa, freezea, 5.0*fluxFactor, run.pureHydro);
 
 	cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
 
@@ -67,18 +67,18 @@ if run.useGPU
                                          mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
                                          run.GAMMA, 1);
 
-a = 1.0*mass.array;
-b = 1.0*ener.array;
-c = 1.0*mom(L(1)).array;
-d = 1.0*mom(L(2)).array;
-e = 1.0*mom(L(3)).array;
+a=1.0*mass.array;
+b=1.0*ener.array;
+c=1.0*mom(L(1)).array;
+d=1.0*mom(L(2)).array;
+e=1.0*mom(L(3)).array;
 
     cudaTVDStep(mass.store.array, ener.store.array, ...
                 mom(L(1)).store.array, mom(L(2)).store.array, mom(L(3)).store.array, ...
                 mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
                 pressa, ...
-               a, b, c, d, e, ...
- ... %                mass.array, ener.array, mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
+... %                mass.array, ener.array, mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
+                a, b, c, d, e, ...
                 freezea, fluxFactor, 0);
 
 mass.array = 1.0*a;
@@ -87,11 +87,11 @@ mom(L(1)).array = 1.0*c;
 mom(L(2)).array = 1.0*d;
 mom(L(3)).array = 1.0*e;
 
-    %mass.applyStatics();
-    %ener.applyStatics();
-    %mom(1).applyStatics();
-    %mom(2).applyStatics();
-    %mom(3).applyStatics();
+%    mass.applyStatics();
+%    ener.applyStatics();
+%    mom(1).applyStatics();
+%    mom(2).applyStatics();
+%    mom(3).applyStatics();
     
     cudaArrayAtomic(mass.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
 

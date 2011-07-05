@@ -76,10 +76,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 //cukern_blitzero<<<gridsize.x*gridsize.y, BDIM>>>(destPtr, srcsize[0]*srcsize[1]*srcsize[2]);
 
       if (indExchange == 2) {
-//        cukern_ArrayExchangeY3D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1], srcsize[2]);
+        cukern_ArrayExchangeY3D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1], srcsize[2]);
         }
       if (indExchange == 3) {
-  //      cukern_ArrayExchangeZ3D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1], srcsize[2]); 
+        cukern_ArrayExchangeZ3D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1], srcsize[2]); 
         }
       } break;
     case 2: {

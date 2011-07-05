@@ -61,10 +61,8 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-%dbstop in relaxingFluid.m at 33
-%dbstop in relaxingFluid.m at 70
-%dbstop in relaxingFluid.m at 84
-%dbstop in imogen.m at 82
+%dbstop in relaxingFluid.m at 38
+%dbstop in relaxingFluid.m at 96
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
@@ -73,6 +71,7 @@ function imogen(icfile)
         for i=1:2 % Two timesteps per iteration
             run.time.update(mass, mom, ener, mag, i);
             flux(run, mass, mom, ener, mag, grav, direction(i));
+% change this to 'fluxB' for normal work
             treadmillGrid(run, mass, mom, ener, mag);
             run.gravity.solvePotential(run, mass, grav);
             source(run, mass, mom, ener, mag, grav);

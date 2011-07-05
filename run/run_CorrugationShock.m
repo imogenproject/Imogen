@@ -4,27 +4,25 @@
 starterRun();
 
 %--- Initialize test ---%
-run         = CorrugationShockInitializer([1024 2 1]);
+run         = CorrugationShockInitializer([300 64 1]);
 
-<<<<<<< Updated upstream
-run.iterMax     = 20000;
-run.theta       = 0;
-run.sonicMach   = 3;
+run.iterMax     = 100;
+run.theta       = 45;
+run.sonicMach   = 10;
 run.alfvenMach  = .5;
 
-run.ppSave.dim2 = .1;
-=======
-run.iterMax     = 50000;
-run.theta       = 0;
-run.sonicMach   = 2;
-run.alfvenMach  = .5;
+run.useGPU = true;
+run.gpuDeviceNumber = 0;
+run.bcMode.x = ENUM.BCMODE_CIRCULAR;
 
-run.ppSave.dim2 = 1;
->>>>>>> Stashed changes
+run.ppSave.dim2 = 10;
 run.ppSave.dim3 = 100;
-run.specSaves = [0:20:1000 48000:20:51000];
-run.seedAmplitude = 1e-8;
-run.cfl = .25;
+run.seedAmplitude = 1e-5;
+
+run.image.interval = 10;
+run.image.mass = true;
+
+run.seedAmplitude = 0;
 
 run.alias       = 'ms2_ma0pt5_gam53';
 run.info        = sprintf('Corrugation instability test [Th=%g, Ms=%g, Ma=%g] with grid [%g, %g, %g]', ...

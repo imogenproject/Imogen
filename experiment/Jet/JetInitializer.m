@@ -145,7 +145,8 @@ iBot  = indexSet(obj.grid, xMin:xMax,    (yMin-2):(yMin-1), zMin:zMax);
 
 injCase = [iBack; iTop; iBot];
 
-statics.indexSet = {indexSet(obj.grid,xMin:xMax+1,yMin:yMax,zMin:zMax), injCase, indexSet(obj.grid, 511:512,1:256,1) };
+statics.indexSet = {indexSet(obj.grid,xMin:xMax+1,yMin:yMax,zMin:zMax), injCase, indexSet(obj.grid, (obj.grid(1)-1):obj.grid(1),1:obj.grid(2),1) };
+statics.indexSet{4} = indexSet(obj.grid,1:(obj.grid(1)-2), 1:2, 1);
 
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 1, 2);
 statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 1, 4);
@@ -157,7 +158,14 @@ statics.associateStatics(ENUM.MOM, ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
 
 statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 3, 8);
 statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 3, 1);
+statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 3, 1);
 statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 3, 9);
+
+statics.associateStatics(ENUM.MASS, ENUM.SCALAR, statics.CELLVAR, 4, 8);
+statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 4, 1);
+statics.associateStatics(ENUM.MOM, ENUM.VECTOR(1), statics.CELLVAR, 4, 1);
+statics.associateStatics(ENUM.ENER, ENUM.SCALAR, statics.CELLVAR, 4, 9);
+
 
 if obj.mode.magnet
 statics.associateStatics(ENUM.MAG, ENUM.VECTOR(1), statics.CELLVAR, 1, 5);
