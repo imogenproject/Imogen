@@ -231,13 +231,19 @@ classdef ImogenArray < handle
             l(1)=toex; l(toex)=1;
 
             if numel(obj.staticIndices) > 0
-                ad = obj.gridSize;
-                ad = ad(l);
-
-                obj.staticIndices(:,2:4) = obj.staticIndices(:,l+1);
-                obj.staticIndices(:,1)   = obj.staticIndices(:,2) + ...
-                                          (obj.staticIndices(:,3)-1)*ad(1) + ...
+                ad = obj.gridSize(l);
+                if toex == 2
+                obj.staticIndices(:,1)   = obj.staticIndices(:,3) + ...
+                                          (obj.staticIndices(:,2)-1)*ad(1) + ...
                                           (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
+                obj.staticIndices(:,2:4) = obj.staticIndices(:,[3 2 4]);
+                end
+                if toex == 3
+                obj.staticIndices(:,1)   = obj.staticIndices(:,4) + ...
+                                          (obj.staticIndices(:,3)-1)*ad(1) + ...
+                                          (obj.staticIndices(:,2)-1)*ad(1)*ad(2);
+                obj.staticIndices(:,2:4) = obj.staticIndices(:,[4 3 2]);
+                end
             end
             % Do this the retarded slow way just to make 100% sure it can't possibly be wrong.
 %           if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end

@@ -33,6 +33,7 @@ function flux(run, mass, mom, ener, mag, grav, order)
 	if (order > 0) %                             FORWARD FLUXING
     %===============================================================================================
 		for n=1:3
+
             if (mass.gridSize(directVec(n)) < 3), continue; end
 			
 			run.parallel.redistributeArrays(directVec(n));

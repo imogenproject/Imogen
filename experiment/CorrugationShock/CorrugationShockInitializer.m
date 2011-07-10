@@ -29,6 +29,8 @@ classdef CorrugationShockInitializer < Initializer
         theta;
         sonicMach;
         alfvenMach;
+
+        numericalICfile    % File contains previous run of these ICs
     end %PUBLIC
 
 %===================================================================================================
@@ -87,6 +89,8 @@ classdef CorrugationShockInitializer < Initializer
             obj.alfvenMach       = 0.125;
             
             obj.logProperties    = [obj.logProperties, 'gamma'];
+
+            obj.numericalICfile  = [];
             
             obj.operateOnInput(input, [300, 6, 6]);
         end
@@ -174,7 +178,20 @@ classdef CorrugationShockInitializer < Initializer
                                  + 0.5*squeeze( sum(mom.*mom,1) )./mass ...      % kinetic energy
                                  + 0.5*squeeze( sum(mag.*mag,1) );               % magnetic energy
            
-            
+            if fopen(obj.numericalICfile) ~= -1
+                NUMIN = load(obj.numericalICfile);
+
+                for ct = (obj.grid(1)/2 - 20):(obj.grid(1)/2 + 20)
+                    mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct,1,1);
+                    ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct,1,1);
+
+                    mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct,1,1);
+                    mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct,1,1);
+
+                    mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct,1,1);
+                    mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct,1,1);
+                end
+            end
  
             %--- Perturb mass density in pre-shock region ---%
             %       Mass density gets perturbed in the pre-shock region just before the shock front

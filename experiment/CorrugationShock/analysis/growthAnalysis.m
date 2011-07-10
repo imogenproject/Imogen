@@ -55,6 +55,8 @@ for ITER = 1:numel(range)
     front.X(:,:,ITER) = squeeze(trackFront(dataframe));
 end
 
+
+
 % Use the Grad Student Algorithm to find when the run stops its initial transients and when it goes nonlinear
 figno = figure(); plot(diff(dataframe.time.history(50:end)));
 tl = input('Input frame 2x that where dt stops wobbling at the start: ');
@@ -69,7 +71,7 @@ fprintf('Run indicated as being in linear regime for saveframes %i to %i inclusi
 
 lastframe = frameNumberToData(inBasename, padlength, range(th) );
 
-fprintf('\nDoing FFT analysis to find mode growth rates\n');
+fprintf('\nFourier analyzing shock front (eta):\n');
 
 front.FFT = zeros(size(front.X));
 for ITER = 1:size(front.X,3)

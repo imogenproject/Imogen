@@ -10,8 +10,8 @@ wavevec = wavenum * 2*pi/(.01*size(amp,1));
 fsize=16; if nargin == 4; fsize = fixfsize; end
 figure();
 
-reliableWaves = 1:round(numel(wavenum)/15);
-kMax = round(numel(wavenum)/15);
+reliableWaves = 1:round(numel(wavenum)/10);
+kMax = round(numel(wavenum)/10);
 
 subpltSize = .35;
 subplotOffset = .07;
@@ -57,12 +57,12 @@ subplot(2,2,3);
 	set(gca,'position', [subplotOffset subplotOffset subpltSize subpltSize]);
 
 subplot(2,2,4);
-	plot(timeVals, phase(round(kMax/3):round(kMax*2/3),1:end)');
+	plot(timeVals, unwrap(phase(round(kMax/3):round(kMax*2/3),1:end)' ));
 	
 	grid on;
 	xlabel('Time, simulation units','fontsize',fsize);
 	ylabel('Mode phase, radians','fontsize',fsize);
-	title(['Phase over time of modes 1-' kMax],'fontsize',fsize);
+	title(['Phase over time of modes 1-' sprintf('%i',kMax)],'fontsize',fsize);
 	set(gca,'position', [.5+subplotOffset subplotOffset subpltSize subpltSize]);
 
 

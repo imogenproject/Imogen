@@ -130,7 +130,8 @@ while(Xtrack < nx+2) {
         fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i); /* Left  going flux */
         fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); /* Right going flux */
         __syncthreads();
-if(doIflux && (Xindex < nx)) { rhoW[x] = fluxLR[0][threadIdx.x]; enerW[x] = fluxLR[1][threadIdx.x]; }
+        //if(doIflux && (Xindex < nx)) { rhoW[x] = fluxLR[0][threadIdx.x]; enerW[x] = fluxLR[1][threadIdx.x]; }
+
         /* Step 3 - Differentiate fluxes & call limiter */
             /* left flux */
         derivLR[0][threadIdx.x] = fluxLR[0][(threadIdx.x-1)%BLOCKLENP4] - fluxLR[0][threadIdx.x]; /* left derivative */
@@ -156,13 +157,9 @@ if(doIflux && (Xindex < nx)) { rhoW[x] = fluxLR[0][threadIdx.x]; enerW[x] = flux
                 case 4: fluxdest = pzW; break;
                 }
 
-            fluxdest[x] -= .5 * lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
+            fluxdest[x] -= lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
                                       fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv; 
-            //fluxdest[x] = threadIdx.x;
 
-//pxW[x]  = fluxLR[0][threadIdx.x];
-//pyW[x] = fluxLR[1][threadIdx.x];
-//pzW[x] = w_i;
             }
 
         __syncthreads();
