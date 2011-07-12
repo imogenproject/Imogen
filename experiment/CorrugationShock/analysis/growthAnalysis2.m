@@ -174,30 +174,30 @@ ANALYSIS.linear.omega = phaserates + 1i*growthrates;
 ANALYSIS.linear.omegaResidual = phaseresidual + 1i*growresidual;
 
 fprintf('kx/w from post drho: ');
-[ANALYSIS.post.drhoKx ANALYSIS.omegaIm_fromdrho2] = analyzeDampRates2(ANALYSIS.post.drho, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.post.drhoKx ANALYSIS.omega_fromdrho2] = analyzePerturbedQ(ANALYSIS.post.drho, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
 fprintf('kx/w from post dv: ');
-[ANALYSIS.post.dvxKx ANALYSIS.omegaIm_fromdvx2]   = analyzeDampRates2(ANALYSIS.post.dvx, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
-[ANALYSIS.post.dvyKx ANALYSIS.omegaIm_fromdvy2]   = analyzeDampRates2(ANALYSIS.post.dvy, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.post.dvxKx ANALYSIS.omega_fromdvx2]   = analyzePerturbedQ(ANALYSIS.post.dvx, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.post.dvyKx ANALYSIS.omega_fromdvy2]   = analyzePerturbedQ(ANALYSIS.post.dvy, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
 fprintf('kx/w from post db: ');
-[ANALYSIS.post.dbxKx ANALYSIS.omegaIm_fromdbx2]   = analyzeDampRates2(ANALYSIS.post.dbx, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
-[ANALYSIS.post.dbyKx ANALYSIS.omegaIm_fromdby2]   = analyzeDampRates2(ANALYSIS.post.dby, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.post.dbxKx ANALYSIS.omega_fromdbx2]   = analyzePerturbedQ(ANALYSIS.post.dbx, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.post.dbyKx ANALYSIS.omega_fromdby2]   = analyzePerturbedQ(ANALYSIS.post.dby, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
 
 if is2d == 0
     fprintf('kx/w from dvz/dbz: ');
-    [ANALYSIS.post.dvzKx ANALYSIS.omegaIm_fromdvz2] = analyzeDampRates2(ANALYSIS.post.dvz, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
-    [ANALYSIS.post.dbzKx ANALYSIS.omegaIm_fromdbz2] = analyzeDampRates2(ANALYSIS.post.dbz, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+    [ANALYSIS.post.dvzKx ANALYSIS.omega_fromdvz2] = analyzePerturbedQ(ANALYSIS.post.dvz, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
+    [ANALYSIS.post.dbzKx ANALYSIS.omega_fromdbz2] = analyzePerturbedQ(ANALYSIS.post.dbz, ANALYSIS.post.X, ANALYSIS.frameTimes, 1e-5);
 end
 
 fprintf('kx/w from perturbed pre: ');
-[ANALYSIS.pre.drhoKx ANALYSIS.omegaIm_fromdrho1] = analyzeDampRates2(ANALYSIS.pre.drho, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
-[ANALYSIS.pre.dvxKx ANALYSIS.omegaIm_fromdvx1]   = analyzeDampRates2(ANALYSIS.pre.dvx, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
-[ANALYSIS.pre.dvyKx ANALYSIS.omegaIm_fromdvy1]   = analyzeDampRates2(ANALYSIS.pre.dvy, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
-[ANALYSIS.pre.dbxKx ANALYSIS.omegaIm_fromdbx1]   = analyzeDampRates2(ANALYSIS.pre.dbx, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
-[ANALYSIS.pre.dbyKx ANALYSIS.omegaIm_fromdby1]   = analyzeDampRates2(ANALYSIS.pre.dby, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.pre.drhoKx ANALYSIS.omega_fromdrho1] = analyzePerturbedQ(ANALYSIS.pre.drho, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.pre.dvxKx ANALYSIS.omega_fromdvx1]   = analyzePerturbedQ(ANALYSIS.pre.dvx, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.pre.dvyKx ANALYSIS.omega_fromdvy1]   = analyzePerturbedQ(ANALYSIS.pre.dvy, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.pre.dbxKx ANALYSIS.omega_fromdbx1]   = analyzePerturbedQ(ANALYSIS.pre.dbx, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+[ANALYSIS.pre.dbyKx ANALYSIS.omega_fromdby1]   = analyzePerturbedQ(ANALYSIS.pre.dby, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
 
 if is2d == 0
-    [ANALYSIS.pre.dvzKx ANALYSIS.omegaIm_fromdvz2] = analyzeDampRates2(ANALYSIS.pre.dvz, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
-    [ANALYSIS.pre.dbzKx ANALYSIS.omegaIm_fromdbz2] = analyzeDampRates2(ANALYSIS.pre.dbz, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+    [ANALYSIS.pre.dvzKx ANALYSIS.omega_fromdvz2] = analyzePerturbedQ(ANALYSIS.pre.dvz, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
+    [ANALYSIS.pre.dbzKx ANALYSIS.omega_fromdbz2] = analyzePerturbedQ(ANALYSIS.pre.dbz, ANALYSIS.pre.X, ANALYSIS.frameTimes, 1e-5);
 end
 
 
