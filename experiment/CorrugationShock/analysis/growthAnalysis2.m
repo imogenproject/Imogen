@@ -71,13 +71,15 @@ for ITER = 1:numel(range)
 
         if size(dataframe.mass,3) == 1; is2d = true; else; is2d = false; end
 
-        ANALYSIS.kyValues = (0:(ANALYSIS.nModes(1)-1))* (2*pi/(size(dataframe.mass,2)*dataframe.dGrid{2}));
-        ANALYSIS.kzValues = (0:(ANALYSIS.nModes(2)-1))* (2*pi/(size(dataframe.mass,3)*dataframe.dGrid{3}));
+        ANALYSIS.kyValues   = (0:(ANALYSIS.nModes(1)-1))' * (2*pi/(size(dataframe.mass,2)*dataframe.dGrid{2}));
+        ANALYSIS.kyWavenums =  0:(ANALYSIS.nModes(1)-1)';
+        ANALYSIS.kzValues   = (0:(ANALYSIS.nModes(2)-1))' * (2*pi/(size(dataframe.mass,3)*dataframe.dGrid{3}));
+        ANALYSIS.kzWavenums =  0:(ANALYSIS.nModes(2)-1)';
     end
 
     xd = size(dataframe.mass,1);
-    xpre = round(xd/2 - xd/6):round(xd/2 - 6);
-    xpost = round(xd/2 + 6):round(xd/2 + xd/6);
+    xpre = round(xd/2 - xd/6):round(xd/2 - 10);
+    xpost = round(xd/2 + 10):round(xd/2 + xd/6);
 
     % This uses a linear extrapolation to track the shock front's position
     % We define that position as being when density is exactly halfway between analytic equilibrium pre & post values

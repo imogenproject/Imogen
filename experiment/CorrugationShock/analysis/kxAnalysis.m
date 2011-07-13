@@ -2,24 +2,22 @@ function omegaAnalysis(analysis, fsize)
 
 if nargin == 1; fsize = 16; end
 
-vinv = 1 / analysis.equil.vel(1,1);
-
 hold off; 
 
 subplot(1,2,1);
 
-plot(vinv*imag(analysis.post.drhoKx)./analysis.kyValues,'r');
+plot(imag(analysis.post.drhoKx)./analysis.kyWavenums,'r','DisplayName','drho post');
 hold on;
-plot(vinv*imag(analysis.pre.drhoKx)./analysis.kyValues,'r-');
-plot(vinv*imag(analysis.post.dvxKx) ./analysis.kyValues,'g-');
-plot(vinv*imag(analysis.post.dvyKx) ./analysis.kyValues,'b-');
-plot(vinv*imag(analysis.pre.drhoKx)./analysis.kyValues,'r-.');
-plot(vinv*imag(analysis.pre.dvxKx) ./analysis.kyValues,'g-.');
-plot(vinv*imag(analysis.pre.dvyKx) ./analysis.kyValues,'b-.');
-plot(vinv*imag(analysis.pre.dbyKx) ./analysis.kyValues,'c-');
-plot(vinv*imag(analysis.pre.dbyKx) ./analysis.kyValues,'c-.');
-plot(vinv*real(analysis.linear.omega(1:analysis.nModes(1)))./analysis.kyValues','k');
-plot(0*numel(analysis.kyValues),'k-');
+plot(imag(analysis.post.dvxKx) ./analysis.kyWavenums,'g-','DisplayName','dvx post');
+plot(imag(analysis.post.dvyKx) ./analysis.kyWavenums,'b-','DisplayName','dvy post');
+plot(imag(analysis.post.dbyKx) ./analysis.kyWavenums,'c-','DisplayName','dby post');
+
+plot(imag(analysis.pre.drhoKx)./analysis.kyWavenums,'r-.','DisplayName','drho pre');
+plot(imag(analysis.pre.dvxKx) ./analysis.kyWavenums,'g-.','DisplayName','dvx pre');
+plot(imag(analysis.pre.dvyKx) ./analysis.kyWavenums,'b-.','DisplayName','dvy pre');
+plot(imag(analysis.pre.dbyKx) ./analysis.kyWavenums,'c-.','DisplayName','dby pre');
+plot(real(analysis.linear.omega(1:analysis.nModes(1)))./analysis.kyWavenums','k');
+plot(0*numel(analysis.kyWavenums),'k-');
 
 xlabel('Mode number','fontsize',fsize);
 ylabel('imag(kx) / Ky','fontsize',fsize);
@@ -30,18 +28,18 @@ grid on
 
 subplot(1,2,2);
 
-plot(vinv*real(analysis.post.drhoKx)./analysis.kyValues,'r');
+plot(real(analysis.post.drhoKx)./analysis.kyWavenums,'r','DisplayName','drho post');
 hold on;
-plot(vinv*real(analysis.pre.drhoKx)./analysis.kyValues,'r-');
-plot(vinv*real(analysis.post.dvxKx) ./analysis.kyValues,'g-');
-plot(vinv*real(analysis.post.dvyKx) ./analysis.kyValues,'b-');
-plot(vinv*real(analysis.pre.drhoKx)./analysis.kyValues,'r-.');
-plot(vinv*real(analysis.pre.dvxKx) ./analysis.kyValues,'g-.');
-plot(vinv*real(analysis.pre.dvyKx) ./analysis.kyValues,'b-.');
-plot(vinv*real(analysis.pre.dbyKx) ./analysis.kyValues,'c-');
-plot(vinv*real(analysis.pre.dbyKx) ./analysis.kyValues,'c-.');
-plot(vinv*real(analysis.linear.omega(1:analysis.nModes(1)))./analysis.kyValues','k');
-plot(0*numel(analysis.kyValues),'k-');
+plot(real(analysis.post.dvxKx) ./analysis.kyWavenums,'g-','DisplayName','dvx post');
+plot(real(analysis.post.dvyKx) ./analysis.kyWavenums,'b-','DisplayName','dvy post');
+plot(real(analysis.post.dbyKx) ./analysis.kyWavenums,'c-','DisplayName','dby post');
+
+plot(real(analysis.pre.drhoKx)./analysis.kyWavenums,'r-.','DisplayName','drho pre');
+plot(real(analysis.pre.dvxKx) ./analysis.kyWavenums,'g-.','DisplayName','dvx pre');
+plot(real(analysis.pre.dvyKx) ./analysis.kyWavenums,'b-.','DisplayName','dvy pre');
+plot(real(analysis.pre.dbyKx) ./analysis.kyWavenums,'c-.','DisplayName','dby pre');
+plot(real(analysis.linear.omega(1:analysis.nModes(1)))./analysis.kyWavenums','k');
+plot(0*numel(analysis.kyWavenums),'k-');
 
 grid on;
 
