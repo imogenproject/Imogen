@@ -90,7 +90,7 @@ classdef CorrugationShockInitializer < Initializer
             
             obj.logProperties    = [obj.logProperties, 'gamma'];
 
-            obj.numericalICfile  = [];
+            obj.numericalICfile  = 'null';
             
             obj.operateOnInput(input, [300, 6, 6]);
         end
@@ -177,19 +177,22 @@ classdef CorrugationShockInitializer < Initializer
             ener                 = ener ...
                                  + 0.5*squeeze( sum(mom.*mom,1) )./mass ...      % kinetic energy
                                  + 0.5*squeeze( sum(mag.*mag,1) );               % magnetic energy
-           
-            if fopen(obj.numericalICfile) ~= -1
-                NUMIN = load(obj.numericalICfile);
+            if ~strcmp(obj.numericalICfile,'null')
+                if fopen(obj.numericalICfile) ~= -1
+                    NUMIN = load(obj.numericalICfile);
 
-                for ct = (obj.grid(1)/2 - 20):(obj.grid(1)/2 + 20)
-                    mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct,1,1);
-                    ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct,1,1);
+                    for ct = (obj.grid(1)/2 - 20):(obj.grid(1)/2 + 20)
+                        mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct,1,1);
+                        ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct,1,1);
 
-                    mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct,1,1);
-                    mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct,1,1);
+                        mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct,1,1);
+                        mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct,1,1);
 
-                    mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct,1,1);
-                    mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct,1,1);
+                        mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct,1,1);
+                        mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct,1,1);
+                    end
+                else
+                    fprintf('WARNING: Unable to open numerical initial condition file %s',obj.numericalICfile);
                 end
             end
  
@@ -204,10 +207,10 @@ classdef CorrugationShockInitializer < Initializer
                 % RANDOM Seeds ____________________________________________________________________
                 case CorrugationShockInitializer.RANDOM
                     phase = 2*pi*rand(10,obj.grid(2), obj.grid(3));
-                    amp   = rand(10,obj.grid(2), obj.grid(3));
+                    amp   = obj.seedAmplitude*rand(10,obj.grid(2), obj.grid(3));
 
-                    amp(:,max(4, round(obj.grid(2)/32):end,:) = 0;
-                    amp(:,:,max(4, round(obj.grid(3)/32):end) = 0;
+                    amp(:,max(4, round(obj.grid(2)/32)):end,:) = 0;
+                    amp(:,:,max(4, round(obj.grid(3)/32)):end) = 0;
 
                     perturb = zeros(10, obj.grid(2), obj.grid(3));
                     for xp = 1:size(perturb,1)
