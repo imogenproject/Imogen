@@ -28,12 +28,12 @@ function flux(run, mass, mom, ener, mag, grav, order)
     
     directVec       = circshift(directVec,       [mod(run.time.iteration-1,3), 0]);
     magneticIndices = circshift(magneticIndices, [mod(run.time.iteration-1,3), 0]);
-    
+    qq=[];
     %===============================================================================================
 	if (order > 0) %                             FORWARD FLUXING
     %===============================================================================================
 		for n=1:3
-
+qq(:,n) = [directVec(n) magneticIndices(n,:)]';
             if (mass.gridSize(directVec(n)) < 3), continue; end
 			
 			run.parallel.redistributeArrays(directVec(n));
@@ -45,11 +45,11 @@ function flux(run, mass, mom, ener, mag, grav, order)
                 magnetFlux(run, mass, mom, mag, directVec(n), magneticIndices(n,:));
 			end
 		end
-        
     %===============================================================================================        
 	else %                                       BACKWARD FLUXING
     %===============================================================================================
 		for n=1:3
+            qq(:,n) = [directVec(n) magneticIndices(n,:)]';
             if (mass.gridSize(directVec(n)) < 3), continue; end
             
 			run.parallel.redistributeArrays(directVec(n));
@@ -61,6 +61,7 @@ function flux(run, mass, mom, ener, mag, grav, order)
                 relaxingFluid(run, mass, mom, ener, mag, grav, directVec(n));
 			end
 		end
-	end
-
+    end
+    order
+    qq
 end

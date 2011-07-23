@@ -26,6 +26,8 @@ classdef CorrugationShockInitializer < Initializer
         seedAmplitude;      % Maximum amplitude of the seed noise values.               double
         cos2DFrequency;     % Resolution independent frequency for the cosine 2D        double
                             %   perturbations in both y and z.
+        randomSeed_spectrumLimit; % Max ky/kz mode# seeded by a random perturbation
+
         theta;
         sonicMach;
         alfvenMach;
@@ -82,6 +84,7 @@ classdef CorrugationShockInitializer < Initializer
             obj.dGrid.x.points   = [0, 5;    33.3, 1;    66.6, 1;    100, 5];
             
             obj.perturbationType = CorrugationShockInitializer.RANDOM;
+            obj.randomSeed_spectrumLimit = 64; % 
             obj.seedAmplitude    = 5e-3;
             
             obj.theta            = 10;
@@ -146,6 +149,7 @@ classdef CorrugationShockInitializer < Initializer
             %--- Initialization ---%
             statics                 = []; % No statics used in this problem
             obj.dGrid.value         = 0.01/min(obj.grid(2:3));
+            if obj.grid(3) == 1; obj.dGrid.value = .01/obj.grid(2); end
             obj.appendInfo('Grid cell spacing set to %g.',obj.dGrid.value);
             
             half        = ceil(obj.grid/2);
@@ -192,7 +196,7 @@ classdef CorrugationShockInitializer < Initializer
                         mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct,1,1);
                     end
                 else
-                    fprintf('WARNING: Unable to open numerical initial condition file %s',obj.numericalICfile);
+                    fprintf('WARNING: Unable to open numerical initial condition file %s\nUsing unrelaxed ICs\n',obj.numericalICfile);
                 end
             end
  
@@ -209,8 +213,8 @@ classdef CorrugationShockInitializer < Initializer
                     phase = 2*pi*rand(10,obj.grid(2), obj.grid(3));
                     amp   = obj.seedAmplitude*rand(10,obj.grid(2), obj.grid(3));
 
-                    amp(:,max(4, round(obj.grid(2)/32)):end,:) = 0;
-                    amp(:,:,max(4, round(obj.grid(3)/32)):end) = 0;
+                    amp(:,max(4, obj.randomSeed_spectrumLimit):end,:) = 0;
+                    amp(:,:,max(4, obj.randomSeed_spectrumLimit):end) = 0;
 
                     perturb = zeros(10, obj.grid(2), obj.grid(3));
                     for xp = 1:size(perturb,1)

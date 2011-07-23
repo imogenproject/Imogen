@@ -75,7 +75,7 @@ function imogen(icfile)
         
         for i=1:2 % Two timesteps per iteration
             run.time.update(mass, mom, ener, mag, i);
-            flux(run, mass, mom, ener, mag, grav, direction(i));
+            fluxB(run, mass, mom, ener, mag, grav, direction(i));
 % change this to 'fluxB' for normal work
             treadmillGrid(run, mass, mom, ener, mag);
             run.gravity.solvePotential(run, mass, grav);
@@ -89,7 +89,7 @@ function imogen(icfile)
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-%error('devel prevent-matlab-exiting stop')
+error('devel prevent-matlab-exiting stop')
     run.postliminary();
 
 end

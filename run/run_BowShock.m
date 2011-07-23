@@ -4,7 +4,7 @@ starterRun();
 %--- Initialize bow shock ---%
 grid = [512 512 1];
 run                 = BowShockInitializer(grid);
-run.iterMax         = 2000;
+run.iterMax         = 100;
 %run.bcMode.z	    = 'circ';
 
 run.bcMode.x = 'circ';
@@ -30,7 +30,7 @@ run.ballVr    = 1;
 run.ballRho   = 1;
 
 %--- Adjustable output parameters ---%
-run.image.interval  = 5;
+run.image.interval  = 4;
 run.image.mass      = true;
 run.image.speed     = true;
 %run.image.magX      = true;
