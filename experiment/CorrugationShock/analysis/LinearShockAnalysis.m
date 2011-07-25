@@ -288,9 +288,9 @@ methods (Access = public)
             case 9;  dq = squeeze(  obj.pre.dbx(ymode, zmode,:,:));
             case 10; dq = squeeze(  obj.pre.dby(ymode, zmode,:,:));
         end
-
+        
         figure('KeyPressFcn',{@manualfitter_callback, @obj.manfit_setKW, @obj.manfit_memory, obj, obj.post.X, obj.frameTimes, dq});
-% manualfitter_callback(src, eventdata, setterfcn, memfcn, memory, xaxis, yaxis, datain
+        %manualfitter_callback(src, eventdata, setterfcn, memfcn, memory, xaxis, yaxis, datain
     end
 
     function manfit_memory(obj, s)
