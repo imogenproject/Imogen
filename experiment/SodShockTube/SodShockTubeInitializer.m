@@ -97,7 +97,7 @@ classdef SodShockTubeInitializer < Initializer
             for n=1:obj.grid(j)
                 adjacentLen       = -half(j) + n - 1;
                 lowerBound        = floor(half(i) ...
-                                    - adjacentLen*tan(deg2rad(obj.shockAngle)));
+                                    - adjacentLen*tand(obj.shockAngle));
                 lowerBound        = min(obj.grid(i), max(1, lowerBound));
 
                 indices{i}        = lowerBound:obj.grid(i);
@@ -116,12 +116,12 @@ classdef SodShockTubeInitializer < Initializer
             obj.dGrid             = 1./obj.grid;
             
             if obj.shockAngle > 0
-                angle             = deg2rad(obj.shockAngle);
+                angle             = obj.shockAngle;
                 criticalAngle     = atan(obj.grid(j)/obj.grid(i));
                 if angle <= criticalAngle 
-                    scale         = 1/(obj.grid(i)/cos(angle));
+                    scale         = 1/(obj.grid(i)/cosd(angle));
                 else
-                    scale         = 1/(obj.grid(j)/sin(angle));
+                    scale         = 1/(obj.grid(j)/sind(angle));
                 end
                 obj.dGrid(i)      = scale;
                 obj.dGrid(j)      = scale;

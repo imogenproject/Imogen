@@ -4,7 +4,7 @@ starterRun();
 %--- Initialize bow shock ---%
 grid = [512 512 1];
 run                 = BowShockInitializer(grid);
-run.iterMax         = 100;
+run.iterMax         = 10;
 %run.bcMode.z	    = 'circ';
 
 run.bcMode.x = 'circ';
@@ -38,7 +38,7 @@ run.image.speed     = true;
 
 %run.activeSlices.xyz = true;
 
-run.ppSave.dim2     = 100;
+run.ppSave.dim2     = 5;
 run.ppSave.dim3     = 100;
 
 

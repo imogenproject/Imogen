@@ -124,8 +124,8 @@ methods (Access = public)
             end
 
             xd = size(dataframe.mass,1);
-            xpre = round(xd/2 - xd/6):round(xd/2 - 10);
-            xpost = round(xd/2 + 10):round(xd/2 + xd/6);
+            xpre = round(xd/2 - xd/6):round(xd/2 - 4);
+            xpost = round(xd/2 + 4):round(xd/2 + xd/6);
 
             % This uses a linear extrapolation to track the shock front's position
             % We define that position as being when density is exactly halfway between analytic equilibrium pre & post values

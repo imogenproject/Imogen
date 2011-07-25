@@ -66,12 +66,10 @@ end
 
 if strcmp(eventdata.Key,'a')
     memory.df = memory.df / 2;
-    memfcn(memory); return;
 end
 
 if strcmp(eventdata.Key,'d')
     memory.df = memory.df * 2;
-    memfcn(memory); return;
 end
 
 if strcmp(eventdata.Key,'h')
@@ -91,36 +89,53 @@ w  = memory.w;
 
 hold off;
 if memory.whofit == 1 % oscillatory part
-    [u v] = ndgrid(xaxis, yaxis);
+    [u v] = ndgrid(xaxis, yaxis(analyzer.linearFrames));
     kx = real(memory.kx);
     w = real(memory.w);
 
-imgdat = unwrap(unwrap(angle(datain),2),1) - ( real(memory.a0) + kx*u + w*v);
+imgdat = unwrap(unwrap(angle(datain),2),1);
     gain = 1;
     imgdat = imgdat*gain;
-    imgdat(imgdat < -1) = -1;
-    imgdat(imgdat > 1) = 1;
+    %imgdat(imgdat < -1) = -1;
+    %imgdat(imgdat > 1) = 1;
+[az,el] = view();
 
-    surf(yaxis, xaxis, imgdat,'linestyle','none');
+    subplot(1,2,1);
+    hold off;
+    surf(yaxis(analyzer.linearFrames), xaxis, imgdat(:,analyzer.linearFrames),'linestyle','none');
+view(az, el);
     hold on;
-    contourf(yaxis, xaxis, imgdat , [0 0]);
-
-    title(sprintf('Oscillatory component; a0=%g',real(memory.a0)));
+    surf(yaxis(analyzer.linearFrames), xaxis, real(memory.a0) + kx*u + w*v,'linestyle','none');
+    %contourf(yaxis, xaxis, imgdat , [0 0]);
+    title(sprintf('Oscillatory component; a0=%g, df=%g',real(memory.a0), memory.df));
+        
+    subplot(1,2,2);
+    contourf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(real(memory.a0) + kx*u + w*v),[-.5 -.25 0 .25 .5]);
 else
-    [u v] = ndgrid(xaxis, yaxis);
+    [u v] = ndgrid(xaxis, yaxis(analyzer.linearFrames));
     kx = imag(memory.kx);
     w = imag(memory.w);
 
-    imgdat =  log(abs(datain)) - ( imag(memory.a0) + kx*u + w*v);
+    imgdat =  log(abs(datain)) ;
     gain = 1;
     imgdat = imgdat*gain;
-    imgdat(imgdat < -1) = -1;
-    imgdat(imgdat > 1) = 1;
+    %imgdat(imgdat < -1) = -1;
+    %imgdat(imgdat > 1) = 1;
+[az,el] = view();
 
-    surf(yaxis, xaxis, imgdat, 'linestyle','none');
+    hold off; 
+    
+    subplot(1,2,1);
+    hold off;
+    surf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames), 'linestyle','none');
+view(az, el);
     hold on;
-    contourf(yaxis, xaxis, imgdat , [0 0]);
-    title(sprintf('Amplitude component; a0=%g',imag(memory.a0)));
+    surf(yaxis(analyzer.linearFrames)', xaxis, imag(memory.a0) + kx*u + w*v,'linestyle','none');
+    title(sprintf('Amplitude component; a0=%g, df=%g',imag(memory.a0), memory.df));
+    
+    subplot(1,2,2);
+    %surf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v),'linestyle','none');
+    contourf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v),[-.5 -.25 0 .25 .5]);
 end
 
 xlabel('time');
@@ -129,4 +144,5 @@ ylabel('distance');
 
 
 end % function
+
 

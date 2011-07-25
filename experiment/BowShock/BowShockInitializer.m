@@ -60,7 +60,7 @@ classdef BowShockInitializer < Initializer
             obj.mode.fluid       = true;
             obj.mode.magnet      = false;
             obj.mode.gravity     = false;
-            obj.cfl              = 0.7;
+            obj.cfl              = 0.5;
             obj.iterMax          = 100;
             obj.bcMode.x         = 'trans';
             obj.bcMode.y         = 'fade';
@@ -173,7 +173,7 @@ classdef BowShockInitializer < Initializer
 
             statics.indexSet{1} = indexSet_fromLogical(ball); % ball
             statics.indexSet{2} = indexSet(obj.grid, 1:2, 1:(obj.grid(2)-0), 1:obj.grid(3)); % incoming blast
-            statics.indexSet{3} = indexSet(obj.grid, (obj.grid(1)-1):obj.grid(1), 1:obj.grid(2), 1:obj.grid(3)); % right edge
+            statics.indexSet{3} = indexSet(obj.grid, (obj.grid(1)-4):(obj.grid(1)-0), 1:obj.grid(2), 1:obj.grid(3)); % right edge
             statics.indexSet{4} = indexSet(obj.grid, 1:(obj.grid(1)-2), 1:2, 1:obj.grid(3)); % top edge
 
             xhat = X/obj.ballCells(1);
@@ -186,34 +186,34 @@ classdef BowShockInitializer < Initializer
                 obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballMomRadial*zhat(ball), ballEner, obj.magX, obj.magY, obj.bgRho.^obj.gamma / (obj.gamma-1) };
 
             % Force a left-edge plane flow
-%mom(1,1:5,:,:) = obj.bgRho*obj.bgVx;
-%            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
-%            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
-%            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
+mom(1,1:5,:,:) = obj.bgRho*obj.bgVx;
+            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
 %	    if obj.mode.magnet == true;
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(1), statics.CELLVAR, 2, 10);
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 2, 11);
 %            end
-            if obj.grid(3) > 1            
+%            if obj.grid(3) > 1            
 %                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
-                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1); end
-            end
+%                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1); end
+%            end
             statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
         
             % Lock ball in place
 mass(ball) = 1;
-%            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
-%            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
-%            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
+            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
+            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
 %            if obj.mode.magnet == true;
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(1), statics.CELLVAR, 1, 10);
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 1, 11);
 %            end
             if obj.grid(3) > 1    
-%                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 4, 8);
+                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 4, 8);
 %                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1); end;
             end
-%            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 9);
+            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 9);
 
             % Force constant on right edge (crude approximation of fade)
             statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 3, 2);
@@ -223,10 +223,10 @@ mass(ball) = 1;
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(1), statics.CELLVAR, 2, 10);
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 2, 11);
 %            end
-%            if obj.grid(3) > 1
-%                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 3, 1);
+            if obj.grid(3) > 1
+                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 3, 1);
 %                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1); end
-%            end
+            end
             statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 3, 12);
 
             % Force constant on top edge
