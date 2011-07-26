@@ -211,14 +211,14 @@ classdef CorrugationShockInitializer < Initializer
                 % RANDOM Seeds ____________________________________________________________________
                 case CorrugationShockInitializer.RANDOM
                     phase = 2*pi*rand(10,obj.grid(2), obj.grid(3));
-                    amp   = obj.seedAmplitude*rand(10,obj.grid(2), obj.grid(3));
+                    amp   = obj.seedAmplitude*rand(1,obj.grid(2), obj.grid(3));
 
                     amp(:,max(4, obj.randomSeed_spectrumLimit):end,:) = 0;
                     amp(:,:,max(4, obj.randomSeed_spectrumLimit):end) = 0;
 
                     perturb = zeros(10, obj.grid(2), obj.grid(3));
                     for xp = 1:size(perturb,1)
-                        perturb(xp,:,:) = real(ifft(squeeze(amp(xp,:,:).*exp(1i*phase(xp,:,:)))));
+                        perturb(xp,:,:) = sin(xp*2*pi/10)^2 * real(ifft(squeeze(amp(1,:,:).*exp(1i*phase(1,:,:)))));
                     end
 
 
