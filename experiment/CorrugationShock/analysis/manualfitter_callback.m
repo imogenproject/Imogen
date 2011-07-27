@@ -93,7 +93,7 @@ if memory.whofit == 1 % oscillatory part
     kx = real(memory.kx);
     w = real(memory.w);
 
-imgdat = unwrap(unwrap(angle(datain),2),1);
+imgdat = unwrap(unwrap(angle(datain),[],2),[],1);
     gain = 1;
     imgdat = imgdat*gain;
 

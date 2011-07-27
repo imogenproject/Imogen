@@ -57,8 +57,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   switch(ndims) {
     case 3: {
-      gridsize.x = srcsize[0] / BDIM; if(gridsize.x*BDIM < srcsize[0]) gridsize.x++;
       int indExchange = (int)*mxGetPr(prhs[1]);
+      if(indExchange == 2) {
+        gridsize.x = srcsize[0] / BDIM; if(gridsize.x*BDIM < srcsize[0]) gridsize.x++;
+        gridsize.y = srcsize[1] / BDIM; if(gridsize.y*BDIM < srcsize[1]) gridsize.y++;
+
+        blocksize.x = blocksize.y = BDIM; blocksize.z = 1;
+
+        newsize[0] = srcsize[1]; newsize[1] = srcsize[0]; newsize[2] = srcsize[2];
+        ra = gm->gputype.create(gpuDOUBLE, 3, newsize, NULL);
+        plhs[0] = gm->gputype.createMxArray(ra);
+        destPtr = (double *)gm->gputype.getGPUptr(ra);
+        cukern_ArrayExchangeY3D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1], srcsize[2]);
+        }
+break;
+      gridsize.x = srcsize[0] / BDIM; if(gridsize.x*BDIM < srcsize[0]) gridsize.x++;
+
       if (indExchange == 2) {
         gridsize.y = srcsize[1] / BDIM; if(gridsize.y*BDIM < srcsize[1]) gridsize.y++;
         newsize[0] = srcsize[1]; newsize[1] = srcsize[0]; newsize[2] = srcsize[2];
@@ -72,8 +86,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       ra = gm->gputype.create(gpuDOUBLE, 3, newsize, NULL);
       plhs[0] = gm->gputype.createMxArray(ra);
       destPtr = (double *)gm->gputype.getGPUptr(ra);
-
-//cukern_blitzero<<<gridsize.x*gridsize.y, BDIM>>>(destPtr, srcsize[0]*srcsize[1]*srcsize[2]);
 
       if (indExchange == 2) {
         cukern_ArrayExchangeY3D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1], srcsize[2]);
@@ -92,9 +104,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       ra = gm->gputype.create(gpuDOUBLE, 2, newsize, NULL);
       plhs[0] = gm->gputype.createMxArray(ra);
       destPtr = (double *)gm->gputype.getGPUptr(ra);
-
-//printf("%i %i\n%i %i\n%i %i\n", gridsize.x, gridsize.y, blocksize.x, blocksize.y, srcsize[0], srcsize[1]);
-
       cukern_ArrayTranspose2D<<<gridsize, blocksize>>>(srcs[0], destPtr, srcsize[0], srcsize[1]);
       } break;      
   }
@@ -134,21 +143,21 @@ int myy = threadIdx.y + BDIM*((blockIdx.y + blockIdx.x) % gridDim.y);
 
 if((myx >= nx) || (myy >= ny)) return;
 
-int myAddr = myx + nx*myy;
+int mySrcAddr = myx + nx*myy;
 
 myx = threadIdx.x + BDIM*((blockIdx.y + blockIdx.x) % gridDim.y);
 myy = threadIdx.y + BDIM*blockIdx.x;
-int myAddr2 = myx + ny*myy;
+int myDstAddr = myx + ny*myy;
 
-int zct;
-for(zct = 0; zct < nz; zct++) {
-    tmp[threadIdx.y][threadIdx.x] = src[myAddr];
-    __syncthreads();
-    dst[myAddr2] =  myx;//tmp[threadIdx.x][threadIdx.y];
-    __syncthreads();
+int zval;
 
-    myAddr += nx*ny;
-    myAddr2 += nx*ny;
+for(zval = 0; zval < nz; zval++) {
+    tmp[threadIdx.y][threadIdx.x] = src[mySrcAddr];
+    __syncthreads();
+    dst[myDstAddr] =  tmp[threadIdx.x][threadIdx.y];
+    mySrcAddr += nx*ny;
+    myDstAddr += nx*ny;
+    __syncthreads();
     }
 
 }

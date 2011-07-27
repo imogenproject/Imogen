@@ -288,7 +288,7 @@ methods (Access = public)
             case 10; dq = squeeze(  obj.pre.dby(ymode, zmode,:,:));
         end
         
-        obj.manfit_state.a0 = round(log(abs(dq(1,1))));
+        obj.manfit_state.a0 = 0;
 
         figure('KeyPressFcn',{@manualfitter_callback, @obj.manfit_setKW, @obj.manfit_memory, obj, obj.post.X, obj.frameTimes, dq});
         %manualfitter_callback(src, eventdata, setterfcn, memfcn, memory, xaxis, yaxis, datain
