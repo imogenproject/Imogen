@@ -19,11 +19,14 @@ static GPUmat *gm;
 
 #include "cudaCommon.h"
 
-__global__ void cukern_WFlux_mhd_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw);
-__global__ void cukern_WFlux_hydro_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw);
+__global__ void cukern_Wstep_mhd_uniform(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx);
+__global__ void cukern_Wstep_hydro_uniform(double *rho, double *E, double *px, double *py, double *pz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx);
 __global__ void nullStep(fluidVarPtrs fluid, int numel);
 
-#define BLOCKLEN 126
+
+#define BLOCKLEN 48
+#define BLOCKLENP2 50
+#define BLOCKLENP4 52
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
@@ -59,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   dim3 blocksize, gridsize;
   int hu, hv, hw, nu;
 
-  blocksize.x = BLOCKLEN+2; blocksize.y = blocksize.z = 1;
+  blocksize.x = BLOCKLEN+4; blocksize.y = blocksize.z = 1;
   switch(fluxDirection) {
     case 1: // X direction flux: u = x, v = y, w = z;
       gridsize.x = arraySize.y;
@@ -91,11 +94,11 @@ fluid.cFreeze = srcs[9];
 
 if(nu > 1) {
   int hydroOnly = (int)*mxGetPr(prhs[11]);
-
+  
   if(hydroOnly == 1) {
-    cukern_WFlux_hydro_uniform<<<gridsize, blocksize>>>(fluid, lambda, nu, hu, hv, hw);
+    cukern_Wstep_hydro_uniform<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[8], srcs[9], dest[0], dest[1], dest[2], dest[3], dest[4], lambda, arraySize.x);
     } else {
-    cukern_WFlux_mhd_uniform<<<gridsize, blocksize>>>(fluid, lambda, nu, hu, hv, hw);
+    cukern_Wstep_mhd_uniform<<<gridsize, blocksize>>>(srcs[0], srcs[1], srcs[2], srcs[3], srcs[4], srcs[5], srcs[6], srcs[7], srcs[8], srcs[9], dest[0], dest[1], dest[2], dest[3], dest[4], lambda, arraySize.x);
     }
   } else {
   nullStep<<<32, 128>>>(fluid, numel);
@@ -103,195 +106,156 @@ if(nu > 1) {
 
 }
 
-
-__global__ void cukern_WFlux_mhd_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw)
+__global__ void cukern_Wstep_mhd_uniform(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx)
 {
+double Cinv, rhoinv;
+double q_i[5];
+double b_i[3];
+double w_i;
+__shared__ double fluxLR[2][BLOCKLENP4];
+double *fluxdest;
 
-// This is the shared flux array.
-// It is long enough to hold both the left and right fluxes for a variable, with extra spaces that
-// strategically leave the next flux variables for the left edge behind when our fLeft pointer is decremented
-__shared__ double fluxArrayL[BLOCKLEN+6];
-__shared__ double fluxArrayR[BLOCKLEN+6];
+/* Step 0 - obligatory annoying setup stuff (ASS) */
+int I0 = nx*(blockIdx.x + gridDim.x * blockIdx.y);
+int Xindex = (threadIdx.x-2);
+int Xtrack = Xindex;
+Xindex += nx*(threadIdx.x < 2);
 
-// Local copies of the hyperbolic state variables: The conserved quantities Qi (rho, energy,
-// momentum), a W variable, and local copies of the pressure, inverse freezing speed and B
-double Qi[5], Wi, lPress, Cinv, lBx, lBy, lBz;
-
-// IndexBase identifies where we go into the array, i is our generic counter variable
-int indexBase;// = blockIdx.x * hv + blockIdx.y * hw + ((threadIdx.x-1)%nu)* hu;
-//int endAddress = blockIdx.x * hv + blockIdx.y * hw + nu*hu;
+int x; /* = Xindex % nx; */
 int i;
+bool doIflux = (threadIdx.x > 1) && (threadIdx.x < BLOCKLEN+2);
 
-// Pointer into the shared flux array that's strategically decremented to leave the variables we need next behind
-double *fLeft; double *fRight;
-double rhoinv;
+/* Step 1 - calculate W values */
+Cinv = 1.0/Cfreeze[blockIdx.x + gridDim.x * blockIdx.y];
 
-// Loop index - controls the advancement of the thread block through the line; Doflux tells threads to flux or not flux
-int lpIdx;
+while(Xtrack < nx+2) {
+    x = I0 + (Xindex % nx);
 
-Cinv = 1.0/fluid.cFreeze[blockIdx.x + gridDim.x * blockIdx.y];
+    rhoinv = 1.0/rho[x]; /* Preload all these out here */
+    q_i[0] = rho[x];
+    q_i[1] = E[x];       /* So we avoid multiple loops */
+    q_i[2] = px[x];      /* over them inside the flux loop */
+    q_i[3] = py[x];
+    q_i[4] = pz[x];
+    b_i[0] = bx[x];
+    b_i[1] = by[x];
+    b_i[2] = bz[x];
 
-for(lpIdx = threadIdx.x-1; lpIdx <= nu; lpIdx += BLOCKLEN) {
-	// Our index in the U direction; If it exceeds the array size+1, return; If it equals it, don't flux that cell
+    /* rho, E, px, py, pz going down */
+    /* Iterate over variables to flux */
+    for(i = 0; i < 5; i++) {
+        switch(i) {
+            case 0: w_i = q_i[2] * Cinv; break;
+            case 1: w_i = (q_i[2] * (q_i[1] + P[x]) - b_i[0]*(q_i[2]*b_i[0]+q_i[3]*b_i[1]+q_i[4]*b_i[2]) ) * (rhoinv*Cinv); break;
+            case 2: w_i = (q_i[2]*q_i[2]*rhoinv + P[x] - b_i[0]*b_i[0])*Cinv; break;
+            case 3: w_i = (q_i[2]*q_i[3]*rhoinv        - b_i[0]*b_i[1])*Cinv; break;
+            case 4: w_i = (q_i[2]*q_i[4]*rhoinv        - b_i[0]*b_i[2])*Cinv; break;
+            }
 
-	// Convert i to an index; Circular boundary conditions
-	indexBase = blockIdx.x * hv + blockIdx.y * hw + (lpIdx % nu)* hu;
-if(lpIdx < 0) indexBase = blockIdx.x * hv + blockIdx.y * hw + (nu-1)* hu;
+        /* Step 2 - decouple to L/R flux */
+        fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i); /* Left  going flux */
+        fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); /* Right going flux */
+        __syncthreads();
 
-	// Load local copies of hyperbolic state variables
-	for(i = 0; i < 5; i++) { Qi[i] = fluid.fluidIn[i][indexBase]; }
-	lPress = fluid.Ptotal[indexBase];
-/*	Cinv   = 1.0 / fluid.cFreeze[indexBase]; */
-	rhoinv = 1.0 / Qi[0];
-	lBx = fluid.B[0][indexBase];
-	lBy = fluid.B[1][indexBase];
-	lBz = fluid.B[2][indexBase];
-
-	// Start outselves off with 4 chances to move left
-	fLeft  = fluxArrayL + 4;
-	fRight = fluxArrayR + 4;
-
-	// For each conserved quantity,
-	for(i = 0; i < 5; i++) {
-		// Calculate the W flux
-		switch(i) {
-			case 0: Wi = Qi[2] * Cinv; break;
-			case 1: Wi = (Qi[2] * (Qi[1] + lPress) - lBx*(Qi[2]*lBx+Qi[3]*lBy+Qi[4]*lBz) ) * Cinv * rhoinv; break;
-			case 2: Wi = (Qi[2]*Qi[2]*rhoinv + lPress - lBx*lBx)*Cinv; break;
-			case 3: Wi = (Qi[2]*Qi[3]*rhoinv          - lBx*lBy)*Cinv; break;
-			case 4: Wi = (Qi[2]*Qi[4]*rhoinv          - lBx*lBz)*Cinv; break;
-                        }
-		// Decouple into left & right going fluxes
-		fLeft[threadIdx.x]  = .5*(Qi[i] - Wi);
-		fRight[threadIdx.x] = .5*(Qi[i] + Wi);
-
-		// Stop until all threads finish filling flux array
-		__syncthreads();
-
-		// Write updated quantities to global memory
-		if((lpIdx >= 0) && (lpIdx < nu)) {
-fluid.fluidOut[i][indexBase] = Qi[i] - .5*lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fRight[threadIdx.x] - fRight[threadIdx.x-1] )/Cinv;
-//fluid.fluidOut[0][indexBase] = Qi[2];
-//fluid.fluidOut[1][indexBase] = Qi[1];
-//fluid.fluidOut[2][indexBase] = lPress;
-//fluid.fluidOut[3][indexBase] = fLeft[threadIdx.x];
-//fluid.fluidOut[4][indexBase] = fRight[threadIdx.x];
-}
-
-		// Make sure everyone's done reading shared memory before we futz with it again; Move left
-		__syncthreads();
-		fLeft--;
-		fRight--;
-		}
-
-;
-	// Thread zero is only to fill the left edge on the very first iteration - break
-	if(threadIdx.x == 0) break;
-
-	if(threadIdx.x < 6) {
-		fluxArrayL[threadIdx.x-1] = fluxArrayL[threadIdx.x + BLOCKLEN];
-		fluxArrayR[threadIdx.x-1] = fluxArrayR[threadIdx.x + BLOCKLEN];
-		}
-
-	}
-
-
-}
-
-
-__global__ void cukern_WFlux_hydro_uniform(fluidVarPtrs fluid, double lambda, int nu, int hu, int hv, int hw)
-{
-
-// This is the shared flux array.
-// It is long enough to hold both the left and right fluxes for a variable, with extra spaces that
-// strategically leave the next flux variables for the left edge behind when our fLeft pointer is decremented
-__shared__ double fluxArrayL[BLOCKLEN+6];
-__shared__ double fluxArrayR[BLOCKLEN+6];
-
-// Local copies of the hyperbolic state variables: The conserved quantities Qi (rho, energy,
-// momentum), a W variable, and local copies of the pressure, inverse freezing speed and B
-double Qi[5], Wi, lPress, Cinv;
-
-// IndexBase identifies where we go into the array, i is our generic counter variable
-int indexBase;// = blockIdx.x * hv + blockIdx.y * hw + ((threadIdx.x-1)%nu)* hu;
-//int endAddress = blockIdx.x * hv + blockIdx.y * hw + nu*hu;
-int i;
-
-// Pointer into the shared flux array that's strategically decremented to leave the variables we need next behind
-double *fLeft; double *fRight;
-double rhoinv;
-
-// Loop index - controls the advancement of the thread block through the line; Doflux tells threads to flux or not flux
-int lpIdx;
-
-Cinv = 1.0/fluid.cFreeze[blockIdx.x + gridDim.x * blockIdx.y];
-
-for(lpIdx = threadIdx.x-1; lpIdx <= nu; lpIdx += BLOCKLEN) {
-        // Our index in the U direction; If it exceeds the array size+1, return; If it equals it, don't flux that cell
-
-        // Convert i to an index; Circular boundary conditions
-        indexBase = blockIdx.x * hv + blockIdx.y * hw + (lpIdx % nu)* hu;
-if(lpIdx < 0) indexBase = blockIdx.x * hv + blockIdx.y * hw + (nu-1)* hu;
-
-        // Load local copies of hyperbolic state variables
-        for(i = 0; i < 5; i++) { Qi[i] = fluid.fluidIn[i][indexBase]; }
-        lPress = fluid.Ptotal[indexBase];
-/*        Cinv   = 1.0 / fluid.cFreeze[indexBase];*/
-        rhoinv = 1.0 / Qi[0];
-
-        // Start outselves off with 4 chances to move left
-        fLeft  = fluxArrayL + 4;
-        fRight = fluxArrayR + 4;
-
-        // For each conserved quantity,
-        for(i = 0; i < 5; i++) {
-                // Calculate the W flux
-                switch(i) {
-                        case 0: Wi = Qi[2] * Cinv; break;
-                        case 1: Wi = (Qi[2] * (Qi[1] + lPress)) * Cinv * rhoinv; break;
-                        case 2: Wi = (Qi[2]*Qi[2]*rhoinv + lPress )*Cinv; break;
-                        case 3: Wi = (Qi[2]*Qi[3]*rhoinv          )*Cinv; break;
-                        case 4: Wi = (Qi[2]*Qi[4]*rhoinv          )*Cinv; break;
-                        }
-
-                // Decouple into left & right going fluxes
-                fLeft[threadIdx.x]  = .25*(Qi[i] - Wi);
-                fRight[threadIdx.x] = .25*(Qi[i] + Wi);
-
-                // Stop until all threads finish filling flux array
-                __syncthreads();
-
-                // Write updated quantities to global memory
-                if((lpIdx >= 0) && (lpIdx < nu)) {
-fluid.fluidOut[i][indexBase] = Qi[i] - lambda*( fLeft[threadIdx.x] - fLeft[threadIdx.x+1] + fRight[threadIdx.x] - fRight[threadIdx.x-1] )/Cinv;
-//fluid.fluidOut[0][indexBase] = Wi;
-//fluid.fluidOut[1][indexBase] = Qi[i];
-//fluid.fluidOut[2][indexBase] = fLeft[threadIdx.x];
-//fluid.fluidOut[3][indexBase] = fRight[threadIdx.x];
-//fluid.fluidOut[4][indexBase] = lambda / Cinv;
-
-}
-
-                // Make sure everyone's done reading shared memory before we futz with it again; Move left
-                __syncthreads();
-                fLeft--;
-                fRight--;
+        /* Step 4 - Perform flux and write to output array */
+        __syncthreads();
+       if( doIflux && (Xindex < nx) ) {
+            switch(i) {
+                case 0: fluxdest = rhoW; break;
+                case 1: fluxdest = enerW; break;
+                case 2: fluxdest = pxW; break;
+                case 3: fluxdest = pyW; break;
+                case 4: fluxdest = pzW; break;
                 }
 
-;
-        // Thread zero is only to fill the left edge on the very first iteration - break
-        if(threadIdx.x == 0) break;
+            fluxdest[x] = q_i[i] - 0.5 * lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
+                                      fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv; 
 
-        if(threadIdx.x < 6) {
-                fluxArrayL[threadIdx.x-1] = fluxArrayL[threadIdx.x + BLOCKLEN];
-                fluxArrayR[threadIdx.x-1] = fluxArrayR[threadIdx.x + BLOCKLEN];
-                }
+            }
 
+        __syncthreads();
         }
 
+    Xindex += BLOCKLEN;
+    Xtrack += BLOCKLEN;
+    __syncthreads();
+    }
 
 }
 
+
+__global__ void cukern_Wstep_hydro_uniform(double *rho, double *E, double *px, double *py, double *pz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx)
+{
+double Cinv, rhoinv;
+double q_i[5];
+double w_i;
+__shared__ double fluxLR[2][BLOCKLENP4];
+double *fluxdest;
+
+/* Step 0 - obligatory annoying setup stuff (ASS) */
+int I0 = nx*(blockIdx.x + gridDim.x * blockIdx.y);
+int Xindex = (threadIdx.x-2);
+int Xtrack = Xindex;
+Xindex += nx*(threadIdx.x < 2);
+
+int x; /* = Xindex % nx; */
+int i;
+bool doIflux = (threadIdx.x > 1) && (threadIdx.x < BLOCKLEN+2);
+
+/* Step 1 - calculate W values */
+Cinv = 1.0/Cfreeze[blockIdx.x + gridDim.x * blockIdx.y];
+
+while(Xtrack < nx+2) {
+    x = I0 + (Xindex % nx);
+
+    rhoinv = 1.0/rho[x]; /* Preload all these out here */
+    q_i[0] = rho[x];
+    q_i[1] = E[x];       /* So we avoid multiple loops */
+    q_i[2] = px[x];      /* over them inside the flux loop */
+    q_i[3] = py[x];
+    q_i[4] = pz[x];
+
+    /* rho, E, px, py, pz going down */
+    /* Iterate over variables to flux */
+    for(i = 0; i < 5; i++) {
+        switch(i) {
+            case 0: w_i = q_i[2] * Cinv; break;
+            case 1: w_i = (q_i[2] * (q_i[1] + P[x])) * (rhoinv*Cinv); break;
+            case 2: w_i = (q_i[2]*q_i[2]*rhoinv + P[x])*Cinv; break;
+            case 3: w_i = (q_i[2]*q_i[3]*rhoinv       )*Cinv; break;
+            case 4: w_i = (q_i[2]*q_i[4]*rhoinv       )*Cinv; break;
+            }
+
+        /* Step 2 - decouple to L/R flux */
+        fluxLR[0][threadIdx.x] = 0.5*(q_i[i] - w_i); /* Left  going flux */
+        fluxLR[1][threadIdx.x] = 0.5*(q_i[i] + w_i); /* Right going flux */
+        __syncthreads();
+
+        /* Step 4 - Perform flux and write to output array */
+        __syncthreads();
+       if( doIflux && (Xindex < nx) ) {
+            switch(i) {
+                case 0: fluxdest = rhoW; break;
+                case 1: fluxdest = enerW; break;
+                case 2: fluxdest = pxW; break;
+                case 3: fluxdest = pyW; break;
+                case 4: fluxdest = pzW; break;
+                }
+
+            fluxdest[x] = q_i[i] - 0.5 * lambda * ( fluxLR[0][threadIdx.x] - fluxLR[0][threadIdx.x+1] + \
+                                      fluxLR[1][threadIdx.x] - fluxLR[1][threadIdx.x-1]  ) / Cinv; 
+
+            }
+
+        __syncthreads();
+        }
+
+    Xindex += BLOCKLEN;
+    Xtrack += BLOCKLEN;
+    __syncthreads();
+    }
+
+}
 
 // Function simply blits fluid input variables to output, since with only 1 plane there's no derivative possible.
 __global__ void nullStep(fluidVarPtrs fluid, int numel)

@@ -37,7 +37,6 @@ function flux(run, mass, mom, ener, mag, grav, order)
 			run.parallel.redistributeArrays(directVec(n));
             
 			if run.fluid.ACTIVE
-fprintf('Order, Flux dir: %i %i\n', order, directVec(n));
                 relaxingFluid(run, mass, mom, ener, mag, grav, directVec(n));
 			end
 			if run.magnet.ACTIVE
@@ -56,7 +55,6 @@ fprintf('Order, Flux dir: %i %i\n', order, directVec(n));
                 magnetFlux(run, mass, mom, mag, directVec(n), magneticIndices(n,:));
 			end
 			if run.fluid.ACTIVE
-fprintf('Order, Flux dir: %i %i\n', order, directVec(n));
                 relaxingFluid(run, mass, mom, ener, mag, grav, directVec(n));
 			end
 		end

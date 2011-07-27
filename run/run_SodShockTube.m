@@ -4,15 +4,18 @@
 starterRun();
 
 %--- Initialize test ---%
-run             = SodShockTubeInitializer([512 512 4]);
+run             = SodShockTubeInitializer([512 16 1]);
 run.direction   = SodShockTubeInitializer.X;
-run.shockAngle  = 45;
+run.shockAngle  = 0;
 run.iterMax     = 1000;
 run.timeMax     = 0.15;
 
 run.alias       = '';
 run.info        = 'Sod shock tube test.';
-run.notes       = '512 resolution non-axis-aligned Sod shock tube test in the XY direction (theta = 45 degrees).';
+run.notes       = 'Simple axis aligned shock tube test';
+
+run.useGPU = false;
+run.gpuDeviceNumber = 2;
 
 run.ppSave.dim2 = 1;
 

@@ -68,7 +68,7 @@ function imogen(icfile)
 %dbstop in relaxingFluid.m at 48
 %dbstop in TimeManager.m at 94
 %dbstop in imogen.m at 90
-%dbstop in fluxB.m at 61
+%dbstop in fluxB.m at 54
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
@@ -76,7 +76,7 @@ function imogen(icfile)
         
         for i=1:2 % Two timesteps per iteration
             run.time.update(mass, mom, ener, mag, i);
-            flux(run, mass, mom, ener, mag, grav, direction(i));
+            fluxB(run, mass, mom, ener, mag, grav, direction(i));
 % change this to 'fluxB' for devel work
             treadmillGrid(run, mass, mom, ener, mag);
             run.gravity.solvePotential(run, mass, grav);

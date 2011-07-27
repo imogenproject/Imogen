@@ -213,7 +213,7 @@ methods (Access = public)
         close(figno);
 
         fprintf('Run indicated as being in linear regime for saveframes %i to %i inclusive.\n', min(linearFrames), max(linearFrames));
-        obj.lastLinearFrame = obj.frameNumberToData(obj.inputBasename, obj.inputPadlength, linearFrames(end) );
+        obj.lastLinearFrame = obj.frameNumberToData(obj.inputBasename, obj.inputPadlength, obj.inputFrameRange(linearFrames(end)) );
         obj.linearFrames = linearFrames;
 
         fprintf('\nAnalyzing shock front (eta)...\n');
@@ -269,9 +269,8 @@ methods (Access = public)
 
         obj.manfit_state.kx = obj.post.drhoKx(ymode, zmode);
         obj.manfit_state.w  = obj.omega.fromdrho2(ymode, zmode);
-        obj.manfit_state.df = .001;
+        obj.manfit_state.df = 1;
         obj.manfit_state.whofit = 1;
-        obj.manfit_state.a0 = 0;
 
         qty = input('Quantity: (1) drhopost (2) dvxpost (3) dvypost (4) dbxpost (5) dbypost (6) drhopre (7) dvxpre (8) dvypre (9) dbxpre (10) dbypre: ');
         obj.manfit_state.qty = qty;
@@ -289,6 +288,8 @@ methods (Access = public)
             case 10; dq = squeeze(  obj.pre.dby(ymode, zmode,:,:));
         end
         
+        obj.manfit_state.a0 = round(log(abs(dq(1,1))));
+
         figure('KeyPressFcn',{@manualfitter_callback, @obj.manfit_setKW, @obj.manfit_memory, obj, obj.post.X, obj.frameTimes, dq});
         %manualfitter_callback(src, eventdata, setterfcn, memfcn, memory, xaxis, yaxis, datain
     end
