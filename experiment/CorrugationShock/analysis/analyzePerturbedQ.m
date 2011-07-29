@@ -12,11 +12,11 @@ for u = 1:yran; for v = 1:zran
     Z = squeeze(dq(u,v,:,:));
 
     fitw_im = zeros(numel(x),2);
-    kx_im_residual = zeros(numel(x),1);
+    w_im_residual = zeros(numel(x),1);
     fitw_re = zeros(numel(x),2);
-    kx_re_residual = zeros(numel(x),1);
+    w_re_residual = zeros(numel(x),1);
     
-    usable = zeros(numel(t),1);
+    usable = zeros(numel(x),1);
 
     % Fit all curves of constant x to get many omega values
     for tp = 1:numel(x)
@@ -35,43 +35,13 @@ for u = 1:yran; for v = 1:zran
     end
 
     usable = (usable == 1);
-
-    % Use constant offsets for omega to predict amplitude at constant T,
-    % thereby revealing f(x) and assume single exponential decay.
-    
-    % %%%%%%%%%%%%%% Fit kx decay
-    offsets = fitw_im(:,2); % Predicted |dq| at t=0
-
-    spacefit = x(usable);
-    offsets = offsets(usable);
-
-    [xfit ws]= polyfit(spacefit, offsets, 1);
-    % Growth rate of offsets gives kx_im
-
-    kxImag = xfit(1);
-    kxImagRes = ws.normr;
-    
-    %%%%%%%%%% Fit kx oscillatory
-    offsets = fitw_re(:,2); % Predicted phase(dq) at t=0
-    
-    spacefit = x(usable);
-    offsets = offsets(usable);
-
-    [xfit ws]= polyfit(spacefit, offsets, 1);
-    % Growth rate of offsets gives kx_im
-
-    kxRe = xfit(1);
-    kxReRes = ws.normr;
-
-    kx(u,v) = kxRe + 1i*kxImag;
-    kxRes(u,v) = kxReRes + 1i*kxImagRes;
     
     % Predict w by weighting by inverse residual.
     normalizer = [];
     if numel(find(usable == 1)) > 0;
         % Fit decay rates
         wout = fitw_im(:,1);
-        wout = sum(wout(usable)./abs(w_im_residual(usable))');
+        wout = sum(wout(usable)./abs(w_im_residual(usable)));
 
         normalizer = sum(1./abs(w_im_residual(usable)));
 
@@ -80,7 +50,7 @@ for u = 1:yran; for v = 1:zran
 
         % Fit oscillation rates
         wout = fitw_re(:,1);
-        wout = sum(wout(usable)./abs(w_re_residual(usable))');
+        wout = sum(wout(usable)./abs(w_re_residual(usable)));
 
         normalizer = sum(1./abs(w_re_residual(usable)));
 
@@ -90,6 +60,59 @@ for u = 1:yran; for v = 1:zran
         omega(u,v) = NaN;
         omegaRes(u,v) = NaN;
     end
+    
+    
+    %%%%%%%%%%%%%%% fit kx
+    fitkx_im = zeros(numel(t),2);
+    kx_im_residual = zeros(numel(t),1);
+    fitkx_re = zeros(numel(t),2);
+    kx_re_residual = zeros(numel(t),1);
+    
+    usable = zeros(numel(t),1);
+
+    % Fit all curves of constant t to get many kx values
+    for tp = 1:numel(t)
+        Zcurrent = Z(:,tp);
+        valids = (abs(Zcurrent) > thresh); % Select points whose amplitude is acceptable
+        if numel(find(valids)) < 5; continue; end % Stop if we run out
+        usable(tp) = 1;
+
+        [alpha beta] = polyfit(x(valids), log(abs(Zcurrent(valids))), 1); % Make linear fit
+        fitkx_im(tp,:) = alpha(:);
+        kx_im_residual(tp) = beta.normr;
+
+        [alpha beta] = polyfit(x(valids), unwrap(angle(Zcurrent(valids))),1); % linear fit phase(x)
+        fitkx_re(tp,:) = alpha(:);
+        kx_re_residual(tp) = beta.normr;
+    end
+
+        % Predict kx by weighting with inverse residual.
+    normalizer = [];
+    usable = (usable == 1);
+    
+    if numel(find(usable == 1)) > 0;
+        % Fit decay rates
+        kxout = fitkx_im(:,1);
+        kxout = sum(kxout(usable)./abs(kx_im_residual(usable)));
+
+        normalizer = sum(1./abs(kx_im_residual(usable)));
+
+        kx(u,v) = 1i*wout / normalizer;
+        kxRes(u,v) = 1i* normalizer / numel(kx_im_residual);
+
+        % Fit oscillation rates
+        kxout = fitkx_re(:,1);
+        kxout = sum(kxout(usable)./abs(kx_re_residual(usable)));
+
+        normalizer = sum(1./abs(kx_re_residual(usable)));
+
+        kx(u,v) = kx(u,v) + kxout / normalizer;
+        kxRes(u,v) = kxRes(u,v) + normalizer / numel(kx_im_residual);
+    else
+        kx(u,v) = NaN;
+        kxRes(u,v) = NaN;
+    end
+    
     
     fprintf('*');
 end; end

@@ -103,6 +103,7 @@ imgdat = unwrap(unwrap(angle(datain),2,2),2,1);
     surf(yaxis(analyzer.linearFrames), xaxis, imgdat(:,analyzer.linearFrames),'linestyle','none');
     hold on;
     surf(yaxis(analyzer.linearFrames), xaxis, real(memory.a0) + kx*u + w*v,'linestyle','none');
+    xlabel('T'); ylabel('X');
     view([az, el]);
 
     %contourf(yaxis, xaxis, imgdat , [0 0]);
@@ -131,7 +132,7 @@ else
     surf(yaxis(analyzer.linearFrames)', xaxis, imag(memory.a0) + kx*u + w*v,'linestyle','none');
     title(sprintf('Amplitude component; a0=%g, df=%g',imag(memory.a0), memory.df));
     view([az el]);    
-
+    xlabel('T'); ylabel('X');
     subplot(1,2,2);
     %surf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v),'linestyle','none');
     contour3(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v));

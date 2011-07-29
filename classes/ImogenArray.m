@@ -160,9 +160,6 @@ classdef ImogenArray < handle
             else
                 result = obj.pArray;
             end
-
-figure(1); imagesc(double(result(:,:,32)));
-figure(2); imagesc(double(obj.pArray(:,:,32)));
             
             if (obj.staticActive); obj.applyStatics(); end
                 %--- Zero any static cells ---%
