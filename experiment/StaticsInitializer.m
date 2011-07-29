@@ -64,7 +64,7 @@ classdef StaticsInitializer < handle
                     if numel(newVal) == 1; newVal = newVal * ones(size(newIdx,1),1); end
 
                     % Fail if nonequally sized arrays are paired; This cannot be done
-                    if size(newVal) ~= size(newIdx,1)
+                    if size(newVal,1) ~= size(newIdx,1)
                     error(sprintf('Unrecoverable error preparing statics; numel(index set %i) = %i but numel(value set %i) = %i.\n', x, size(obj.indexSet{x},1), x, numel(obj.valueSet{x})));
                     end
 

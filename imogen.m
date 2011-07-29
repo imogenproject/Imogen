@@ -61,14 +61,9 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-%dbstop in relaxingFluid.m at 20
-%dbstop in relaxingFluid.m at 88
-%dbstop in relaxingFluid.m at 54
-%dbstop in relaxingFluid.m at 126
-%dbstop in relaxingFluid.m at 48
-%dbstop in TimeManager.m at 94
-%dbstop in imogen.m at 90
-%dbstop in fluxB.m at 54
+dbstop in relaxingFluid.m at 38
+dbstop in relaxingFluid.m at 88
+dbstop in TimeManager.m   at 70
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
@@ -89,7 +84,7 @@ function imogen(icfile)
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-%error('devel prevent-matlab-exiting stop')
+error('devel prevent-matlab-exiting stop')
     run.postliminary();
 
 end

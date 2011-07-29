@@ -281,6 +281,7 @@ methods (Access = public)
             case 3;  dq = squeeze( obj.post.dvy(ymode, zmode,:,:));
             case 4;  dq = squeeze( obj.post.dbx(ymode, zmode,:,:));
             case 5;  dq = squeeze( obj.post.dby(ymode, zmode,:,:));
+                
             case 6;  dq = squeeze( obj.pre.drho(ymode, zmode,:,:));
             case 7;  dq = squeeze(  obj.pre.dvx(ymode, zmode,:,:));
             case 8;  dq = squeeze(  obj.pre.dvy(ymode, zmode,:,:));
@@ -306,11 +307,12 @@ methods (Access = public)
             case 3 ; obj.post.dvyKx(y,z) = kx; obj.omega.fromdvy2(y,z) = w;
             case 4 ; obj.post.dbxKx(y,z) = kx; obj.omega.fromdbx2(y,z) = w;
             case 5 ; obj.post.dbyKx(y,z) = kx; obj.omega.fromdby2(y,z) = w;
+                
             case 6 ; obj.pre.drhoKx(y,z) = kx; obj.omega.fromdrho1(y,z) = w;
-            case 7 ; obj.pre.dvxKx(y,z) = kx; obj.omega.fromdvx2(y,z) = w;
-            case 8 ; obj.pre.dvyKx(y,z) = kx; obj.omega.fromdvy2(y,z) = w;
-            case 9 ; obj.pre.dbxKx(y,z) = kx; obj.omega.fromdbx2(y,z) = w;
-            case 10; obj.pre.dbyKx(y,z) = kx; obj.omega.fromdby2(y,z) = w;
+            case 7 ; obj.pre.dvxKx(y,z) = kx; obj.omega.fromdvx1(y,z) = w;
+            case 8 ; obj.pre.dvyKx(y,z) = kx; obj.omega.fromdvy1(y,z) = w;
+            case 9 ; obj.pre.dbxKx(y,z) = kx; obj.omega.fromdbx1(y,z) = w;
+            case 10; obj.pre.dbyKx(y,z) = kx; obj.omega.fromdby1(y,z) = w;
         end
     end
 end % Public methods

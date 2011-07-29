@@ -82,19 +82,6 @@ classdef ImogenArray < handle
         % Sets the data array to the new value and cleans up faded and static cells.
             obj.pArray        = value;
 
-%obj.id
-%value(:,1,1)'
-%	q = isnan(double(value));
-
-%    dbstack
-    
-%	if max(q(:)) > 0
-%	dbstack
-%obj.id
-%value
-%	error('I fucked up');
-%end
-
             if ~isempty(obj.pFadesValue),       obj.applyFades();       end % Fade array.
             if obj.staticActive,                obj.applyStatics();     end % Enforce static values.
             if obj.pUninitialized,              obj.applyInitialize();  end % Initialize if needed.
@@ -167,12 +154,15 @@ classdef ImogenArray < handle
 % # result        The shifted array.                                          double    (Nx,Ny,Nz)
         function result = shift(obj, DIRECT, nCells)
             upperLowerIndex = 1 + (nCells > 0);
-            
+
             if obj.pShiftEnabled(upperLowerIndex, DIRECT)
                 result = obj.edgeshifts{upperLowerIndex, DIRECT}(obj.pArray, DIRECT, nCells, obj);
             else
                 result = obj.pArray;
             end
+
+figure(1); imagesc(double(result(:,:,32)));
+figure(2); imagesc(double(obj.pArray(:,:,32)));
             
             if (obj.staticActive); obj.applyStatics(); end
                 %--- Zero any static cells ---%
@@ -246,8 +236,8 @@ classdef ImogenArray < handle
                 end
             end
             % Do this the retarded slow way just to make 100% sure it can't possibly be wrong.
-%           if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
-            if type == 1; obj.array = 1.0*obj.array'; end
+           if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
+%            if type == 1; obj.array = 1.0*obj.array'; end
 
         end
 

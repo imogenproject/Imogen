@@ -25,12 +25,12 @@ classdef BowShockInitializer < Initializer
 	magX;
 	magY;
 
-        bgRho;
+        bgRho;             % Background density, x velocity and thermal pressure; double scalar
         bgVx;
         bgThermalPressure;
 
-        ballRho;
-        ballVr;
+        ballRho;           % Obstruction density, outflow velocity, radius and thermal pressure
+        ballVr;            % Double scalar
         ballXRadius;
         ballThermalPressure;
 
@@ -43,9 +43,6 @@ classdef BowShockInitializer < Initializer
 %===================================================================================================
     properties (SetAccess = protected, GetAccess = protected) %                P R O T E C T E D [P]
     end %PROTECTED
-    
-    
-    
     
     
 %===================================================================================================
@@ -129,38 +126,13 @@ classdef BowShockInitializer < Initializer
 
             obj.minMass = min(obj.ballRho, obj.bgRho) / 100;
 
-% START: 
-%It's a...
-%fermi
-%tesla
-%oersted
-%maxwell
-%michaelson-morely, michael-soooo - ooo - ooo - ooooon!
-
-%OOOOOoh,
-%It's a...
-% rayleigh
-% kelvin
-% taylor
-% helmholtz
-% donnelly
-% and chandraseeeeee -eeee - eeekar!
-
-% Yeeees, it's an...
-% Dirac
-% Bell'n'Feynamnn
-% Hawking
-% Einstein and
-% Heisenberg, Heisenberg, ooooh, it's Heiiiii - iiiisenberg!
-%GOTO START
-
 %mag(1,:,:,:) = (3*(obj.magY*Y + obj.magX*X).*X - obj.magX) ./ norm.^3;
 %mag(2,:,:,:) = (3*(obj.magY*Y + obj.magX*X).*Y - obj.magY) ./ norm.^3;
 
             % set background values
 %            mom(1,:,:,:) = (1-ball)*obj.bgVx*obj.bgRho;
-%            mom(1,1:round(obj.ballCenter(1) - obj.ballCells(1)-10),:,:) = obj.bgVx*obj.bgRho;
-             mom(1,1:48,:,:) = obj.bgVx*obj.bgRho;
+            mom(1,1:round(obj.ballCenter(1) - obj.ballCells(1)-25),:,:) = obj.bgVx*obj.bgRho;
+%             mom(1,1:48,:,:) = obj.bgVx*obj.bgRho;
 %            mag(1,1:round(obj.ballCenter(1) - obj.ballCells(1)-30),:,:) = obj.magX;
 %mag(1,:,:,:) = obj.magX;
 %mag(2,:,:,:) = obj.magY;
@@ -186,22 +158,20 @@ classdef BowShockInitializer < Initializer
                 obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballMomRadial*zhat(ball), ballEner, obj.magX, obj.magY, obj.bgRho.^obj.gamma / (obj.gamma-1) };
 
             % Force a left-edge plane flow
-mom(1,1:5,:,:) = obj.bgRho*obj.bgVx;
-            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
-            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
-            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
+%            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 2, 2);
+%            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 2, 3);
+%            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 2, 1);
 %	    if obj.mode.magnet == true;
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(1), statics.CELLVAR, 2, 10);
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 2, 11);
 %            end
-%            if obj.grid(3) > 1            
+            if obj.grid(3) > 1            
 %                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1);
 %                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 2, 1); end
-%            end
-            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
+            end
+%            statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 2, 4);
         
             % Lock ball in place
-mass(ball) = 1;
             statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 1, 5);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 1, 6);
             statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 1, 7);
@@ -210,7 +180,7 @@ mass(ball) = 1;
 %                statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(2), statics.CELLVAR, 1, 11);
 %            end
             if obj.grid(3) > 1    
-                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 4, 8);
+                statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(3), statics.CELLVAR, 1, 8);
 %                if obj.mode.magnet == true; statics.associateStatics(ENUM.MAG,  ENUM.VECTOR(3), statics.CELLVAR, 1, 1); end;
             end
             statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 1, 9);

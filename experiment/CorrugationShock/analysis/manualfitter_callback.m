@@ -93,7 +93,7 @@ if memory.whofit == 1 % oscillatory part
     kx = real(memory.kx);
     w = real(memory.w);
 
-imgdat = unwrap(unwrap(angle(datain),[],2),[],1);
+imgdat = unwrap(unwrap(angle(datain),2,2),2,1);
     gain = 1;
     imgdat = imgdat*gain;
 
@@ -134,7 +134,7 @@ else
 
     subplot(1,2,2);
     %surf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v),'linestyle','none');
-    contourf(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v),[-.5 -.25 0 .25 .5]);
+    contour3(yaxis(analyzer.linearFrames)', xaxis, imgdat(:, analyzer.linearFrames)-(imag(memory.a0) + kx*u + w*v));
 end
 
 xlabel('time');
