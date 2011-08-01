@@ -111,7 +111,7 @@ end
 end
 
 if strcmp(eventdata.Key,'h')
-fprintf('12345: Fit respectively for drho, dvx, dvy, dbx, dby\nzxcv : Fit im(w), re(w), im(kx), re(kx) respectively\nLeft/right to tilt line, up down to shift vertically.\nasdw to change mode.\n');
+fprintf('12345: Fit respectively for drho, dvx, dvy, dbx, dby\nzxcv : Fit im(w), re(w), im(kx), re(kx) respectively\nLeft/right to tilt line, up down to shift vertically.\nasdw to change mode numbers.\nq restores from oopsies\ne switches between post and preshock variables\n');
 return;
 end
 
@@ -146,7 +146,7 @@ for v = 1:5
     if (memory.typefit == 1) || (memory.typefit == 3)
         plot(analyzer.frameTimes(analyzer.linearFrames), mean(log(abs(rawline(:,analyzer.linearFrames)))), plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
     else
-        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi/1.5)),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
+        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi/4)),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
     end
 
     switch(memory.typefit)
@@ -173,6 +173,7 @@ end
 
 fitstrings = {'drho','dvx','dvy','dbx','dby'};
 fitvarstr = {'growth rate','frequency','damp rate','wavelength'};
+sideid = {'preshock','postshock'};
 
 sigma = [];
 switch(memory.typefit)
@@ -182,7 +183,7 @@ switch(memory.typefit)
     case 4; sigma = std(real(memory.kx(:,1)));
 end
 
-title(sprintf('Mode [%i %i]: Fitting %s %s\nCurrent sigma-hat: %f', memory.ky, memory.kz, fitstrings{memory.varfit}, fitvarstr{memory.typefit}, sigma/analyzer.kyValues(memory.ky) ),'fontsize',16);
+title(sprintf('Mode [%i %i]: Fitting %s %s, %s\nCurrent sigma-hat: %f', memory.ky, memory.kz, fitstrings{memory.varfit}, fitvarstr{memory.typefit}, sideid{memory.qty+1}, sigma/analyzer.kyValues(memory.ky) ),'fontsize',16);
 
 
 end % function
