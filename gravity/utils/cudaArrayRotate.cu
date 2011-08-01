@@ -23,7 +23,7 @@ __global__ void cukern_ArrayTranspose2D(double *src, double *dst, int nx, int ny
 __global__ void cukern_ArrayExchangeY(double *src, double *dst, int nx, int ny, int nz);
 __global__ void cukern_ArrayExchangeZ(double *src, double *dst, int nx, int ny, int nz);
 
-#define BDIM 4
+#define BDIM 16
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {

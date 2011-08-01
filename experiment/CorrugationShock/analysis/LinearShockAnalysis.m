@@ -28,6 +28,7 @@ classdef LinearShockAnalysis < handle
         pre;   % Structures containing pre and post shock spectral data
         post;
         omega;
+        manfit_state;
     end
 
     properties(SetAccess = protected, GetAccess = protected)
@@ -36,7 +37,6 @@ classdef LinearShockAnalysis < handle
         inputFrameRange;
         maxFrameno;
 
-        manfit_state;
     end
 
 methods % SET
@@ -223,30 +223,30 @@ methods (Access = public)
         obj.omega.frontResidual = phaseresidual + 1i*growresidual;
 
         fprintf('kx/w from post drho: ');
-        [obj.post.drhoKx obj.omega.fromdrho2] = analyzePerturbedQ(obj.post.drho, obj.post.X, obj.frameTimes, 1e-5);
+        [obj.post.drhoKx obj.omega.fromdrho2 obj.post.drhoK0 obj.omega.drho2_0] = analyzePerturbedQ(obj.post.drho, obj.post.X, obj.frameTimes, linearFrames,'post');
         fprintf('kx/w from post dv: ');
-        [obj.post.dvxKx obj.omega.fromdvx2]   = analyzePerturbedQ(obj.post.dvx, obj.post.X, obj.frameTimes, 1e-5);
-        [obj.post.dvyKx obj.omega.fromdvy2]   = analyzePerturbedQ(obj.post.dvy, obj.post.X, obj.frameTimes, 1e-5);
+        [obj.post.dvxKx obj.omega.fromdvx2 obj.post.dvxK0 obj.omega.dvx2_0]   = analyzePerturbedQ(obj.post.dvx, obj.post.X, obj.frameTimes, linearFrames,'post');
+        [obj.post.dvyKx obj.omega.fromdvy2 obj.post.dvyK0 obj.omega.dvy2_0]   = analyzePerturbedQ(obj.post.dvy, obj.post.X, obj.frameTimes, linearFrames,'post');
         fprintf('kx/w from post db: ');
-        [obj.post.dbxKx obj.omega.fromdbx2]   = analyzePerturbedQ(obj.post.dbx, obj.post.X, obj.frameTimes, 1e-5);
-        [obj.post.dbyKx obj.omega.fromdby2]   = analyzePerturbedQ(obj.post.dby, obj.post.X, obj.frameTimes, 1e-5);
+        [obj.post.dbxKx obj.omega.fromdbx2 obj.post.dbxK0 obj.omega.dbx2_0]   = analyzePerturbedQ(obj.post.dbx, obj.post.X, obj.frameTimes, linearFrames,'post');
+        [obj.post.dbyKx obj.omega.fromdby2 obj.post.dbyK0 obj.omega.dby2_0]   = analyzePerturbedQ(obj.post.dby, obj.post.X, obj.frameTimes, linearFrames,'post');
 
         if obj.is2d == 0
             fprintf('kx/w from dvz/dbz: ');
-            [obj.post.dvzKx obj.omega.fromdvz2] = analyzePerturbedQ(obj.post.dvz, obj.post.X, obj.frameTimes, 1e-5);
-            [obj.post.dbzKx obj.omega.fromdbz2] = analyzePerturbedQ(obj.post.dbz, obj.post.X, obj.frameTimes, 1e-5);
+            [obj.post.dvzKx obj.omega.fromdvz2] = analyzePerturbedQ(obj.post.dvz, obj.post.X, obj.frameTimes, linearFrames,'post');
+            [obj.post.dbzKx obj.omega.fromdbz2] = analyzePerturbedQ(obj.post.dbz, obj.post.X, obj.frameTimes, linearFrames,'post');
         end
 
         fprintf('kx/w from perturbed pre: ');
-        [obj.pre.drhoKx obj.omega.fromdrho1] = analyzePerturbedQ(obj.pre.drho, obj.pre.X, obj.frameTimes, 1e-5);
-        [obj.pre.dvxKx obj.omega.fromdvx1]   = analyzePerturbedQ(obj.pre.dvx, obj.pre.X, obj.frameTimes, 1e-5);
-        [obj.pre.dvyKx obj.omega.fromdvy1]   = analyzePerturbedQ(obj.pre.dvy, obj.pre.X, obj.frameTimes, 1e-5);
-        [obj.pre.dbxKx obj.omega.fromdbx1]   = analyzePerturbedQ(obj.pre.dbx, obj.pre.X, obj.frameTimes, 1e-5);
-        [obj.pre.dbyKx obj.omega.fromdby1]   = analyzePerturbedQ(obj.pre.dby, obj.pre.X, obj.frameTimes, 1e-5);
+        [obj.pre.drhoKx obj.omega.fromdrho1] = analyzePerturbedQ(obj.pre.drho, obj.pre.X, obj.frameTimes, linearFrames,'pre');
+        [obj.pre.dvxKx obj.omega.fromdvx1]   = analyzePerturbedQ(obj.pre.dvx, obj.pre.X, obj.frameTimes, linearFrames,'pre');
+        [obj.pre.dvyKx obj.omega.fromdvy1]   = analyzePerturbedQ(obj.pre.dvy, obj.pre.X, obj.frameTimes, linearFrames,'pre');
+        [obj.pre.dbxKx obj.omega.fromdbx1]   = analyzePerturbedQ(obj.pre.dbx, obj.pre.X, obj.frameTimes, linearFrames,'pre');
+        [obj.pre.dbyKx obj.omega.fromdby1]   = analyzePerturbedQ(obj.pre.dby, obj.pre.X, obj.frameTimes, linearFrames,'pre');
 
         if obj.is2d == 0
-            [obj.pre.dvzKx obj.omega.fromdvz2] = analyzePerturbedQ(obj.pre.dvz, obj.pre.X, obj.frameTimes, 1e-5);
-            [obj.pre.dbzKx obj.omega.fromdbz2] = analyzePerturbedQ(obj.pre.dbz, obj.pre.X, obj.frameTimes, 1e-5);
+            [obj.pre.dvzKx obj.omega.fromdvz2] = analyzePerturbedQ(obj.pre.dvz, obj.pre.X, obj.frameTimes, linearFrames,'pre');
+            [obj.pre.dbzKx obj.omega.fromdbz2] = analyzePerturbedQ(obj.pre.dbz, obj.pre.X, obj.frameTimes, linearFrames,'pre');
         end
 
     end
@@ -255,8 +255,8 @@ methods (Access = public)
 
         % Determine which mode and structure we're trying to fit
 
-        ymode = input('Y mode # to fit: ');
-        zmode = input('Z mode # to fit: ');
+        ymode = input('Y mode # to start at: ');
+        zmode = input('Z mode # to start at: ');
         % Throw up a contoured surf with registered callback
 
 % memory:
@@ -264,35 +264,21 @@ methods (Access = public)
 % .w  = the stored omega value guess
 % df = the change if the arrows are pressed
 % whofit = which curve we're trying to fit (toggle with space
-        obj.manfit_state.y = ymode;
-        obj.manfit_state.z = zmode;
+        obj.manfit_state.ky = ymode;
+        obj.manfit_state.kz = zmode;
 
-        obj.manfit_state.kx = obj.post.drhoKx(ymode, zmode);
-        obj.manfit_state.w  = obj.omega.fromdrho2(ymode, zmode);
-        obj.manfit_state.df = 1;
-        obj.manfit_state.whofit = 1;
+        obj.manfit_state.typefit = 1;
+        obj.manfit_state.varfit = 1;
+        obj.manfit_state.df = .005*[obj.omega.fromdrho2(ymode, zmode) obj.omega.drho2_0(ymode, zmode)];
 
-        qty = input('Quantity: (1) drhopost (2) dvxpost (3) dvypost (4) dbxpost (5) dbypost (6) drhopre (7) dvxpre (8) dvypre (9) dbxpre (10) dbypre: ');
+        qty = input('Quantity: (1) post quantities (0) pre quantities: ');
         obj.manfit_state.qty = qty;
-        dq = [];
-        switch(qty)
-            case 1;  dq = squeeze(obj.post.drho(ymode, zmode,:,:));
-            case 2;  dq = squeeze( obj.post.dvx(ymode, zmode,:,:));
-            case 3;  dq = squeeze( obj.post.dvy(ymode, zmode,:,:));
-            case 4;  dq = squeeze( obj.post.dbx(ymode, zmode,:,:));
-            case 5;  dq = squeeze( obj.post.dby(ymode, zmode,:,:));
-                
-            case 6;  dq = squeeze( obj.pre.drho(ymode, zmode,:,:));
-            case 7;  dq = squeeze(  obj.pre.dvx(ymode, zmode,:,:));
-            case 8;  dq = squeeze(  obj.pre.dvy(ymode, zmode,:,:));
-            case 9;  dq = squeeze(  obj.pre.dbx(ymode, zmode,:,:));
-            case 10; dq = squeeze(  obj.pre.dby(ymode, zmode,:,:));
-        end
-        
-        obj.manfit_state.a0 = 0;
 
-        figure('KeyPressFcn',{@manualfitter_callback, @obj.manfit_setKW, @obj.manfit_memory, obj, obj.post.X, obj.frameTimes, dq});
-        %manualfitter_callback(src, eventdata, setterfcn, memfcn, memory, xaxis, yaxis, datain
+        figure('KeyPressFcn',{@manualfitter_callback, @obj.manfit_setKW, @obj.manfit_memory, obj, obj.manfit_state});
+
+        fill.Key = 'q';
+        manualfitter_callback([], fill,  @obj.manfit_setKW, @obj.manfit_memory, obj, obj.manfit_state);
+
     end
 
     function manfit_memory(obj, s)
@@ -300,19 +286,19 @@ methods (Access = public)
         obj.manfit_state = s;
     end
 
-    function manfit_setKW(obj, y, z, w, kx, qty)
+    function manfit_setKW(obj, y, z, omega, kx, qty)
         switch(qty);
-            case 1 ; obj.post.drhoKx(y,z) = kx; obj.omega.fromdrho2(y,z) = w;
-            case 2 ; obj.post.dvxKx(y,z) = kx; obj.omega.fromdvx2(y,z) = w;
-            case 3 ; obj.post.dvyKx(y,z) = kx; obj.omega.fromdvy2(y,z) = w;
-            case 4 ; obj.post.dbxKx(y,z) = kx; obj.omega.fromdbx2(y,z) = w;
-            case 5 ; obj.post.dbyKx(y,z) = kx; obj.omega.fromdby2(y,z) = w;
+            case 1 ; obj.post.drhoKx(y,z) = kx(1); obj.omega.fromdrho2(y,z) = omega(1);
+                     obj.post.dvxKx(y,z)  = kx(2); obj.omega.fromdvx2(y,z)  = omega(2);
+                     obj.post.dvyKx(y,z)  = kx(3); obj.omega.fromdvy2(y,z)  = omega(3);
+                     obj.post.dbxKx(y,z)  = kx(4); obj.omega.fromdbx2(y,z)  = omega(4);
+                     obj.post.dbyKx(y,z)  = kx(5); obj.omega.fromdby2(y,z)  = omega(5);
                 
-            case 6 ; obj.pre.drhoKx(y,z) = kx; obj.omega.fromdrho1(y,z) = w;
-            case 7 ; obj.pre.dvxKx(y,z) = kx; obj.omega.fromdvx1(y,z) = w;
-            case 8 ; obj.pre.dvyKx(y,z) = kx; obj.omega.fromdvy1(y,z) = w;
-            case 9 ; obj.pre.dbxKx(y,z) = kx; obj.omega.fromdbx1(y,z) = w;
-            case 10; obj.pre.dbyKx(y,z) = kx; obj.omega.fromdby1(y,z) = w;
+            case 2 ; obj.pre.drhoKx(y,z) = kx(1); obj.omega.fromdrho1(y,z) = omega(1);
+                     obj.pre.dvxKx(y,z)  = kx(2); obj.omega.fromdvx1(y,z)  = omega(2);
+                     obj.pre.dvyKx(y,z)  = kx(3); obj.omega.fromdvy1(y,z)  = omega(3);
+                     obj.pre.dbxKx(y,z)  = kx(4); obj.omega.fromdbx1(y,z)  = omega(4);
+                     obj.pre.dbyKx(y,z)  = kx(5); obj.omega.fromdby1(y,z)  = omega(5);
         end
     end
 end % Public methods
