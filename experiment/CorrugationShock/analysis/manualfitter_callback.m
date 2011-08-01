@@ -61,8 +61,8 @@ if strcmp(eventdata.Key,'5'); memory.varfit = 5; end
 
 if strcmp(eventdata.Key,'z'); memory.typefit = 1; end
 if strcmp(eventdata.Key,'x'); memory.typefit = 2; end
-%if strcmp(eventdata.Key,'c'); memory.typefit = 3; end
-%if strcmp(eventdata.Key,'v'); memory.typefit = 4; end
+if strcmp(eventdata.Key,'c'); memory.typefit = 3; end
+if strcmp(eventdata.Key,'v'); memory.typefit = 4; end
 
 if strcmp(eventdata.Key,'a'); memory.ky = max(1, memory.ky - 1); end
 if strcmp(eventdata.Key,'d'); memory.ky = min(analyzer.nModes(1), memory.ky+1); end
@@ -92,20 +92,21 @@ end
 
 % Shift the value up/down
 if strcmp(eventdata.Key,'uparrow')
+memory.df
 switch(memory.typefit) 
-    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,1) + 1i*memory.df(2);
-    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,1) +    memory.df(2);
-    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,1) + 1i*memory.df(2);
-    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,1) +    memory.df(2);
+    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) + 1i*memory.df(2);
+    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) +    memory.df(2);
+    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) + 1i*memory.df(2);
+    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) +    memory.df(2);
 end 
 end
 
 if strcmp(eventdata.Key,'downarrow')
 switch(memory.typefit)
-    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,1) - 1i*memory.df(2);
-    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,1) -    memory.df(2);
-    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,1) - 1i*memory.df(2);
-    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,1) -    memory.df(2);
+    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) - 1i*memory.df(2);
+    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) -    memory.df(2);
+    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) - 1i*memory.df(2);
+    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) -    memory.df(2);
 end
 end
 
@@ -145,7 +146,7 @@ for v = 1:5
     if (memory.typefit == 1) || (memory.typefit == 3)
         plot(analyzer.frameTimes(analyzer.linearFrames), mean(log(abs(rawline(:,analyzer.linearFrames)))), plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
     else
-        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)))),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
+        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi/1.5)),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
     end
 
     switch(memory.typefit)

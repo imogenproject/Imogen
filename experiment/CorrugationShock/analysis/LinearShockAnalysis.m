@@ -269,7 +269,7 @@ methods (Access = public)
 
         obj.manfit_state.typefit = 1;
         obj.manfit_state.varfit = 1;
-        obj.manfit_state.df = .005*[obj.omega.fromdrho2(ymode, zmode) obj.omega.drho2_0(ymode, zmode)];
+        obj.manfit_state.df = .005*[obj.omega.fromdrho2(ymode, zmode) 4*obj.omega.drho2_0(ymode, zmode)];
 
         qty = input('Quantity: (1) post quantities (0) pre quantities: ');
         obj.manfit_state.qty = qty;
