@@ -145,7 +145,7 @@ for v = 1:5
     if (memory.typefit == 1) || (memory.typefit == 3)
         plot(analyzer.frameTimes(analyzer.linearFrames), mean(log(abs(rawline(:,analyzer.linearFrames)))), plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
     else
-        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi/4)),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
+        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi,2)),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
     end
 
     switch(memory.typefit)
