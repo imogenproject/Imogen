@@ -13,7 +13,7 @@ for u = 1:size(frontFFT, 1); for v = 1:size(frontFFT,2)
         growthrates(u,v) = f(1);
         growresidual(u,v) = s.normr;
 
-        [f s]= polyfit(squeeze(timeVals(linearFrames)), squeeze(angle(frontFFT(u,v,linearFrames)))', 1);
+        [f s]= polyfit(squeeze(timeVals(linearFrames)), unwrap(squeeze(angle(frontFFT(u,v,linearFrames)))'), 1);
         phaserates(u,v) = f(1);
         phaseresidual(u,v) = s.normr;
       

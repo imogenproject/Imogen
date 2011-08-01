@@ -92,7 +92,6 @@ end
 
 % Shift the value up/down
 if strcmp(eventdata.Key,'uparrow')
-memory.df
 switch(memory.typefit) 
     case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) + 1i*memory.df(2);
     case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) +    memory.df(2);

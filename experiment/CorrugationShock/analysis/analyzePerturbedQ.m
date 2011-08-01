@@ -26,7 +26,7 @@ for u = 1:yran; for v = 1:zran
 
     kx(u,v) = kxrefit(1) + 1i*kximfit(1);
     kxRes(u,v) = confidenceKxRe.normr + 1i*confidenceKxIm.normr;
-    kxOffset(u,v) = kxrefit(2) + 1i*kximfit(1);
+    kxOffset(u,v) = kxrefit(2) + 1i*kximfit(2);
  
     fprintf('*');
 end; end
