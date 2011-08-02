@@ -269,7 +269,7 @@ methods (Access = public)
 
         obj.manfit_state.typefit = 1;
         obj.manfit_state.varfit = 1;
-        obj.manfit_state.df = abs(.005*[obj.omega.fromdrho2(ymode, zmode) 4*obj.omega.drho2_0(ymode, zmode)]);
+        obj.manfit_state.df = abs(.005*[obj.omega.fromdrho2(ymode, zmode) obj.omega.drho2_0(ymode, zmode)]);
 
         qty = input('Quantity: (1) post quantities (0) pre quantities: ');
         obj.manfit_state.qty = qty;
@@ -301,7 +301,7 @@ methods (Access = public)
                      obj.post.dbxK0(y,z) = kx(4,2); obj.omega.dbx2_0(y,z)   = omega(4,2);
                      obj.post.dbyK0(y,z) = kx(5,2); obj.omega.dby2_0(y,z)   = omega(5,2);
                 
-            case 2 ; obj.pre.drhoKx(y,z) = kx(1,1); obj.omega.fromdrho1(y,z) = omega(1,1);
+            case 0 ; obj.pre.drhoKx(y,z) = kx(1,1); obj.omega.fromdrho1(y,z) = omega(1,1);
                      obj.pre.dvxKx(y,z)  = kx(2,1); obj.omega.fromdvx1(y,z)  = omega(2,1);
                      obj.pre.dvyKx(y,z)  = kx(3,1); obj.omega.fromdvy1(y,z)  = omega(3,1);
                      obj.pre.dbxKx(y,z)  = kx(4,1); obj.omega.fromdbx1(y,z)  = omega(4,1);

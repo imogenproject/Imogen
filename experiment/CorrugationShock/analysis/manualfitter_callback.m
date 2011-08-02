@@ -25,7 +25,8 @@ memory = analyzer.manfit_state;
 modechanged = 0;
 
 shiftDown = any(strcmp(eventdata.Modifier,'shift'));
-movefactor = 1 * (1+9*shiftDown);
+ctrlDown  = any(strcmp(eventdata.Modifier,'control'));
+movefactor = 1 * (1+9*shiftDown)*(1+9*ctrlDown);
 
 if strcmp(eventdata.Key,'1'); memory.varfit = 1; end
 if strcmp(eventdata.Key,'2'); memory.varfit = 2; end
@@ -126,6 +127,9 @@ rawline = [];
 plotstyles = {'r','g','g--','b','b--'};
 
 hold off;
+
+ymin = 1e9; ymax = -1e9; % For axes clamp
+
 for v = 1:5
     if memory.qty == 1
         if memory.typefit < 3
@@ -168,13 +172,25 @@ for v = 1:5
     end
 
     xvals = {analyzer.pre.X, analyzer.post.X};
+    plotqty = [];
 
     switch(memory.typefit)
-        case 1; plot(analyzer.frameTimes(analyzer.linearFrames), mean(log(abs(rawline(:,analyzer.linearFrames)))), plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
-        case 2; plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi,2)),  plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
-        case 3; plot(xvals{memory.qty+1}, mean(log(abs(rawline))), plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
-        case 4; plot(xvals{memory.qty+1}, mean(unwrap(angle(rawline),pi,2)),  plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 1;
+            plotqty = mean(log(abs(rawline(:,analyzer.linearFrames))));
+            plot(analyzer.frameTimes(analyzer.linearFrames), plotqty, plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 2;
+            plotqty = mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi,2));
+            plot(analyzer.frameTimes(analyzer.linearFrames), plotqty,  plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 3;
+            plotqty = mean(log(abs(rawline)));
+            plot(xvals{memory.qty+1}, plotqty, plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 4;
+            plotqty = mean(unwrap(angle(rawline),pi,2));
+            plot(xvals{memory.qty+1}, plotqty,  plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
     end
+
+    ymin = min(ymin, min(plotqty));
+    ymax = max(ymax, max(plotqty));
 
     switch(memory.typefit)
         case 1; c = imag(memory.w(memory.varfit,:));
@@ -187,6 +203,8 @@ for v = 1:5
 
     plot(plotvals{memory.typefit}, plotvals{memory.typefit}*c(1) + c(2),'k-');
 end
+
+%ylim([1.1*min(ymin, c(2)) 1.1*max(ymax, c(2))]);
 
 if memory.typefit < 3
     xlabel('Time','fontsize',16);
