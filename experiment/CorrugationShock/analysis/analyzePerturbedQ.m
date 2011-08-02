@@ -12,13 +12,13 @@ for u = 1:yran; for v = 1:zran
         [wrefit confidenceRe] = polyfit(t(linearFrames), mean(unwrap(squeeze(angle(dq(u,v,2:15,linearFrames))),1,2 )), 1);
 
         [kximfit confidenceKxIm] = polyfit(x, mean(squeeze(log(abs(dq(u,v,:,linearFrames((end-10):end))))),2),1);
-        [kxrefit confidenceKxRe] = polyfit(x, mean(unwrap(squeeze(angle(dq(u,v,:,linearFrames((end-10):end)))),pi,2),2), 1);
+        [kxrefit confidenceKxRe] = polyfit(x, mean(unwrap(squeeze(angle(dq(u,v,:,linearFrames((end-10):end)))),pi,1),2), 1);
     else
         [wimfit confidenceIm] = polyfit(t(linearFrames), mean(squeeze(log(abs(dq(u,v,(end-10):(end-1),linearFrames))))),1);
         [wrefit confidenceRe] = polyfit(t(linearFrames), mean(unwrap(squeeze(angle(dq(u,v,(end-10):(end-1),linearFrames))),1,2 )), 1);
 
         [kximfit confidenceKxIm] = polyfit(x, mean(squeeze(log(abs(dq(u,v,:,linearFrames((end-10):end))))),2),1);
-        [kxrefit confidenceKxRe] = polyfit(x, mean(unwrap(squeeze(angle(dq(u,v,:,linearFrames((end-10):end)))),pi,2),2), 1);
+        [kxrefit confidenceKxRe] = polyfit(x, mean(unwrap(squeeze(angle(dq(u,v,:,linearFrames((end-10):end)))),pi,1),2), 1);
     end
     omega(u,v) = wrefit(1) + 1i*wimfit(1);
     omegaRes(u,v) = confidenceRe.normr + 1i*confidenceIm.normr;

@@ -22,8 +22,73 @@ function manualfitter_callback(src, eventdata, setterfcn, memfcn, analyzer, memo
 
 memory = analyzer.manfit_state;
 
-%eventdata
-if strcmp(eventdata.Key,'q') % quickfit
+modechanged = 0;
+
+shiftDown = any(strcmp(eventdata.Modifier,'shift'));
+movefactor = 1 * (1+9*shiftDown);
+
+if strcmp(eventdata.Key,'1'); memory.varfit = 1; end
+if strcmp(eventdata.Key,'2'); memory.varfit = 2; end
+if strcmp(eventdata.Key,'3'); memory.varfit = 3; end
+if strcmp(eventdata.Key,'4'); memory.varfit = 4; end
+if strcmp(eventdata.Key,'5'); memory.varfit = 5; end
+
+if strcmp(eventdata.Key,'z'); memory.typefit = 1; end
+if strcmp(eventdata.Key,'x'); memory.typefit = 2; end
+if strcmp(eventdata.Key,'c'); memory.typefit = 3; end
+if strcmp(eventdata.Key,'v'); memory.typefit = 4; end
+
+if strcmp(eventdata.Key,'a'); memory.ky = max(1, memory.ky - 1); modechanged = 1; end
+if strcmp(eventdata.Key,'d'); memory.ky = min(analyzer.nModes(1), memory.ky+1); modechanged = 1; end
+if strcmp(eventdata.Key,'s'); memory.kz = max(1, memory.kz - 1); modechanged = 1; end
+if strcmp(eventdata.Key,'w'); memory.kz = min(analyzer.nModes(2), memory.kz+1); modechanged = 1; end
+
+if strcmp(eventdata.Key,'e'); memory.qty = 1 - memory.qty; modechanged = 1; end
+
+% L/R tilt the value
+if strcmp(eventdata.Key,'leftarrow')
+switch(memory.typefit) 
+    case 1; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) + 1i*memory.df(1)*movefactor;
+    case 2; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) +    memory.df(1)*movefactor;
+    case 3; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) + 1i*memory.df(1)*movefactor;
+    case 4; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) +    memory.df(1)*movefactor;
+end
+end
+
+if strcmp(eventdata.Key,'rightarrow')
+switch(memory.typefit) 
+    case 1; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) - 1i*memory.df(1)*movefactor;
+    case 2; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) -    memory.df(1)*movefactor;
+    case 3; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) - 1i*memory.df(1)*movefactor;
+    case 4; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) -    memory.df(1)*movefactor;
+end 
+end
+
+% Shift the value up/down
+if strcmp(eventdata.Key,'uparrow')
+switch(memory.typefit) 
+    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) + 1i*memory.df(2)*movefactor;
+    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) +    memory.df(2)*movefactor;
+    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) + 1i*memory.df(2)*movefactor;
+    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) +    memory.df(2)*movefactor;
+end 
+end
+
+if strcmp(eventdata.Key,'downarrow')
+switch(memory.typefit)
+    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) - 1i*memory.df(2)*movefactor;
+    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) -    memory.df(2)*movefactor;
+    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) - 1i*memory.df(2)*movefactor;
+    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) -    memory.df(2)*movefactor;
+end
+end
+
+if strcmp(eventdata.Key,'h')
+fprintf('12345: Fit respectively for drho, dvx, dvy, dbx, dby\nzxcv : Fit im(w), re(w), im(kx), re(kx) respectively\nLeft/right to tilt line, up down to shift vertically.\nasdw to change mode numbers.\nq restores from oopsies\ne switches between post and preshock variables\n');
+return;
+end
+
+if strcmp(eventdata.Key,'q') || (modechanged == 1) % quickfit
 if memory.qty == 1
   memory.kx = [analyzer.post.drhoKx(memory.ky, memory.kz) analyzer.post.drhoK0(memory.ky, memory.kz); ...
                analyzer.post.dvxKx(memory.ky, memory.kz) analyzer.post.dvxK0(memory.ky, memory.kz); ...
@@ -53,77 +118,17 @@ else
 end
 end % end autofit
 
-if strcmp(eventdata.Key,'1'); memory.varfit = 1; end
-if strcmp(eventdata.Key,'2'); memory.varfit = 2; end
-if strcmp(eventdata.Key,'3'); memory.varfit = 3; end
-if strcmp(eventdata.Key,'4'); memory.varfit = 4; end
-if strcmp(eventdata.Key,'5'); memory.varfit = 5; end
-
-if strcmp(eventdata.Key,'z'); memory.typefit = 1; end
-if strcmp(eventdata.Key,'x'); memory.typefit = 2; end
-if strcmp(eventdata.Key,'c'); memory.typefit = 3; end
-if strcmp(eventdata.Key,'v'); memory.typefit = 4; end
-
-if strcmp(eventdata.Key,'a'); memory.ky = max(1, memory.ky - 1); end
-if strcmp(eventdata.Key,'d'); memory.ky = min(analyzer.nModes(1), memory.ky+1); end
-if strcmp(eventdata.Key,'s'); memory.kz = max(1, memory.kz - 1); end
-if strcmp(eventdata.Key,'w'); memory.kz = min(analyzer.nModes(2), memory.kz+1); end
-
-if strcmp(eventdata.Key,'e'); memory.qty = 1 - memory.qty; end
-
-% L/R tilt the value
-if strcmp(eventdata.Key,'leftarrow')
-switch(memory.typefit) 
-    case 1; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) + 1i*memory.df(1);
-    case 2; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) +    memory.df(1);
-    case 3; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) + 1i*memory.df(1);
-    case 4; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) +    memory.df(1);
-end
-end
-
-if strcmp(eventdata.Key,'rightarrow')
-switch(memory.typefit) 
-    case 1; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) - 1i*memory.df(1);
-    case 2; memory.w(memory.varfit,1)  =  memory.w(memory.varfit,1) -    memory.df(1);
-    case 3; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) - 1i*memory.df(1);
-    case 4; memory.kx(memory.varfit,1) = memory.kx(memory.varfit,1) -    memory.df(1);
-end 
-end
-
-% Shift the value up/down
-if strcmp(eventdata.Key,'uparrow')
-switch(memory.typefit) 
-    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) + 1i*memory.df(2);
-    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) +    memory.df(2);
-    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) + 1i*memory.df(2);
-    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) +    memory.df(2);
-end 
-end
-
-if strcmp(eventdata.Key,'downarrow')
-switch(memory.typefit)
-    case 1; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) - 1i*memory.df(2);
-    case 2; memory.w(memory.varfit,2)  =  memory.w(memory.varfit,2) -    memory.df(2);
-    case 3; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) - 1i*memory.df(2);
-    case 4; memory.kx(memory.varfit,2) = memory.kx(memory.varfit,2) -    memory.df(2);
-end
-end
-
-if strcmp(eventdata.Key,'h')
-fprintf('12345: Fit respectively for drho, dvx, dvy, dbx, dby\nzxcv : Fit im(w), re(w), im(kx), re(kx) respectively\nLeft/right to tilt line, up down to shift vertically.\nasdw to change mode numbers.\nq restores from oopsies\ne switches between post and preshock variables\n');
-return;
-end
-
 memfcn(memory);
 setterfcn(memory.ky, memory.kz, memory.w, memory.kx, memory.qty);
 kx = memory.kx;
 w  = memory.w;
 rawline = [];
-plotstyles = {'r','g','g--', 'b','b--'};
+plotstyles = {'r','g','g--','b','b--'};
 
 hold off;
 for v = 1:5
     if memory.qty == 1
+        if memory.typefit < 3
         switch(v)
             case 1; rawline = getWline(analyzer.post.drho, memory.ky, memory.kz, 1);
             case 2; rawline = getWline(analyzer.post.dvx,  memory.ky, memory.kz, 1);
@@ -131,21 +136,44 @@ for v = 1:5
             case 4; rawline = getWline(analyzer.post.dbx,  memory.ky, memory.kz, 1);
             case 5; rawline = getWline(analyzer.post.dby,  memory.ky, memory.kz, 1);
         end
+        else
+        switch(v)
+            case 1; rawline = getKxline(analyzer.post.drho, memory.ky, memory.kz, 1, analyzer.linearFrames((end-10):end));
+            case 2; rawline = getKxline(analyzer.post.dvx,  memory.ky, memory.kz, 1, analyzer.linearFrames((end-10):end));
+            case 3; rawline = getKxline(analyzer.post.dvy,  memory.ky, memory.kz, 1, analyzer.linearFrames((end-10):end));
+            case 4; rawline = getKxline(analyzer.post.dbx,  memory.ky, memory.kz, 1, analyzer.linearFrames((end-10):end));
+            case 5; rawline = getKxline(analyzer.post.dby,  memory.ky, memory.kz, 1, analyzer.linearFrames((end-10):end));
+        end
+        end
+
     else
+        if memory.typefit < 3
         switch(v)
             case 1; rawline = getWline(analyzer.pre.drho, memory.ky, memory.kz, 0);
             case 2; rawline = getWline(analyzer.pre.dvx,  memory.ky, memory.kz, 0);
             case 3; rawline = getWline(analyzer.pre.dvy,  memory.ky, memory.kz, 0);
             case 4; rawline = getWline(analyzer.pre.dbx,  memory.ky, memory.kz, 0);
             case 5; rawline = getWline(analyzer.pre.dby,  memory.ky, memory.kz, 0);
-
         end
+        else
+        switch(v)
+            case 1; rawline = getKxline(analyzer.pre.drho, memory.ky, memory.kz, 0, analyzer.linearFrames((end-10):end));
+            case 2; rawline = getKxline(analyzer.pre.dvx,  memory.ky, memory.kz, 0, analyzer.linearFrames((end-10):end));
+            case 3; rawline = getKxline(analyzer.pre.dvy,  memory.ky, memory.kz, 0, analyzer.linearFrames((end-10):end));
+            case 4; rawline = getKxline(analyzer.pre.dbx,  memory.ky, memory.kz, 0, analyzer.linearFrames((end-10):end));
+            case 5; rawline = getKxline(analyzer.pre.dby,  memory.ky, memory.kz, 0, analyzer.linearFrames((end-10):end));
+        end
+        end
+
     end
 
-    if (memory.typefit == 1) || (memory.typefit == 3)
-        plot(analyzer.frameTimes(analyzer.linearFrames), mean(log(abs(rawline(:,analyzer.linearFrames)))), plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
-    else
-        plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi,2)),  plotstyles{v}, 'linewidth', 1+(v == memory.varfit) ); hold on;
+    xvals = {analyzer.pre.X, analyzer.post.X};
+
+    switch(memory.typefit)
+        case 1; plot(analyzer.frameTimes(analyzer.linearFrames), mean(log(abs(rawline(:,analyzer.linearFrames)))), plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 2; plot(analyzer.frameTimes(analyzer.linearFrames), mean(unwrap(angle(rawline(:,analyzer.linearFrames)),pi,2)),  plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 3; plot(xvals{memory.qty+1}, mean(log(abs(rawline))), plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
+        case 4; plot(xvals{memory.qty+1}, mean(unwrap(angle(rawline),pi,2)),  plotstyles{v}, 'linewidth', 1+2*(v == memory.varfit) ); hold on;
     end
 
     switch(memory.typefit)
@@ -155,7 +183,9 @@ for v = 1:5
         case 4; c = real(memory.kx(memory.varfit,:));
     end
 
-    plot(analyzer.frameTimes(analyzer.linearFrames), analyzer.frameTimes(analyzer.linearFrames)*c(1) + c(2),'k-');
+    plotvals={analyzer.frameTimes(analyzer.linearFrames), analyzer.frameTimes(analyzer.linearFrames), xvals{memory.qty+1},xvals{memory.qty+1} };
+
+    plot(plotvals{memory.typefit}, plotvals{memory.typefit}*c(1) + c(2),'k-');
 end
 
 if memory.typefit < 3
@@ -195,6 +225,12 @@ else
 end
 end
 
-function linedat = getKxline(dq, ky, kz, prepost)
-linedat = [];
+function linedat = getKxline(dq, ky, kz, prepost, tframes)
+if prepost == 1
+    linedat = squeeze(dq(ky, kz, :, tframes)).';
+else
+    linedat = squeeze(dq(ky, kz, :, tframes)).';
 end
+
+end
+
