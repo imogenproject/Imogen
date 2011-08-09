@@ -13,6 +13,7 @@ classdef StaticsInitializer < handle
 
         indexSet; % Arrays in indices to set statically            Cell[N]
         valueSet; % Arrays of values to set statically             Cell[N]
+        coeffSet; % Arrays of coefficients to set [must match dimensions of corresponding value set]
 
         arrayStatics; % Cell array with one cell per simulation var Cell[5];
         % WARNING: THIS MUST BE THE SAME SIZE AS THE NUMBER OF SIMULATION VARIABLES
@@ -38,15 +39,16 @@ classdef StaticsInitializer < handle
         function obj = StaticsInitializer()
             obj.arrayStatics = cell(8,1); % Create one arrayStatics for every variable
             for x = 1:8
-                obj.arrayStatics{x} = struct('arrayField',[], 'indexId',[], 'valueId',[]);
+                obj.arrayStatics{x} = struct('arrayField',[], 'indexId',[], 'valueId',[], 'coeffId',[]);
                 % Create structs to associate pairs of index sets and values with the primary & flux
                 % arrays of each simulation variable
             end
         end
 
-        function [indices values] = staticsForVariable(obj, varId, component, fieldId)
+        function [indices values coeffs] = staticsForVariable(obj, varId, component, fieldId)
             indices = [];
             values = [];
+            coeffs = [];
 
             if ~obj.readyForReadout; obj.prepareStaticsForSimulation(); end
 
@@ -57,11 +59,17 @@ classdef StaticsInitializer < handle
 
             for x = 1:numel(AS.arrayField) % For each static defined for this variable
                 if AS.arrayField(x) == fieldId % If it applies to the requested field
-                    newIdx = obj.indexSet{AS.indexId(x)};
-                    newVal = obj.valueSet{AS.valueId(x)};
+                    newIdx   = obj.indexSet{AS.indexId(x)};
+                    newVal   = obj.valueSet{AS.valueId(x)};
+                    if AS.coeffId(x) == 0
+                        newCoeff = 1;
+                    else
+                        newCoeff = obj.coeffSet{AS.coeffId(x)};
+                    end
 
                     % Expand array-scalar pairs to array-array pairs; This can be done
-                    if numel(newVal) == 1; newVal = newVal * ones(size(newIdx,1),1); end
+                    if numel(newVal) == 1; newVal   = newVal   * ones(size(newIdx,1),1); end
+                    if numel(newCoeff)==1; newCoeff = newCoeff * ones(size(newIdx,1),1); end
 
                     % Fail if nonequally sized arrays are paired; This cannot be done
                     if size(newVal,1) ~= size(newIdx,1)
@@ -70,6 +78,7 @@ classdef StaticsInitializer < handle
 
                     indices = [indices; newIdx]; % cat indices
                     values  = [values ; newVal]; % cat values
+                    coeffs  = [coeffs ; newCoeff]; % cat fade coefficients
                 end
             end
 
@@ -89,17 +98,27 @@ classdef StaticsInitializer < handle
         end
 
         % Adds a pair of statics
-        function addStatics(obj, indices, values)
+        function addStatics(obj, indices, values, coeffs)
             obj.indexSet{end+1} = indices;
             obj.valueSet{end+1} = values;
+            if nargin == 3
+                obj.coeffSet{end+1} = 1;
+            else
+                obj.coeffSet{end+1} = coeffs;
+            end
         end
 
-        function associateStatics(obj, varID, component, fieldID, indexNum, valueNum)
+        function associateStatics(obj, varID, component, fieldID, indexNum, valueNum, coeffNum)
             vmap = obj.mapVaridToIdx(varID, component);
 
             obj.arrayStatics{vmap}.arrayField(end+1) = fieldID;
             obj.arrayStatics{vmap}.indexId(end+1)    = indexNum;
             obj.arrayStatics{vmap}.valueId(end+1)    = valueNum;
+            if nargin == 6
+                obj.arrayStatics{vmap}.coeffId(end+1) = 0;
+            else
+                obj.arrayStatics{vmap}.coeffId(end+1)    = coeffNum;
+            end
 
             obj.readyForReadout = 0;
         end

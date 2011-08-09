@@ -60,12 +60,13 @@ end
 if order == 1; i0 = 1; else; i0 = 5; end
 
 for i = i0:(i0+3)
-    if (rots(i) > 0) && (run.useGPU == true); xchgIndices(mass, mom, ener, mag, grav, rots(i)); end
+%    if (rots(i) > 0) && (run.useGPU == true); xchgIndices(mass, mom, ener, mag, grav, rots(i)); end
     if run.fluid.ACTIVE && fdir(i) > 0;
-    %    fprintf('Order, flux dir: %i %i\n', order, fdir(i));
+        if run.useGPU == true; xchgIndices(mass, mom, ener, mag, grav, fdir(i)); end
 	relaxingFluid(run, mass, mom, ener, mag, grav, fdir(i));
+        if run.useGPU == true; xchgIndices(mass, mom, ener, mag, grav, fdir(i)); end
     end
-    %if run.magnet.ACTIVE; magnetFlux(run, mass, mom, mag, directVec(n), magneticIndices(n,:)); end
+    if run.magnet.ACTIVE; magnetFlux(run, mass, mom, mag, fdir(i) , magneticIndices(:,i)); end
 end
 
 %    case 1

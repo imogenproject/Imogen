@@ -4,7 +4,7 @@ function [const res] = sTransform(X, u, dx, nwaves)
 % dx: the cell spacing
 % nwaves: How many terms in the multiexponential.
 
-p0 = u(1);
+p0 = 10000;
 
 for a = 2:numel(u)
 	if u(a) < .5*p0; p0 = 1/X(a); break; end

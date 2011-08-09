@@ -13,14 +13,14 @@ classdef ImogenArray < handle
         bcModes;        % Boundary condition types for each direction.              cell(2,3)
         bcInfinity;     % Number of cells to infinity for edges.                    int
         edgeStore;      % Stored edge values for shifting.                          Edges
-        staticActive;   % Determines if statics should be applied.                  logical
-        staticVals;     % Values for static array indices.                          double(? < 256)
-        staticIndices;  % Indices of staticVals used by StaticArray.                int(? < 256)
-	staticX; % Used to recompute linear indices upon index interchange
-	staticY;
-	staticZ;
 
-        edgeshifts;     % Handles to shifting fucntions for each grid direction.    handle(2,3)
+        staticActive;   % Determines if statics should be applied.                  logical
+        staticValues;   % Values for static array indices.                          double
+        staticCoeffs;   % Coefficients used to determine how fast the array fades to the value double
+        staticIndices;  % Indices of staticValues used by StaticArray.                int
+        staticLinIndices;% The linear indexes into the array used to apply          int
+
+        edgeshifts;     % Handles to shifting functions for each grid direction.    handle(2,3)
         isZero;         % Specifies that the array is statically zero.              logical
     end %PROPERTIES
     
@@ -162,15 +162,6 @@ classdef ImogenArray < handle
             end
             
             if (obj.staticActive); obj.applyStatics(); end
-                %--- Zero any static cells ---%
-%                result = double(not(obj.staticArray)) .* result;
-
-                %--- Fill in static values by index ---%
- %               for i=1:length(obj.staticIndices)
-  %                 result = result +  obj.staticVals(obj.staticIndices(i)) ...
-   %                                         * double( (obj.staticArray == obj.staticIndices(i)) );
-    %            end
-%            end
         end
         
 %___________________________________________________________________________________________________ transparentEdge
@@ -214,6 +205,8 @@ classdef ImogenArray < handle
 % exchange places. Updates the array, all subarrays, and the static indices.
         function arrayIndexExchange(obj, toex, type)
 
+            if toex == 1; return; end
+
             l = [1 2 3];
             l(1)=toex; l(toex)=1;
 
@@ -232,9 +225,8 @@ classdef ImogenArray < handle
                 obj.staticIndices(:,2:4) = obj.staticIndices(:,[4 3 2]);
                 end
             end
-            % Do this the retarded slow way just to make 100% sure it can't possibly be wrong.
-           if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
-%            if type == 1; obj.array = 1.0*obj.array'; end
+
+            if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
 
         end
 
@@ -242,7 +234,13 @@ classdef ImogenArray < handle
 % Applies the static conditions for the ImogenArray to the data array. This method is called during
 % array assignment (set.array).
         function applyStatics(obj)
-            if numel(obj.staticVals > 0); obj.pArray(obj.staticIndices(:,1)) = obj.staticVals; end
+            if isa(obj.pArray,'double')
+                if numel(obj.staticValues > 0);
+                    obj.pArray(obj.staticIndices(:,1)) = obj.pArray(obj.staticIndices(:,1)) + obj.staticCoeffs.*(obj.staticValues - obj.pArray(obj.staticIndices(:,1)));
+                end
+            else
+                if numel(obj.staticValues > 0); cudaApplySpecials(obj.pArray, obj.staticLinIndices, obj.staticValues, obj.staticCoeffs, 4); end
+            end
         end
 
         
@@ -312,124 +310,31 @@ classdef ImogenArray < handle
         function readStatics(obj, statics)
             if isempty(statics); return; end
             
- %           if isfield(staticStruct,obj.id{1}) 
-                
                 %--- Flux array case ---%
                 if isa(obj,'FluxArray')
-                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
+                    [SI SV SC] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
                     obj.staticIndices = SI;
-                    obj.staticVals    = SV;
+                    obj.staticValues  = SV;
+                    obj.staticCoeffs  = SC;
 
                     if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
-%                    if isfield(staticStruct.(obj.id{1}), obj.id{2}) %FluxArray case
-%                        if isfield(staticStruct.(obj.id{1}).(obj.id{2}),'s')
-%                            if (obj.component > 0)
-%                                obj.populateStatics( ...
-%                                    staticStruct.(obj.id{1}).(obj.id{2}).s.(fields{obj.component}));
-%                            else
-%                                obj.populateStatics(staticStruct.(obj.id{1}).(obj.id{2}).s);
-%                            end
-%                        else    obj.populateStatics([]);    
-%                        end
-%                    else    obj.populateStatics([]);    
-%                    end
-                
                 %--- Primary array case ---%
                 else
-                    [SI SV] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
+                    [SI SV SC] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
                     obj.staticIndices = SI;
-                    obj.staticVals    = SV;
+                    obj.staticValues  = SV;
+                    obj.staticCoeffs  = SC;
 
                     if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
-%                    if isfield(staticStruct.(obj.id{1}),'s')
-%                        if (obj.component > 0)
-%                            if isfield(staticStruct.(obj.id{1}).s,fields{obj.component})
-%                                obj.populateStatics(staticStruct.(obj.id{1}).s.(fields{obj.component}));
-%                            else
-%                                obj.populateStatics([]);
-%                            end
-%                        else
-%                            obj.populateStatics(staticStruct.(obj.id{1}).s);
-%                        end
-%                    else
-%                        obj.populateStatics([]);
-%                    end
                 end
                 
-            %--- No statics specified ---%
-  %          else    obj.populateStatics([]);    
-  %          end
-            
-            %If statics is active, store the static Values
-%            if (obj.staticActive)% && isfield(staticStruct,'values'))
-%                obj.staticVals = staticStruct.values;
-                
-%                index = 0;
-%                obj.staticIndices = zeros(1,length(obj.staticVals));
- %               for i=1:length(obj.staticVals)
- %                   if any(any(any(obj.staticArray == i)))
- %                       index = index + 1;
- %                       obj.staticIndices(index) = i;
- %                   end
- %               end
- %               if (index > 0)
- %                   obj.staticIndices = obj.staticIndices(1:index);
- %               else    obj.populateStatics([]);    
- %               end
- %           else
- %               obj.populateStatics([]);
- %           end
         end
         
-%___________________________________________________________________________________________________ populateStatics
-% If statics is not empty, this method populates the staticArray property for the ImogenArray and
-% activates the staticActive property that lets the set.array method that statics should be used
-% when the array is updated.
-%>> statics     Array of static indices to be applied to object.                    uint8(Nx,Ny,Nz)
-        function populateStatics(obj,statics)
-
-            if isempty(statics)
-                obj.staticActive  = false;
-                obj.staticVals    = [];
-                obj.staticIndices = [];
-                return;
-            end
-
-            [indices values] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
-            
-            if  isempty(indices)
-                obj.staticActive  = false;
-                obj.staticVals    = [];
-                obj.staticIndices = [];
-            else
-                obj.staticActive  = true;
-                obj.staticVals    = values;
-                obj.staticIndices = indices;
-            end
-        end
-                
     end%PROTECTED
     
 %===================================================================================================
     methods (Static = true) %                                                       S T A T I C  [M]
         
-%___________________________________________________________________________________________________ assembleVectorArray
-% Assembles a vector of ImogenArray objects into a vector data array with vector components in the
-% first direction. This is used to support legacy functionality from the pre-OO forms of Imogen and
-% should eventually be removed.
-        function result = assembleVectorArray(objArray)
-            if isa(objArray(1).array,'double')
-                result = zeros( [ImogenManager.getInstance().gridSize 3] );
-            else
-                result = codistributed.zeros( [ImogenManager.getInstance().gridSize 3] , ...
-                                ParallelManager.getInstance().distribution);
-            end
-            
-            for i=1:3
-                result(:,:,:,i) = objArray(i).array;
-            end
-        end
-
 %___________________________________________________________________________________________________ zeroIt
 % Sets all values below the 1e-12 tolerance to zero on the input array.
 % inArray   Input array to be zeroed.                                                   double

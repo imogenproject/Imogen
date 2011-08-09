@@ -32,10 +32,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     init = 1;
   }
 
-  dim3 blocksize; blocksize.x = blocksize.y = blocksize.z = 8;
+  dim3 blocksize; blocksize.x = blocksize.y = 8; blocksize.z = 1;
   int numel; dim3 gridsize;
 
-  if( (nlhs != 1) || (nrhs != 2)) { mexErrMsgTxt("circshift operator is shifted = cudaShift(orig, [nx ny nz])"); }
+  if( (nlhs != 1) || (nrhs != 2)) { mexErrMsgTxt("circshift operator is shifted = cudaShift([nx ny nz], orig)"); }
   double *shiftamt = mxGetPr(prhs[0]);
   double **srcs = getGPUSourcePointers(prhs, 1, &numel, 1, gm);
 
@@ -54,7 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     case 3:
     gridsize.x = srcsize[0] / 8; if(gridsize.x * 8 < srcsize[0]) gridsize.x++;
     gridsize.y = srcsize[1] / 8; if(gridsize.x * 8 < srcsize[1]) gridsize.y++;
-    gridsize.z = srcsize[2] / 8; if(gridsize.x * 8 < srcsize[2]) gridsize.z++;
+    gridsize.z = 1;
     arrsize.x = srcsize[0]; arrsize.y = srcsize[1]; arrsize.z = srcsize[2];
 
     destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1, gm);
@@ -66,8 +66,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     gridsize.y = srcsize[1] / 8; if(gridsize.x * 8 < srcsize[1]) gridsize.y++;
     gridsize.z = 1; blocksize.z = 1;
     arrsize.x = srcsize[0]; arrsize.y = srcsize[1]; arrsize.z = 1;
-
-//intf("%i %i %i %i %i %i\n", gridsize.x, gridsize.y, arrsize.x, arrsize.y, shift.x, shift.y);
 
     destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1, gm);
     cukern_circshift2D<<<gridsize, blocksize>>>(srcs[0], destPtr[0], arrsize, shift);
@@ -88,34 +86,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 }
 
-//#define KERNEL_PREAMBLE int x = THREADLOOPS*(threadIdx.x + blockDim.x*blockIdx.x); if (x >= n) {return;} int imax; ((x+THREADLOOPS) > n) ? imax = n : imax = x + THREADLOOPS; for(; x < imax; x++)
-//#define KERNEL_PREAMBLE int x = threadIdx.x + blockDim.x*blockIdx.x; if (x >= n) { return; }
-
-// THIS KERNEL CALCULATES SOUNDSPEED 
 __global__ void cukern_circshift3D(double *in, double *out, dim3 dimension, dim3 shift)
 {
-int idxX = threadIdx.x + 8*blockIdx.x;
-int idxY = threadIdx.y + 8*blockIdx.y;
-int idxZ = threadIdx.z + 8*blockIdx.z;
+int idxXSrc = threadIdx.x + 8*blockIdx.x;
+int idxYSrc = threadIdx.y + 8*blockIdx.y;
+int idxZ = 0;
 
-if((idxX >= dimension.x) || (idxY >= dimension.y) || (idxZ >= dimension.z)) return;
+if((idxXSrc >= dimension.x) || (idxYSrc >= dimension.y)) return;
 
-idxX = (idxX + shift.x) % dimension.x;
-idxY = (idxY + shift.y) % dimension.y;
-idxZ = (idxZ + shift.z) % dimension.z;
+int idxXDest = (idxXSrc + shift.x) % dimension.x;
+int idxYDest = (idxYSrc + shift.y) % dimension.y;
 
-__shared__ double lblock[8][8][8];
+if (idxXDest < 0) idxXDest = idxXDest + dimension.x;
+if (idxYDest < 0) idxYDest = idxYDest + dimension.y;
 
-lblock[idxX][idxY][idxZ] = in[idxX + dimension.x*(idxY + dimension.y*idxZ)];
+__shared__ double lblock[8][8];
 
-__syncthreads();
+int idxZsrc = shift.z; if(idxZsrc < 0) idxZsrc += dimension.z;
 
-idxX = threadIdx.x + 8*blockIdx.x;
-idxY = threadIdx.y + 8*blockIdx.y;
-idxZ = threadIdx.z + 8*blockIdx.z;
+for (idxZ = 0; idxZ < dimension.z; idxZ++){
+    
+    lblock[threadIdx.x][threadIdx.y] = in[idxXSrc + dimension.x*(idxYSrc + dimension.y*idxZsrc)];
+    __syncthreads();
 
-out[idxX + dimension.x*(idxY + dimension.y*idxZ)] = lblock[idxX][idxY][idxZ];
-
+    out[idxXDest + dimension.x*(idxYDest + dimension.y*idxZ)] = lblock[threadIdx.x][threadIdx.y];
+    idxZsrc = ++idxZsrc % dimension.z;
+    __syncthreads();
+    
+    }
 }
 
 __global__ void cukern_circshift2D(double *in, double *out, dim3 dimension, dim3 shift)
@@ -137,7 +135,7 @@ __syncthreads();
 idxX = threadIdx.x + 8*blockIdx.x;
 idxY = threadIdx.y + 8*blockIdx.y;
 
-out[idxX + dimension.x*idxY] = lblock[threadIdx.x][threadIdx.y];
+out[idxX + dimension.x*idxY] = lblock[idxX][idxY];
 
 }
 
@@ -160,3 +158,4 @@ idxX = threadIdx.x + 8*blockIdx.x;
 out[idxX] = lblock[idxX];
 
 }
+
