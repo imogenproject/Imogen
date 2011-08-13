@@ -103,8 +103,10 @@ if(x >= addrMax) return; // If we get a very low resolution
 while(x < addrMax) {
   psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
   bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
+  Cs = (gam-1.0)*(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
+  if(Cs > 0.0) { ptot[x] = Cs; } else { ptot[x] = 0.0; } // Enforce positive semi-definiteness
+
   Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] )) + abs(px[x]/rho[x]);
-  ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
 
   if(Cs > CsMax) CsMax = Cs;
 
@@ -113,23 +115,20 @@ while(x < addrMax) {
 
 locBloc[threadIdx.x] = CsMax;
 
-// Now we need the max of the shared array to write back to the global C_f array
 __syncthreads();
 
-x = 2;
-addrMax = 1;
+if (threadIdx.x % 8 > 0) return; // keep one in 8 threads
 
-while(x <= BLOCKDIM) {
-  if(threadIdx.x % x != 0) return;
-
-  if(locBloc[threadIdx.x + addrMax] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + addrMax];
-
-  addrMax = x;
-  x *= 2;
+// Each searches the max of the nearest 8 points
+for(x = 1; x < 8; x++) {
+  if(locBloc[threadIdx.x+x] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x+x];
   }
-//if (threadIdx.x > 0) return;
-//CsMax = 0;
-//for(x = 0; x < 64; x++) { if(locBloc[x] > CsMax) CsMax = locBloc[x]; }
+
+// The last thread takes the max of these maxes
+if(threadIdx.x > 0) return;
+for(x = 8; x < BLOCKDIM; x+= 8) {
+  if(locBloc[threadIdx.x+x] > locBloc[0]) locBloc[0] = locBloc[threadIdx.x+x];
+  }
 
 freeze[blockIdx.x + gridDim.x*blockIdx.y] = locBloc[0];
 
@@ -153,8 +152,11 @@ if(x >= addrMax) return; // If we get a very low resolution
 
 while(x < addrMax) {
   psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
+
+  Cs = (gam-1.0)*(E[x] - psqhf/rho[x]);
+  if(Cs > 0.0) { ptot[x] = Cs; } else { ptot[x] = 0.0; }
+
   Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) )/rho[x] )) + abs(px[x]/rho[x]);
-  ptot[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]);
 
   if(Cs > CsMax) CsMax = Cs;
 
@@ -163,23 +165,24 @@ while(x < addrMax) {
 
 locBloc[threadIdx.x] = CsMax;
 
-// Now we need the max of the shared array to write back to the global C_f array
 __syncthreads();
 
-x = 2;
-addrMax = 1;
+if (threadIdx.x % 8 > 0) return; // keep one in 8 threads
 
-while(x <= BLOCKDIM) {
-  if(threadIdx.x % x != 0) return;
-
-  if(locBloc[threadIdx.x + addrMax] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x + addrMax];
-
-  addrMax = x;
-  x *= 2;
+// Each searches the max of the nearest 8 points
+for(x = 1; x < 8; x++) {
+  if(locBloc[threadIdx.x+x] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x+x];
   }
-//if (threadIdx.x > 0) return;
-//CsMax = 0;
-//for(x = 0; x < 64; x++) { if(locBloc[x] > CsMax) CsMax = locBloc[x]; }
+
+// The last thread takes the max of these maxes
+if(threadIdx.x > 0) return;
+for(x = 8; x < BLOCKDIM; x+= 8) {
+  if(locBloc[threadIdx.x+x] > locBloc[0]) locBloc[0] = locBloc[threadIdx.x+x];
+  }
+
+// NOTE: This is the dead-stupid backup if all else fails.
+//if(threadIdx.x > 0) return;
+//for(x = 1; x < GLOBAL_BLOCKDIM; x++)  if(locBloc[x] > locBloc[0]) locBloc[0] = locBloc[x];
 
 freeze[blockIdx.x + gridDim.x*blockIdx.y] = locBloc[0];
 

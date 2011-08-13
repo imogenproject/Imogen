@@ -147,14 +147,14 @@ dout[x] = sqrt(abs( (gg1*(E[x] - .5*(px[x]*px[x] + py[x]*py[x] + pz[x]*pz[x])/rh
 __global__ void cukern_GasPressure(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *dout, double gam, int n)
 {
 KERNEL_PREAMBLE
-dout[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x] + bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]));
+dout[x] = (gam-1.0)*(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x] + bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]));
 }
 
 // THIS KERNEL CALCULATES TOTAL PRESSURE
 __global__ void cukern_TotalPressure(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *dout, double gam, int n)
 {
 KERNEL_PREAMBLE
-dout[x] = (gam-1.0)*abs(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x])) + .5*(2.0-gam)*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
+dout[x] = (gam-1.0)*(E[x] - .5*((px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x])/rho[x])) + .5*(2.0-gam)*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
 }
 
 // THIS KERNEL CALCULATES MAGNETIC PRESSURE
@@ -173,7 +173,7 @@ KERNEL_PREAMBLE {
 	psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
 	bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
 	
-	total[x] = (gam-1.0)*abs(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
+	total[x] = (gam-1.0)*(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
 	sound[x]   = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] ));
 	}
 }

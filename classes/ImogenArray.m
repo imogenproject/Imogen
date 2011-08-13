@@ -226,6 +226,7 @@ classdef ImogenArray < handle
                 end
             end
 
+            if numel(obj.staticValues > 0); obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1); end;
             if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
 
         end
@@ -239,7 +240,7 @@ classdef ImogenArray < handle
                     obj.pArray(obj.staticIndices(:,1)) = obj.pArray(obj.staticIndices(:,1)) + obj.staticCoeffs.*(obj.staticValues - obj.pArray(obj.staticIndices(:,1)));
                 end
             else
-                if numel(obj.staticValues > 0); cudaApplySpecials(obj.pArray, obj.staticLinIndices, obj.staticValues, obj.staticCoeffs, 4); end
+                if numel(obj.staticValues > 0); cudaStatics(obj.pArray, obj.staticLinIndices, obj.staticValues, obj.staticCoeffs, 4); end
             end
         end
 
@@ -326,6 +327,12 @@ classdef ImogenArray < handle
                     obj.staticCoeffs  = SC;
 
                     if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
+                end
+
+                if (obj.pRunManager.useGPU == true) && obj.staticActive
+                    obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1);
+                    obj.staticValues = GPUdouble(obj.staticValues);
+                    obj.staticCoeffs = GPUdouble(obj.staticCoeffs);
                 end
                 
         end

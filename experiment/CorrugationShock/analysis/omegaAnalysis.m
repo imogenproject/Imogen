@@ -2,10 +2,9 @@ function omegaAnalysis(analysis, fsize)
 
 if nargin == 1; fsize = 16; end
 
-vinv = 1 / analysis.equil.vel(1,1);
+vinv = 1 / norm(analysis.equil.vel(:,1));
 
 hold off; 
-
 subplot(1,2,1);
 
 plot(vinv*imag(analysis.omega.fromdrho2)./analysis.kyValues,'r','DisplayName','drho post');

@@ -86,6 +86,11 @@ cudaShift: cudaShift.cu cudaCommon
 	mex $(MEX_OPTS) $(MEX_INCL) cudaShift.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaShift $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaShift.cpp
 
+cudaStatics: cudaStatics.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaStatics.cu -o cudaStatics.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaStatics.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaStatics $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaStatics.cpp
+
 cudaMHDKernels: cudaMHDKernels.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)

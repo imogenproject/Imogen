@@ -61,12 +61,20 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
+%dbstop in relaxingFluid.m at 38
+%dbstop in relaxingFluid.m at 54
+%dbstop in relaxingFluid.m at 83
+%dbstop in relaxingFluid.m at 115
+%dbstop in TimeManager.m at 70
+%dbstop in imogen.m at 86
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
+%fprintf('Step %i\n', run.time.iteration);
         %run.time.updateUI();
         
         for i=1:2 % Two timesteps per iteration
+%fprintf('Direction %i\n', i);
             run.time.update(mass, mom, ener, mag, i);
             flux(run, mass, mom, ener, mag, grav, direction(i));
 % change this to 'fluxB' for devel work

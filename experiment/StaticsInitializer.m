@@ -15,7 +15,7 @@ classdef StaticsInitializer < handle
         valueSet; % Arrays of values to set statically             Cell[N]
         coeffSet; % Arrays of coefficients to set [must match dimensions of corresponding value set]
 
-        arrayStatics; % Cell array with one cell per simulation var Cell[5];
+        arrayStatics; % Cell array with one cell per simulation var Cell[8];
         % WARNING: THIS MUST BE THE SAME SIZE AS THE NUMBER OF SIMULATION VARIABLES
 
     end %PUBLIC
@@ -59,8 +59,10 @@ classdef StaticsInitializer < handle
 
             for x = 1:numel(AS.arrayField) % For each static defined for this variable
                 if AS.arrayField(x) == fieldId % If it applies to the requested field
+
                     newIdx   = obj.indexSet{AS.indexId(x)};
                     newVal   = obj.valueSet{AS.valueId(x)};
+
                     if AS.coeffId(x) == 0
                         newCoeff = 1;
                     else
@@ -73,7 +75,7 @@ classdef StaticsInitializer < handle
 
                     % Fail if nonequally sized arrays are paired; This cannot be done
                     if size(newVal,1) ~= size(newIdx,1)
-                    error(sprintf('Unrecoverable error preparing statics; numel(index set %i) = %i but numel(value set %i) = %i.\n', x, size(obj.indexSet{x},1), x, numel(obj.valueSet{x})));
+                    error(sprintf('Unrecoverable error preparing statics; numel(index set %i) = %i but numel(value set %i) = %i.\n', x, size(newIdx,1), x, numel(newVal)));
                     end
 
                     indices = [indices; newIdx]; % cat indices
@@ -108,6 +110,7 @@ classdef StaticsInitializer < handle
             end
         end
 
+        % Maps a set of indices, values and fade rate coefficients to a variable
         function associateStatics(obj, varID, component, fieldID, indexNum, valueNum, coeffNum)
             vmap = obj.mapVaridToIdx(varID, component);
 
@@ -121,6 +124,80 @@ classdef StaticsInitializer < handle
             end
 
             obj.readyForReadout = 0;
+        end
+
+        %%% === Utility functions === %%%
+
+        function setFluid_allconstantBC(obj, mass, ener, mom, facenumber)
+            obj.setConstantBC(ENUM.MASS, ENUM.SCALAR,   obj.CELLVAR, mass, facenumber);
+            obj.setConstantBC(ENUM.ENER, ENUM.SCALAR,   obj.CELLVAR, ener, facenumber);
+            obj.setConstantBC(ENUM.MOM, ENUM.VECTOR(1), obj.CELLVAR, squeeze(mom(1,:,:,:)), facenumber);
+            obj.setConstantBC(ENUM.MOM, ENUM.VECTOR(2), obj.CELLVAR, squeeze(mom(2,:,:,:)), facenumber);
+            if size(mom,4) > 1
+                obj.setConstantBC(ENUM.MOM, ENUM.VECTOR(3), ENUM.CELLVAR, squeeze(mom(3,:,:,:)), facenumber);
+            end
+
+        end
+
+        function setConstantBC(obj, varID, component, fieldID, array, facenumber)
+            vmap = obj.mapVaridToIdx(varID, component);
+
+            xset=[]; yset=[]; zset=[];
+
+            switch(facenumber)
+                case 1; xset=1:2;
+                        yset=1:size(array,2); zset=1:size(array,3); % minus X
+                case 2; xset=(size(array,1)-1):size(array,1);
+                        yset=1:size(array,2); zset=1:size(array,3);% plux  X
+
+                case 3; xset=1:size(array,1); % minus Y
+                        yset=1:2; zset=1:size(array,3);
+                case 4; xset=1:size(array,1); % plus  Y
+                        yset=(size(array,2)-1):size(array,2); zset=1:size(array,3);
+                case 5; xset=1:size(array,1); yset=1:size(array,2); % minus Z
+                        zset=1:2;
+                case 6; xset=1:size(array,1); yset=1:size(array,2); % plus  Z
+                        zset=(size(array,3)-1):size(array,3);
+            end
+
+            inds = indexSet(size(array), xset, yset, zset);
+
+            obj.addStatics(inds, array(inds(:,1)));
+
+            obj.associateStatics(varID, component, fieldID, numel(obj.indexSet), numel(obj.valueSet), numel(obj.coeffSet));
+        end
+
+        % DO NOT USE YET
+        function setFadeBC(obj, varID, component, array, facenumber, bcInfinity)
+            vmap = obj.mapVaridToIdx(varID, component);
+
+            xset=[]; yset=[]; zset=[];
+            coeff = [];
+
+            switch(facenumber)
+                case 1; xset=1:bcInfinity;
+                        coeff = ndgrid((bcInfinity:-1:1)/bcInfinity, ones([1 size(array,2)]));
+                        yset=1:size(array,2); zset=1:size(array,3); % minus X
+                case 2; xset=(size(array,1)-1):size(array,1);
+                        yset=1:size(array,2); zset=1:size(array,3);% plux  X
+
+                case 3; xset=1:size(array,1); % minus Y
+                        yset=1:2; zset=1:size(array,3);
+                case 4; xset=1:size(array,1); % plus  Y
+                        yset=(size(array,2)-1):size(array,2); zset=1:size(array,3);
+                case 5; xset=1:size(array,1); yset=1:size(array,2); % minus Z
+                        zset=1:2;
+                case 6; xset=1:size(array,1); yset=1:size(array,2); % plus  Z
+                        zset=(size(array,3)-1):size(array,3);
+            end
+
+            inds = indexSet(size(array), xset, yset, zset);
+
+            
+
+            obj.addStatics(inds, array(inds(:,1)), coeff(:));
+
+            obj.associateStatics(varID, component, fieldID, numel(obj.indexSet), numel(obj.valueSet), numel(obj.coeffSet));
         end
 
     end%PUBLIC

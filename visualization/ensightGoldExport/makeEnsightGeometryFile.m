@@ -1,4 +1,4 @@
-function makeGeometryFile(frameref, filename)
+function makeEnsightGeometryFile(frameref, filename)
 % This describes what the geometry file must output
 % This must be followed TO THE LETTER and that INCLUDES SPACES
 % See page 10 of Ensight Gold format PDF
@@ -39,7 +39,7 @@ else
     extents(6) = sum(frameref.dGrid{3}(1,1,:));
     isUniform  = 0;
 end
-extents
+
 %fwrite(GEOM, single(extents), 'float');
 
 % part - exactly 80 chars
@@ -49,7 +49,7 @@ fwrite(GEOM, charstr, 'char*1');
 
 % NO Number of nodes - 1 int
 %nnodes = prod(size(frameref.mass));
-fwrite(GEOM, [1], 'int');
+fwrite(GEOM, 1, 'int');
 
 if isUniform % Easy-peasy
     % description line - exactly 80 chars
@@ -92,9 +92,7 @@ else
     if numel(kvec) ~= size(frameref.mass,3)
         kvec = (1:size(frameref.mass, 3))*frameref.dGrid{3}(1);
     end
-    numel(ivec)
-    numel(jvec)
-    numel(kvec)
+
     fwrite(GEOM, ivec, 'float');
     fwrite(GEOM, jvec, 'float');
     fwrite(GEOM, kvec, 'float');

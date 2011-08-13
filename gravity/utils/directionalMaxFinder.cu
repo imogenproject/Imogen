@@ -24,7 +24,7 @@ __global__ void cukern_GlobalMax(double *din, int n, double *dout);
 __global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, double *py, double *pz, int n, double *dout, int *dirOut);
 
 #define BLOCKDIM 8
-#define GLOBAL_BLKDIM 128
+#define GLOBAL_BLOCKDIM 128
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // At least 2 arguments expected
@@ -121,22 +121,26 @@ switch(nrhs) {
     for(numel = 1; numel < gridsize.x; numel++) { if(maxes[numel] > d[0]) d[0] = maxes[numel];  }
   } break;
   case 5: {
+    // Get input arrays: [rho, c_s, px, py, pz]
     int numel;
     double **arraysIn = getGPUSourcePointers(prhs, 5, &numel, 0, gm);
 
     dim3 blocksize, gridsize;
-    blocksize.x = GLOBAL_BLKDIM; blocksize.y = blocksize.z = 1;
+    blocksize.x = GLOBAL_BLOCKDIM; blocksize.y = blocksize.z = 1;
 
-//    gridsize.x = numel / 256; if(gridsize.x * 256 < numel) gridsize.x++;
+    // Launches enough blocks to fully occupy the GPU
     gridsize.x = 64;
     gridsize.y = gridsize.z =1;
 
+    // Allocate space for each block to print its max into
     double *blkA; int *blkB;
     cudaMalloc(&blkA, gridsize.x * sizeof(double));
     cudaMalloc(&blkB, gridsize.x * sizeof(int));
 
+    // Searches (blockdim*griddim) at a time until getting to the end.
     cukern_GlobalMax_forCFL<<<gridsize, blocksize>>>(arraysIn[0], arraysIn[1], arraysIn[2], arraysIn[3], arraysIn[4], numel, blkA, blkB);
 
+    // Copy the result back to the CPU for final analysis of the 64 potential maxima
     double maxes[gridsize.x]; int maxIndices[gridsize.x];
     cudaMemcpy(&maxes[0], blkA, sizeof(double)*gridsize.x, cudaMemcpyDeviceToHost);
     cudaMemcpy(&maxIndices[0], blkB, sizeof(int)*gridsize.x, cudaMemcpyDeviceToHost);
@@ -260,8 +264,8 @@ __global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, dou
 
 int x = blockIdx.x * blockDim.x + threadIdx.x;
 // In the end threads must share their maxima and fold them in logarithmically
-__shared__ double locBloc[GLOBAL_BLKDIM];
-__shared__ int locDir[GLOBAL_BLKDIM];
+__shared__ double locBloc[GLOBAL_BLOCKDIM];
+__shared__ int locDir[GLOBAL_BLOCKDIM];
 
 // Threadwise: The largest sound speed and it's directional index yet seen; Local comparision direction.
 // temporary float values used to evaluate each cell
@@ -303,25 +307,25 @@ locDir[threadIdx.x] = IndMax;
 // Now we need the max of the stored shared array to write back to the global array
 __syncthreads();
 
-x = 2;
-while(x < GLOBAL_BLKDIM) {
-  if(threadIdx.x % x != 0) return;
+if (threadIdx.x % 8 > 0) return; // keep one in 8 threads
 
-  if(locBloc[threadIdx.x + x/2] > locBloc[threadIdx.x]) {
-	locBloc[threadIdx.x] = locBloc[threadIdx.x + x/2];
-	locDir[threadIdx.x] = locDir[threadIdx.x + x/2];
-	}
-
-  x *= 2;
+// Each searches the max of the nearest 8 points
+for(x = 1; x < 8; x++) {
+  if(locBloc[threadIdx.x+x] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x+x];
   }
 
-__syncthreads();
+// The last thread takes the max of these maxes
+if(threadIdx.x > 0) return;
+for(x = 8; x < GLOBAL_BLOCKDIM; x+= 8) {
+  if(locBloc[threadIdx.x+x] > locBloc[0]) locBloc[0] = locBloc[threadIdx.x+x];
+  }
 
-if(threadIdx.x == 0) {
-	dout[blockIdx.x] = locBloc[0];
-	dirOut[blockIdx.x] = locDir[0];
-	}
+// NOTE: This is the dead-stupid backup if all else fails.
+//if(threadIdx.x > 0) return;
+//for(x = 1; x < GLOBAL_BLOCKDIM; x++)  if(locBloc[x] > locBloc[0]) locBloc[0] = locBloc[x];
 
+dout[blockIdx.x] = locBloc[0];
+dirOut[blockIdx.x] = locDir[0];
 
 }
 

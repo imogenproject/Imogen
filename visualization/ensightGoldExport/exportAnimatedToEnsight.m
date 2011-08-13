@@ -16,6 +16,8 @@ if nargin < 4
     if timeNormalization == 0; timeNormalization = 1; end;
 end
 
+pertonly = input('Export perturbed quantities (1) or full (0)? ');
+
 %--- Initialization ---%
 fprintf('Beginning export of %i files\n', numel(range));
 exportedFrameNumber = 0;
@@ -27,6 +29,8 @@ range = removeNonexistantEntries(inBasename, padlength, range);
 maxFrameno = max(range);
 
 if nargin == 4; timeNormalization = 1; end;
+
+equilframe = [];
 
 %--- Loop over given frame range ---%
 for ITER = 1:numel(range)
@@ -49,10 +53,18 @@ for ITER = 1:numel(range)
     structName = who('sx_*');
     structName = structName{1};
 
+    if ITER == 1
+        eval(sprintf('equilframe = %s', structName));
+    end
+
     eval(sprintf('dataframe = %s;', structName));
     clear -regexp 'sx_';
     
-    writeEnsightDatafiles(outBasename, exportedFrameNumber, dataframe) 
+    if pertonly == 1
+        dataframe = subtractEquil(dataframe, equilframe);
+    end
+
+    writeEnsightDatafiles(outBasename, exportedFrameNumber, dataframe);
     if range(ITER) == maxFrameno
         writeEnsightMasterFiles(outBasename, range, dataframe, timeNormalization);
     end
@@ -62,6 +74,19 @@ for ITER = 1:numel(range)
 end
 
 end
+
+function out = subtractEquil(in, eq)
+out = in;
+
+out.mass = in.mass - eq.mass;
+out.ener = in.ener - eq.ener;
+out.momX = in.momX - eq.momX;
+out.momY = in.momY - eq.momY;
+out.magX = in.magX - eq.magX;
+out.magY = in.magY - eq.magY;
+
+end
+
 
 function newrange = removeNonexistantEntries(inBasename, padlength, range)
 

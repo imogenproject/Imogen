@@ -66,7 +66,7 @@ for i = i0:(i0+3)
 	relaxingFluid(run, mass, mom, ener, mag, grav, fdir(i));
         if run.useGPU == true; xchgIndices(mass, mom, ener, mag, grav, fdir(i)); end
     end
-    if run.magnet.ACTIVE; magnetFlux(run, mass, mom, mag, fdir(i) , magneticIndices(:,i)); end
+    if run.magnet.ACTIVE && fdir(i) > 0; magnetFlux(run, mass, mom, mag, fdir(i) , mdir(:,i)); end
 end
 
 %    case 1

@@ -72,7 +72,7 @@ if run.useGPU
                 mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
                 pressa, ...
                 mass.array, ener.array, mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
-                freezea, fluxFactor, 0);
+                freezea, fluxFactor, run.pureHydro);
 
     mass.applyStatics();
     ener.applyStatics();
@@ -108,7 +108,7 @@ else
         v(i).cleanup();
     end
 
-    mass.store.array = max(mass.store.array, run.fluid.MINMASS);
+    mass.array = max(mass.array, run.fluid.MINMASS);
 
     run.fluid.freezeSpdTVD(X).cleanup();
 
