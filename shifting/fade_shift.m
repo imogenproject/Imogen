@@ -24,7 +24,7 @@ function result = fade_shift(array, DIRECT, n, obj)
     coeffSize               = ones(1,NSize);    coeffSize(DIRECT) = fadeSize;
     coeff                   = zeros(coeffSize);
     coeffIndex              = num2cell(ones(1,NSize));    coeffIndex{DIRECT} = 1:fadeSize;
-    coeff(coeffIndex{:})    = pchip([0 ceil(fadeSize/4) round(fadeSize/2) (fadeSize-1) fadeSize], [1 1 .1 0 0], 1:fadeSize);
+    coeff(coeffIndex{:})    = pchip([0 ceil(fadeSize/4) round(fadeSize/2) (fadeSize-1) fadeSize], [1 1 .01 0 0], 1:fadeSize);
     repMat                  = N;    repMat(DIRECT) = 1;
     coeff                   = repmat(coeff,repMat);
     

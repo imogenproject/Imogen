@@ -213,16 +213,16 @@ classdef ImogenArray < handle
             if numel(obj.staticIndices) > 0
                 ad = obj.gridSize(l);
                 if toex == 2
+                obj.staticIndices(:,2:4) = obj.staticIndices(:,[3 2 4]);
                 obj.staticIndices(:,1)   = obj.staticIndices(:,3) + ...
                                           (obj.staticIndices(:,2)-1)*ad(1) + ...
                                           (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
-                obj.staticIndices(:,2:4) = obj.staticIndices(:,[3 2 4]);
                 end
                 if toex == 3
+                obj.staticIndices(:,2:4) = obj.staticIndices(:,[4 3 2]);
                 obj.staticIndices(:,1)   = obj.staticIndices(:,4) + ...
                                           (obj.staticIndices(:,3)-1)*ad(1) + ...
                                           (obj.staticIndices(:,2)-1)*ad(1)*ad(2);
-                obj.staticIndices(:,2:4) = obj.staticIndices(:,[4 3 2]);
                 end
             end
 

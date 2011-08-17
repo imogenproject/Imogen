@@ -204,21 +204,22 @@ classdef CorrugationShockInitializer < Initializer
             %       Mass density gets perturbed in the pre-shock region just before the shock front
             %       to seed the formation of the instability.
             delta       = ceil(0.12*obj.grid(1));
-            seedIndices = { (half(1)-10):(half(1)-1), 1:obj.grid(2), 1:obj.grid(3) };
+            seedIndices = { (half(1)-20):(half(1)-11), 1:obj.grid(2), 1:obj.grid(3) };
             
             switch (obj.perturbationType)
                 
                 % RANDOM Seeds ____________________________________________________________________
                 case CorrugationShockInitializer.RANDOM
                     phase = 2*pi*rand(10,obj.grid(2), obj.grid(3));
-                    amp   = obj.seedAmplitude*rand(1,obj.grid(2), obj.grid(3));
+                    amp   = obj.seedAmplitude*ones(1,obj.grid(2), obj.grid(3))*obj.grid(2)*obj.grid(3);
 
                     amp(:,max(4, obj.randomSeed_spectrumLimit):end,:) = 0;
                     amp(:,:,max(4, obj.randomSeed_spectrumLimit):end) = 0;
+                    amp(:,1,1) = 0; % no common-mode seed
 
                     perturb = zeros(10, obj.grid(2), obj.grid(3));
                     for xp = 1:size(perturb,1)
-                        perturb(xp,:,:) = sin(xp*2*pi/10)^2 * real(ifft(squeeze(amp(1,:,:).*exp(1i*phase(1,:,:)))));
+                        perturb(xp,:,:) = sin(xp*2*pi/20)^2 * real(ifft(squeeze(amp(1,:,:).*exp(1i*phase(1,:,:)))));
                     end
 
 

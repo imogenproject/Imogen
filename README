@@ -4,7 +4,8 @@ equations of compressible ideal MHD using a TVD method that is second order in s
 Simulations are started from the run/ directory, normally in the form
   ./imogen runfile_Name.m number &
 where 'number' causes output to be directed to ~/Results/logfile_number.out and the & detaches the
-simulation from the console.
+simulation from the console. Output will be stored in ~/Results/MONTH_YY in a simulation-dependent
+directory.
 
 === GPU support
 
@@ -13,3 +14,4 @@ any such computer with a supported nVidia GPU (compute capability >= 1.3) throug
 
 In order to use the GPU features, one must have GPUmat installed and working and also use the
 nVidia CUDA toolkit to compile the kernels in gravity/utils [where they sit for historical reasons].
+

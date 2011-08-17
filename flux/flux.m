@@ -33,7 +33,6 @@ function flux(run, mass, mom, ener, mag, grav, order)
     %===============================================================================================
 		for n=1:3
             if (mass.gridSize(directVec(n)) < 3), continue; end
-			
 			run.parallel.redistributeArrays(directVec(n));
             
 			if run.fluid.ACTIVE
@@ -48,7 +47,6 @@ function flux(run, mass, mom, ener, mag, grav, order)
     %===============================================================================================
 		for n=1:3
             if (mass.gridSize(directVec(n)) < 3), continue; end
-            
 			run.parallel.redistributeArrays(directVec(n));
 			
 			if run.magnet.ACTIVE
