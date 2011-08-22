@@ -113,7 +113,12 @@ methods (Access = public)
                 xpre = round(xd/2 - xd/6):round(xd/2 - 6);
                 xpost = round(xd/2 + 6):round(xd/2 + xd/6);
 
-                obj.gridXvals = cumsum(dataframe.dGrid{1}(:,1,1));
+                if numel(dataframe.dGrid{1}) > 1
+                    obj.gridXvals = cumsum(dataframe.dGrid{1}(:,1,1));
+                else
+                    obj.gridXvals = (1:size(dataframe.mass,1))' * dataframe.dGrid{1};
+                end
+                
 
                 if size(dataframe.mass,3) == 1; obj.is2d = true; else; obj.is2d = false; end
 

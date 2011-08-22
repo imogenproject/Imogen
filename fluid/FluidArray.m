@@ -65,7 +65,7 @@ classdef FluidArray < ImogenArray
                 obj.distribute(run.parallel.distribution);
                 run.parallel.registerForRedistribution(obj);
             end
-            
+
         end
         
 %___________________________________________________________________________________________________ cleanup

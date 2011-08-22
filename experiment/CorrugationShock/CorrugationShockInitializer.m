@@ -241,8 +241,19 @@ classdef CorrugationShockInitializer < Initializer
                           'Uknown perturbation type. Aborted run.');
             end
             mass(seedIndices{:}) = squeeze( mass(seedIndices{:}) ) + perturb; %Add seed to mass.
-        end
         
+            if obj.useGPU == true
+                statics = StaticsInitializer(); 
+
+                statics.setFluid_allFadeBC(mass, ener, mom, 1, 25);
+                statics.setMag_allFadeBC(mag, 1, 25);
+
+                statics.setFluid_allFadeBC(mass, ener, mom, 2, 25);
+                statics.setMag_allFadeBC(mag, 2, 25);
+            end
+        end
+
+
     end%PROTECTED
         
 %===================================================================================================    

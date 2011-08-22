@@ -22,6 +22,8 @@ classdef ImogenArray < handle
 
         edgeshifts;     % Handles to shifting functions for each grid direction.    handle(2,3)
         isZero;         % Specifies that the array is statically zero.              logical
+
+        indexGriddim;
     end %PROPERTIES
     
 %===================================================================================================
@@ -35,7 +37,7 @@ classdef ImogenArray < handle
         pFadesValue;    % Values to use for each of the fade objects.               double
         pUninitialized; % Specifies if obj has been initialized.                    bool
     end %PROPERTIES
-    
+   
 %===================================================================================================
     properties (Dependent = true) %                                            D E P E N D E N T [P]
         gridSize;       % Size of the data array.                                   int(3)
@@ -207,22 +209,22 @@ classdef ImogenArray < handle
 
             if toex == 1; return; end
 
-            l = [1 2 3];
-            l(1)=toex; l(toex)=1;
-
+            l = [toex 2 3]; l(toex) = 1;
+            obj.indexGriddim = obj.indexGriddim(l);
+            
             if numel(obj.staticIndices) > 0
-                ad = obj.gridSize(l);
+                ad = obj.indexGriddim;
                 if toex == 2
                 obj.staticIndices(:,2:4) = obj.staticIndices(:,[3 2 4]);
-                obj.staticIndices(:,1)   = obj.staticIndices(:,3) + ...
-                                          (obj.staticIndices(:,2)-1)*ad(1) + ...
+                obj.staticIndices(:,1)   = obj.staticIndices(:,2) + ...
+                                          (obj.staticIndices(:,3)-1)*ad(1) + ...
                                           (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
                 end
                 if toex == 3
                 obj.staticIndices(:,2:4) = obj.staticIndices(:,[4 3 2]);
-                obj.staticIndices(:,1)   = obj.staticIndices(:,4) + ...
+                obj.staticIndices(:,1)   = obj.staticIndices(:,2) + ...
                                           (obj.staticIndices(:,3)-1)*ad(1) + ...
-                                          (obj.staticIndices(:,2)-1)*ad(1)*ad(2);
+                                          (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
                 end
             end
 
@@ -334,7 +336,7 @@ classdef ImogenArray < handle
                     obj.staticValues = GPUdouble(obj.staticValues);
                     obj.staticCoeffs = GPUdouble(obj.staticCoeffs);
                 end
-                
+
         end
         
     end%PROTECTED

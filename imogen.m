@@ -48,7 +48,13 @@ function imogen(icfile)
         mom(i) = FluidArray(ENUM.VECTOR(i), ENUM.MOM, momDen(i,:,:,:), run, statics);
         mag(i) = MagnetArray(ENUM.VECTOR(i), ENUM.MAG, magnet(i,:,:,:), run, statics);
     end
-    
+
+    s = {mass, ener, mom(1), mom(2), mom(3), mag(1), mag(2), mag(3)};
+    for i = 1:8
+       s{i}.indexGriddim = s{i}.gridSize;
+       if i < 6; s{i}.store.indexGriddim = s{i}.gridSize; end
+    end
+
     %--- Pre-loop actions ---%
     run.fluid.createFreezeArray(statics);
     clear('massDen','momDen','enerDen','magnet','ini','statics');    
@@ -66,7 +72,10 @@ function imogen(icfile)
 %dbstop in relaxingFluid.m at 83
 %dbstop in relaxingFluid.m at 115
 %dbstop in TimeManager.m at 70
-dbstop in imogen.m at 87
+%dbstop in imogen.m at 88
+%dbstop in ImogenArray.m at 229
+%dbstop in ImogenArray.m at 212
+
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running

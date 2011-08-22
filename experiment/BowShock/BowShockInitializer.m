@@ -127,7 +127,7 @@ classdef BowShockInitializer < Initializer
             obj.minMass = min(obj.ballRho, obj.bgRho) / 100;
 
             % set background values for momentum
-            fastedge = round(obj.ballCenter(1) - obj.ballCells(1)-100);
+            fastedge = max(round(obj.ballCenter(1) - obj.ballCells(1)-100), 16);
             mom(1, 1:fastedge,:,:) = obj.bgVx * obj.bgRho;
             mom(1, fastedge:end,1:round(obj.ballCenter(2)-obj.ballCells(1)-20),:) =  obj.bgVx * obj.bgRho;
             mom(1, fastedge:end,round(obj.ballCenter(2)+obj.ballCells(1)+20):end,:) =  obj.bgVx * obj.bgRho;
@@ -154,7 +154,7 @@ classdef BowShockInitializer < Initializer
                 obj.ballRho, ballMomRadial*xhat(ball), ballMomRadial*yhat(ball), ballMomRadial*zhat(ball), ballEner, obj.magX, obj.magY, obj.bgRho.^obj.gamma / (obj.gamma-1) };
 
             % Force a left-edge plane flow
-            statics.setFluid_allconstantBC(mass, ener, mom, 1);
+            statics.setFluid_allConstantBC(mass, ener, mom, 1);
 
         
             % Lock ball in place
@@ -186,7 +186,7 @@ classdef BowShockInitializer < Initializer
             %statics.associateStatics(ENUM.ENER, ENUM.SCALAR,    statics.CELLVAR, 3, 12);
 
             % Force constant on top edge
-            statics.setFluid_allconstantBC(mass, ener, mom, 4);
+            statics.setFluid_allConstantBC(mass, ener, mom, 4);
 %            statics.associateStatics(ENUM.MASS, ENUM.SCALAR,    statics.CELLVAR, 4, 2);
 %            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(1), statics.CELLVAR, 4, 3);
 %            statics.associateStatics(ENUM.MOM,  ENUM.VECTOR(2), statics.CELLVAR, 4, 1);
