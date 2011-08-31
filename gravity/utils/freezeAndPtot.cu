@@ -124,6 +124,8 @@ for(x = 1; x < 8; x++) {
   if(locBloc[threadIdx.x+x] > locBloc[threadIdx.x]) locBloc[threadIdx.x] = locBloc[threadIdx.x+x];
   }
 
+__syncthreads();
+
 // The last thread takes the max of these maxes
 if(threadIdx.x > 0) return;
 for(x = 8; x < BLOCKDIM; x+= 8) {

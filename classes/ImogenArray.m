@@ -232,7 +232,7 @@ classdef ImogenArray < handle
             if numel(obj.staticValues) > 0; obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1); end;
             if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
 
-            if strcmp(obj.id{1},'mag') && (numel(obj.id) == 1); obj.updateCellCentered(); end
+            %if strcmp(obj.id{1},'mag') && (numel(obj.id) == 1); obj.updateCellCentered(); end
 
         end
 

@@ -69,36 +69,24 @@ for i = i0:(i0+3)
     if run.magnet.ACTIVE && fdir(i) > 0; magnetFlux(run, mass, mom, mag, fdir(i) , mdir(:,i)); end
 end
 
-%    case 1
-%     1 2 3 3 2 1
-%     2 1 1 2 3 3
-%     3 3 2 1 1 2
-%    case 2
-%     3 1 2 1 3 2
-%     1 2 1 3 2 3
-%     2 3 3 2 1 1
-%    case 3
-%     2 3 1 2 1 3
-%     1 1 2 3 3 2
-%     3 2 3 1 2 1
-
 end
 
 function xchgIndices(mass, mom, ener, mag, grav, toex)
-
-s = { mass, ener, mom(1), mom(2), mom(3), mag(1), mag(2), mag(3) };
-
 l = [1 2 3];
 l(1)=toex; l(toex)=1;
 
-for i = 1:8
+s = { mass, ener, mom(1), mom(2), mom(3) };
+
+for i = 1:5
     s{i}.arrayIndexExchange(toex, 1);
-    if i < 6;
-      s{i}.store.arrayIndexExchange(toex, 0);
-    else;
-      s{i}.stores(1).arrayIndexExchange(toex, 0);
-      s{i}.stores(2).arrayIndexExchange(toex, 0);
-    end
+    s{i}.store.arrayIndexExchange(toex, 0);
 end
+
+s = {mag(1).cellMag, mag(2).cellMag, mag(3).cellMag};
+for i = 1:3
+    s{i}.arrayIndexExchange(toex, 1);
+%    s{i}.store.arrayIndexExchange(toex, 0);
+end
+
 
 end
