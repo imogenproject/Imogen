@@ -93,7 +93,12 @@ l(1)=toex; l(toex)=1;
 
 for i = 1:8
     s{i}.arrayIndexExchange(toex, 1);
-    if i < 6; s{i}.store.arrayIndexExchange(toex, 0); end
+    if i < 6;
+      s{i}.store.arrayIndexExchange(toex, 0);
+    else;
+      s{i}.stores(1).arrayIndexExchange(toex, 0);
+      s{i}.stores(2).arrayIndexExchange(toex, 0);
+    end
 end
 
 end

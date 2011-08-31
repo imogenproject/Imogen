@@ -206,6 +206,7 @@ classdef ImogenArray < handle
 % Flips the array and all associated subarrays such that direction i and the x (stride-of-1) direction
 % exchange places. Updates the array, all subarrays, and the static indices.
         function arrayIndexExchange(obj, toex, type)
+            if numel(obj.indexGriddim) < 3; obj.indexGriddim = obj.gridSize; end
 
             if toex == 1; return; end
 
@@ -228,8 +229,10 @@ classdef ImogenArray < handle
                 end
             end
 
-            if numel(obj.staticValues > 0); obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1); end;
+            if numel(obj.staticValues) > 0; obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1); end;
             if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
+
+            if strcmp(obj.id{1},'mag') && (numel(obj.id) == 1); obj.updateCellCentered(); end
 
         end
 
@@ -238,11 +241,11 @@ classdef ImogenArray < handle
 % array assignment (set.array).
         function applyStatics(obj)
             if isa(obj.pArray,'double')
-                if numel(obj.staticValues > 0);
+                if numel(obj.staticValues) > 0;
                     obj.pArray(obj.staticIndices(:,1)) = obj.pArray(obj.staticIndices(:,1)) + obj.staticCoeffs.*(obj.staticValues - obj.pArray(obj.staticIndices(:,1)));
                 end
             else
-                if numel(obj.staticValues > 0); cudaStatics(obj.pArray, obj.staticLinIndices, obj.staticValues, obj.staticCoeffs, 4); end
+                if numel(obj.staticValues) > 0; cudaStatics(obj.pArray, obj.staticLinIndices, obj.staticValues, obj.staticCoeffs, 8); end
             end
         end
 

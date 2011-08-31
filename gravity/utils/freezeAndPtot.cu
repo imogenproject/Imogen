@@ -19,7 +19,7 @@ static GPUmat *gm;
 
 #include "cudaCommon.h"
 
-__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int nx);
+__global__ void cukern_FreezeSpeed_mhd(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int nx);
 __global__ void cukern_FreezeSpeed_hydro(double *rho, double *E, double *px, double *py, double *pz, double gam, double *freeze, double *ptot, int nx);
 
 #define BLOCKDIM 64
@@ -75,7 +75,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     cukern_FreezeSpeed_hydro<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4],  *mxGetPr(prhs[8]), freezea, ret[0], arraySize.x);
 //                                                   (*rho,    *E,      *px,     *py,     *pz,      gam,              *freeze,  *ptot,  nx)
   } else {
-    cukern_FreezeSpeed<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], *mxGetPr(prhs[8]), freezea, ret[0], arraySize.x);
+    cukern_FreezeSpeed_mhd<<<gridsize, blocksize>>>(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], *mxGetPr(prhs[8]), freezea, ret[0], arraySize.x);
 //                                             (*rho,    *E,      *px,     *py,     *pz,     *bx,     *by,     *bz,     gam,              *freeze,  *ptot,  nx)
   }
   free(ret);
@@ -83,7 +83,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 }
 
-__global__ void cukern_FreezeSpeed(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int nx)
+__global__ void cukern_FreezeSpeed_mhd(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double gam, double *freeze, double *ptot, int nx)
 {
 /* gridDim = [ny nz], nx = nx */
 int x = threadIdx.x + nx*(blockIdx.x + gridDim.x*blockIdx.y);
@@ -103,11 +103,11 @@ if(x >= addrMax) return; // If we get a very low resolution
 while(x < addrMax) {
   psqhf = .5*(px[x]*px[x]+py[x]*py[x]+pz[x]*pz[x]);
   bsqhf = .5*(bx[x]*bx[x]+by[x]*by[x]+bz[x]*bz[x]);
+  // we calculate pressure.
   Cs = (gam-1.0)*(E[x] - psqhf/rho[x]) + (2.0-gam)*bsqhf;
   if(Cs > 0.0) { ptot[x] = Cs; } else { ptot[x] = 0.0; } // Enforce positive semi-definiteness
 
-  Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x]) + (4.0 - gg1)*bsqhf)/rho[x] )) + abs(px[x]/rho[x]);
-
+  Cs    = sqrt(abs( (gg1*(E[x] - psqhf/rho[x] - bsqhf) + 4*bsqhf)/rho[x] )) + abs(px[x]/rho[x]);
   if(Cs > CsMax) CsMax = Cs;
 
   x += BLOCKDIM;

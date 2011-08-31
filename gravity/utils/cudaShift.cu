@@ -23,6 +23,8 @@ __global__ void cukern_circshift3D(double *in, double *out, dim3 dimension, dim3
 __global__ void cukern_circshift2D(double *in, double *out, dim3 dimension, dim3 shift);
 __global__ void cukern_circshift1D(double *in, double *out, int dimension, int shift);
 
+#define BLOCK_DIMENSION 8
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (init == 0) {
     // Initialize function
@@ -32,7 +34,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     init = 1;
   }
 
-  dim3 blocksize; blocksize.x = blocksize.y = 8; blocksize.z = 1;
+  dim3 blocksize; blocksize.x = blocksize.y = BLOCK_DIMENSION; blocksize.z = 1;
   int numel; dim3 gridsize;
 
   if( (nlhs != 1) || (nrhs != 2)) { mexErrMsgTxt("circshift operator is shifted = cudaShift([nx ny nz], orig)"); }
@@ -52,8 +54,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   switch(ndims) {
     case 3:
-    gridsize.x = srcsize[0] / 8; if(gridsize.x * 8 < srcsize[0]) gridsize.x++;
-    gridsize.y = srcsize[1] / 8; if(gridsize.x * 8 < srcsize[1]) gridsize.y++;
+    gridsize.x = srcsize[0] / BLOCK_DIMENSION; if(gridsize.x * BLOCK_DIMENSION < srcsize[0]) gridsize.x++;
+    gridsize.y = srcsize[1] / BLOCK_DIMENSION; if(gridsize.y * BLOCK_DIMENSION < srcsize[1]) gridsize.y++;
     gridsize.z = 1;
     arrsize.x = srcsize[0]; arrsize.y = srcsize[1]; arrsize.z = srcsize[2];
 
@@ -62,8 +64,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     free(destPtr);
     break;
     case 2:
-    gridsize.x = srcsize[0] / 8; if(gridsize.x * 8 < srcsize[0]) gridsize.x++;
-    gridsize.y = srcsize[1] / 8; if(gridsize.x * 8 < srcsize[1]) gridsize.y++;
+    gridsize.x = srcsize[0] / BLOCK_DIMENSION; if(gridsize.x * BLOCK_DIMENSION < srcsize[0]) gridsize.x++;
+    gridsize.y = srcsize[1] / BLOCK_DIMENSION; if(gridsize.y * BLOCK_DIMENSION < srcsize[1]) gridsize.y++;
     gridsize.z = 1; blocksize.z = 1;
     arrsize.x = srcsize[0]; arrsize.y = srcsize[1]; arrsize.z = 1;
 
@@ -72,7 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     free(destPtr);
     break;
     case 1:
-    gridsize.x = srcsize[0] / 8; if(gridsize.x * 8 < srcsize[0]) gridsize.x++;
+    gridsize.x = srcsize[0] / BLOCK_DIMENSION; if(gridsize.x * BLOCK_DIMENSION < srcsize[0]) gridsize.x++;
     gridsize.y = 1; blocksize.y = 1;
     gridsize.z = 1; blocksize.z = 1;
     arrsize.x = srcsize[0]; arrsize.y = 1; arrsize.z = 1;
@@ -88,54 +90,67 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 __global__ void cukern_circshift3D(double *in, double *out, dim3 dimension, dim3 shift)
 {
-int idxXSrc = threadIdx.x + 8*blockIdx.x;
-int idxYSrc = threadIdx.y + 8*blockIdx.y;
+__shared__ double lBlock[BLOCK_DIMENSION][BLOCK_DIMENSION];
+
+int ctrZ;
+
+int idxX = threadIdx.x + BLOCK_DIMENSION*blockIdx.x;
+int idxY = threadIdx.y + BLOCK_DIMENSION*blockIdx.y;
 int idxZ = 0;
 
-if((idxXSrc >= dimension.x) || (idxYSrc >= dimension.y)) return;
+if((idxX >= dimension.x) || (idxY >= dimension.y)) return;
 
-int idxXDest = (idxXSrc + shift.x) % dimension.x;
-int idxYDest = (idxYSrc + shift.y) % dimension.y;
+int idxWrite = idxX + dimension.x * idxY;
 
-if (idxXDest < 0) idxXDest = idxXDest + dimension.x;
-if (idxYDest < 0) idxYDest = idxYDest + dimension.y;
+idxX = (idxX + shift.x); idxX += (idxX < 0)*dimension.x;
+idxY = (idxY + shift.y); idxY += (idxY < 0)*dimension.y;
 
-__shared__ double lblock[8][8];
+idxX = idxX % dimension.x;
+idxY = idxY % dimension.y;
 
-int idxZsrc = shift.z; if(idxZsrc < 0) idxZsrc += dimension.z;
+idxZ = shift.z; idxZ += (idxZ < 0)*dimension.z;
+idxZ = idxZ % dimension.z;
 
-for (idxZ = 0; idxZ < dimension.z; idxZ++){
-    
-    lblock[threadIdx.x][threadIdx.y] = in[idxXSrc + dimension.x*(idxYSrc + dimension.y*idxZsrc)];
+int idxRead = idxX + dimension.x * (idxY + dimension.y * idxZ);
+
+for(ctrZ = 0; ctrZ < dimension.z; ctrZ++) {
+    lBlock[threadIdx.x][threadIdx.y] = in[idxRead];
     __syncthreads();
 
-    out[idxXDest + dimension.x*(idxYDest + dimension.y*idxZ)] = lblock[threadIdx.x][threadIdx.y];
-    idxZsrc = ++idxZsrc % dimension.z;
+    out[idxWrite] = lBlock[threadIdx.x][threadIdx.y];
+
+    idxWrite += dimension.x*dimension.y;
+    idxRead  += dimension.x*dimension.y;
+    idxRead = idxRead % (dimension.x * dimension.y * dimension.z);    
+
     __syncthreads();
-    
+
     }
+
 }
 
 __global__ void cukern_circshift2D(double *in, double *out, dim3 dimension, dim3 shift)
 {
-int idxX = threadIdx.x + 8*blockIdx.x;
-int idxY = threadIdx.y + 8*blockIdx.y;
+__shared__ double lBlock[BLOCK_DIMENSION][BLOCK_DIMENSION];
+
+int idxX = threadIdx.x + BLOCK_DIMENSION*blockIdx.x;
+int idxY = threadIdx.y + BLOCK_DIMENSION*blockIdx.y;
 
 if((idxX >= dimension.x) || (idxY >= dimension.y)) return;
 
-idxX = (idxX + shift.x) % dimension.x;
-idxY = (idxY + shift.y) % dimension.y;
+int idxWrite = idxX + dimension.x * idxY;
 
-__shared__ double lblock[8][8];
+idxX = (idxX + shift.x); idxX += (idxX < 0)*dimension.x;
+idxY = (idxY + shift.y); idxY += (idxY < 0)*dimension.y;
 
-lblock[threadIdx.x][threadIdx.y] = in[idxX + dimension.x*idxY];
+idxX = idxX % dimension.x;
+idxY = idxY % dimension.y;
 
+int idxRead = idxX + dimension.x * idxY;
+
+lBlock[threadIdx.x][threadIdx.y] = in[idxRead];
 __syncthreads();
-
-idxX = threadIdx.x + 8*blockIdx.x;
-idxY = threadIdx.y + 8*blockIdx.y;
-
-out[idxX + dimension.x*idxY] = lblock[idxX][idxY];
+out[idxWrite] = lBlock[threadIdx.x][threadIdx.y];
 
 }
 

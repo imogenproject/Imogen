@@ -55,4 +55,5 @@ function relaxingMagnet(run, mag, velGrid, X, I)
     mag(I).flux(X).array = mag(I).flux(X).array - mag(I).flux(X).shift(I,1);
     mag(I).flux(X).array =  mag(I).flux(X).shift(X,-1);
     mag(X).array = mag(X).array - fluxFactor .* mag(I).flux(X).array;
+
 end

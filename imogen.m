@@ -49,12 +49,6 @@ function imogen(icfile)
         mag(i) = MagnetArray(ENUM.VECTOR(i), ENUM.MAG, magnet(i,:,:,:), run, statics);
     end
 
-    s = {mass, ener, mom(1), mom(2), mom(3), mag(1), mag(2), mag(3)};
-    for i = 1:8
-       s{i}.indexGriddim = s{i}.gridSize;
-       if i < 6; s{i}.store.indexGriddim = s{i}.gridSize; end
-    end
-
     %--- Pre-loop actions ---%
     run.fluid.createFreezeArray(statics);
     clear('massDen','momDen','enerDen','magnet','ini','statics');    
@@ -67,15 +61,16 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-%dbstop in relaxingFluid.m at 38
-%dbstop in relaxingFluid.m at 54
-%dbstop in relaxingFluid.m at 83
-%dbstop in relaxingFluid.m at 115
+dbstop in relaxingFluid.m at 38
+dbstop in relaxingFluid.m at 54
+dbstop in relaxingFluid.m at 83
+dbstop in relaxingFluid.m at 115
+dbstop in relaxingMagnet.m at 33
+dbstop in relaxingMagnet.m at 59
 %dbstop in TimeManager.m at 70
 %dbstop in imogen.m at 88
 %dbstop in ImogenArray.m at 229
 %dbstop in ImogenArray.m at 212
-
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
@@ -98,7 +93,7 @@ function imogen(icfile)
     end
     %%%=== END MAIN LOOP ========================================================================%%%
 fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-%error('devel prevent-matlab-exiting stop')
+error('devel prevent-matlab-exiting stop')
     run.postliminary();
 
 end

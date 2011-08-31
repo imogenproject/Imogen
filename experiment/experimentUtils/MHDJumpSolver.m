@@ -1,4 +1,4 @@
-function result = MHDJumpSolver(ms, ma, theta, GAMMA)
+function [result allvx] = MHDJumpSolver(ms, ma, theta, GAMMA)
 % Solves the 3D MHD Jump Conditions for an equilibrium shock wave assuming that the pre-shock region
 % conforms to zero z components for both velocity and magnetic field (this
 % can always be acheived by a frame transform) as well as unity values for 
@@ -46,6 +46,10 @@ function result = MHDJumpSolver(ms, ma, theta, GAMMA)
     a1 = -bypre^2*(g-2)*txpre^2 - 2*bx^4*g*(Ppre+txpre) - 2*bx^2*txpre*(bypre^2*g + 2*g*Ppre +(g-1)*txpre);
     a0 = bx^2*vxpre*(bypre^2*(g-1)*txpre + bx^2*(2*g*Ppre +(g-1)*txpre));
     vpost = solveQuartic(a4, a3, a2, a1, a0);
+real(vpost)
+imag(vpost)
+    allvx = vpost; % For those who wish to examine
+
     vpost = real(vpost(imag(vpost) < 1e-11)); % There is a potential numerical instability in the equation solver that this avoids.
 
     vxpost = min(vpost); % The lesser is the one containing a discontinuity; The other corresponds to no jump and the complex options are unphysical.
@@ -64,7 +68,7 @@ function result = MHDJumpSolver(ms, ma, theta, GAMMA)
 
     err = evalRankineHugoniotConditions(rhopre, vxpre, vypre, bx, bypre, Ppre, rhopost, vxpost, vypost, bypost, Ppost, GAMMA);
 
-    fprintf('Norm for obediance of Rankine-Hugoniot equations (lower=better): %g', norm(err));
+%    fprintf('Norm for obediance of Rankine-Hugoniot equations (lower=better): %g', norm(err));
 
 end
 

@@ -205,22 +205,22 @@ classdef StaticsInitializer < handle
                 case 1; xset=1:bcInfinity;
                         yset=1:AS(2); zset=1:AS(3); % minus X
                         coeff = ndgrid(1:bcInfinity, yset, zset);
-                case 2; xset=(AS(1)-1):AS(1);
+                case 2; xset=AS(1):-1:(AS(1)-bcInfinity+1);
                         yset=1:AS(2); zset=1:AS(3);% plux  X
                         coeff = ndgrid(bcInfinity:-1:1, yset, zset);
 
                 case 3; xset=1:AS(1); % minus Y
-                        yset=1:2; zset=1:AS(3);
+                        yset=1:bcInfinity; zset=1:AS(3);
                         [drop1 coeff drop2] = ndgrid(xset, 1:bcInfinity, zset);
                 case 4; xset=1:AS(1); % plus  Y
-                        yset=(AS(2)-1):AS(2); zset=1:AS(3);
+                        yset=AS(2):-1:(AS(2)-bcInfinity+1); zset=1:AS(3);
                         [drop1 coeff drop2] = ndgrid(xset, bcInfinity:-1:1, zset);
 
                 case 5; xset=1:AS(1); yset=1:AS(2); % minus Z
-                        zset=1:2;
+                        zset=1:bcInfinity;
                         [drop1 drop2 coeff] = ndgrid(xset, yset, 1:bcInfinity);
                 case 6; xset=1:AS(1); yset=1:AS(2); % plus  Z
-                        zset=(AS(3)-1):AS(3);
+                        zset=AS(3):-1:(AS(3)-bcInfinity+1);
                         [drop1 drop2 coeff] = ndgrid(xset, yset, bcInfinity:-1:1);
             end
 

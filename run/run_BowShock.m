@@ -11,7 +11,6 @@ run.bcMode.x = 'circ';
 run.bcMode.y = 'circ';
 run.bcMode.z = 'circ';
 
-
 run.useGPU = true;
 run.gpuDeviceNumber = 0;
 
