@@ -2,7 +2,7 @@
 # These must be rebuilt EVERY TIME GPUMAT IS UPDATED or Matlab will segfault when they are used.
 
 # Change these to suit your system. CUDA_LDIR will be either lib or lib64
-GPUMAT_DIR=/home/erik/GPUmat
+GPUMAT_DIR=/home/padamski/GPUmat
 MATLAB_DIR=/opt/Matlab/matlab2010b
 CUDA_DIR = /usr/local/cuda
 CUDA_LDIR = lib64
@@ -24,7 +24,7 @@ MEX_LIBS  = -lcuda -lcudart -lcublas
 all: gravity fluid
 
 gravity: accumulateBterm symmetricLinearOperator wrap_cublasDdot integralPoisson_mg interpolate
-fluid: cudaArrayAtomic fluxLimiterKernels directionalMaxFinder cudaMHDKernels cudaArrayRotate cudaWstep cudaTVDStep freezeAndPtot cudaShift
+fluid: cudaArrayAtomic fluxLimiterKernels directionalMaxFinder cudaMHDKernels cudaArrayRotate cudaWstep cudaTVDStep cudaMagW cudaMagFull freezeAndPtot cudaShift
 
 kernels: cudaKernels.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaKernels.cu -o cudaKernels.cpp
@@ -116,6 +116,16 @@ cudaTVDStep: cudaTVDStep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaTVDStep.cu -o cudaTVDStep.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaTVDStep.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaTVDStep $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaTVDStep.cpp
+
+cudaMagW: cudaMagW.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMagW.cu -o cudaMagW.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaMagW.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMagW $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaMagW.cpp
+
+cudaMagFull: cudaMagFull.cu cudaCommon
+	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMagFull.cu -o cudaMagFull.cpp
+	mex $(MEX_OPTS) $(MEX_INCL) cudaMagFull.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMagFull $(MEX_LDIR) $(MEX_LIBS)
+	rm -f cudaMagFull.cpp
 
 cmaxForTimestep: cmaxForTimestep.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cmaxForTimestep.cu -o cmaxForTimestep.cpp
