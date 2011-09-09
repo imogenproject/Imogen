@@ -33,6 +33,7 @@ classdef CorrugationShockInitializer < Initializer
         alfvenMach;
 
         numericalICfile    % File contains previous run of these ICs
+        endMass; % if not zero, sets mass at +x end to this (for radiative shocks 1.0)
     end %PUBLIC
 
 %===================================================================================================
@@ -94,6 +95,7 @@ classdef CorrugationShockInitializer < Initializer
             obj.logProperties    = [obj.logProperties, 'gamma'];
 
             obj.numericalICfile  = 'null';
+            obj.endMass = 0;
             
             obj.operateOnInput(input, [300, 6, 6]);
         end
@@ -185,15 +187,17 @@ classdef CorrugationShockInitializer < Initializer
                 if fopen(obj.numericalICfile) ~= -1
                     NUMIN = load(obj.numericalICfile);
 
+                    offset = (size(NUMIN.sx_XYZ_FINAL.mass,1)-obj.grid(1))/2;
+
                     for ct = (obj.grid(1)/2 - 20):(obj.grid(1)/2 + 20)
-                        mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct,1,1);
-                        ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct,1,1);
+                        mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct-offset,1,1);
+                        ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct-offset,1,1);
 
-                        mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct,1,1);
-                        mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct,1,1);
+                        mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct-offset,1,1);
+                        mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct-offset,1,1);
 
-                        mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct,1,1);
-                        mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct,1,1);
+                        mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct-offset,1,1);
+                        mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct-offset,1,1);
                     end
                 else
                     fprintf('WARNING: Unable to open numerical initial condition file %s\nUsing unrelaxed ICs\n',obj.numericalICfile);
@@ -251,6 +255,11 @@ classdef CorrugationShockInitializer < Initializer
                 statics.setFluid_allFadeBC(mass, ener, mom, 2, 25);
                 statics.setMag_allFadeBC(mag, 2, 25);
             end
+
+            if obj.endMass > 0
+                mass((end-10):end,:,:) = obj.endMass;
+            end
+
         end
 
 

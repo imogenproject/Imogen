@@ -46,8 +46,6 @@ function [result allvx] = MHDJumpSolver(ms, ma, theta, GAMMA)
     a1 = -bypre^2*(g-2)*txpre^2 - 2*bx^4*g*(Ppre+txpre) - 2*bx^2*txpre*(bypre^2*g + 2*g*Ppre +(g-1)*txpre);
     a0 = bx^2*vxpre*(bypre^2*(g-1)*txpre + bx^2*(2*g*Ppre +(g-1)*txpre));
     vpost = solveQuartic(a4, a3, a2, a1, a0);
-real(vpost)
-imag(vpost)
     allvx = vpost; % For those who wish to examine
 
     vpost = real(vpost(imag(vpost) < 1e-11)); % There is a potential numerical instability in the equation solver that this avoids.

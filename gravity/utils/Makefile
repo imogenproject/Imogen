@@ -2,7 +2,7 @@
 # These must be rebuilt EVERY TIME GPUMAT IS UPDATED or Matlab will segfault when they are used.
 
 # Change these to suit your system. CUDA_LDIR will be either lib or lib64
-GPUMAT_DIR=/home/padamski/GPUmat
+GPUMAT_DIR=/home/erik/GPUmat
 MATLAB_DIR=/opt/Matlab/matlab2010b
 CUDA_DIR = /usr/local/cuda
 CUDA_LDIR = lib64
@@ -95,7 +95,6 @@ cudaMHDKernels: cudaMHDKernels.cu cudaCommon
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaMHDKernels.cu -o cudaMHDKernels.cpp
 	mex $(MEX_OPTS) $(MEX_INCL) cudaMHDKernels.cpp cudaCommon.cpp $(GPUMAT_CPP) -o cudaMHDKernels $(MEX_LDIR) $(MEX_LIBS)
 	rm -f cudaMHDKernels.cpp
-
 
 cudaLinearSubsagn: cudaLinearSubsagn.cu
 	nvcc $(NVCC_OPTS) $(NVCC_INCL) -cuda cudaLinearSubsagn.cu -o cudaLinearSubsagn.cpp
