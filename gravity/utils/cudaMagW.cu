@@ -20,7 +20,7 @@ static GPUmat *gm;
 #include "cudaCommon.h"
 
 __global__ void cukern_magnetWstep_uniformX(double *velGrid, double *mag, double *bW, double *velFlow, double lambda, int nx);
-__global__ void cukern_magnetWstep_uniformY(double *velGrid, double *mag, double *bW, double *velFlow, double lambda, dim3 dims);
+__global__ void cukern_magnetWstep_uniformY(double *velGrid, double *mag, double *bW, double *velFlow, double lambda, int3 dims);
 
 #define BLOCKDIMA 18
 #define BLOCKDIMAM2 16
@@ -53,7 +53,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     int numDims        = gm->gputype.getNdims(srcReference);
     const int *dims    = gm->gputype.getSize(srcReference);
 
-    dim3 arraySize;
+    int3 arraySize;
     arraySize.x = dims[0];
     numDims > 1 ? arraySize.y = dims[1] : arraySize.y = 1;
     numDims > 2 ? arraySize.z = dims[2] : arraySize.z = 1;
@@ -143,7 +143,7 @@ while(Xtrack < nx + 2) {
     }
 }
 
-__global__ void cukern_magnetWstep_uniformY(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, dim3 dims)
+__global__ void cukern_magnetWstep_uniformY(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims)
 {
 double v, b, locVelFlow;
 
@@ -155,15 +155,15 @@ int myy = blockIdx.y*BLOCKDIMAM2 + threadIdx.y - 1;
 
 if((myx >= dims.x) || (myy > dims.y)) return; // we keep an extra Y thread for the finite diff.
 
-bool IWrite = (threadIdx.y > 0) && ((threadIdx.y <= BLOCKDIMAM2)); // || (myy+1 < dims.y));
+bool IWrite = (threadIdx.y > 0) && (threadIdx.y <= BLOCKDIMAM2) && (myy < dims.y) && (myy >= 0);
 // Exclude threads at the boundary of the fluxing direction from writing back
 
 if(myy < 0) myy += dims.y; // wrap left edge back to right edge
 myy = myy % dims.y; // wrap right edge back to left
 
 int x = myx + dims.x*myy;
-
 int z;
+
 for(z = 0; z < dims.z; z++) {
     v = velGrid[x];
     b = mag[x];
@@ -175,15 +175,18 @@ for(z = 0; z < dims.z; z++) {
 
     locVelFlow = (tile[threadIdx.x][threadIdx.y] + tile[threadIdx.x][(threadIdx.y+1) % BLOCKDIMA]);
     if(locVelFlow < 0.0) { locVelFlow = 1.0; } else { locVelFlow = 0.0; }
+
     __syncthreads();
 
     // Second step - calculate flux
-    if(locVelFlow == 1) flux[threadIdx.x][threadIdx.y] = flux[threadIdx.x][(threadIdx.y + 1)%BLOCKDIMA];
+    if(locVelFlow == 1) { tile[threadIdx.x][threadIdx.y] = flux[threadIdx.x][(threadIdx.y + 1)%BLOCKDIMA]; } else 
+                        { tile[threadIdx.x][threadIdx.y] = flux[threadIdx.x][threadIdx.y]; }
+   
     __syncthreads();
 
-        // Third step - Perform flux and write to output array
+    // Third step - Perform flux and write to output array
     if( IWrite ) {
-            bW[x] = b - lambda * ( flux[threadIdx.x][threadIdx.y] - flux[threadIdx.x][threadIdx.y-1]);
+            bW[x] = b - lambda * ( tile[threadIdx.x][threadIdx.y] - tile[threadIdx.x][threadIdx.y-1]);
             velFlow[x] = locVelFlow;
         }
 
