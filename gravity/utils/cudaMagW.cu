@@ -19,8 +19,9 @@ static GPUmat *gm;
 
 #include "cudaCommon.h"
 
-__global__ void cukern_magnetWstep_uniformX(double *velGrid, double *mag, double *bW, double *velFlow, double lambda, int nx);
-__global__ void cukern_magnetWstep_uniformY(double *velGrid, double *mag, double *bW, double *velFlow, double lambda, int3 dims);
+__global__ void cukern_magnetWstep_uniformX(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int nx);
+__global__ void cukern_magnetWstep_uniformY(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims)
+__global__ void cukern_magnetWstep_uniformZ(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims);
 
 #define BLOCKDIMA 18
 #define BLOCKDIMAM2 16
@@ -74,15 +75,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
             blocksize.y = BLOCKDIMA;
 
-            cukern_magnetWstep_uniformY<<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
+            cukern_magnetWstep_uniformY<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
             break;
         case 3: // Z direction flux: u = z, v = x, w = y;
             blocksize.x = BLOCKDIMB; blocksize.y = BLOCKDIMAM2;
 
             gridsize.x = arraySize.x / blocksize.x; gridsize.x += 1*(blocksize.x*gridsize.x < arraySize.x);
-            gridsize.y = arraySize.z / blocksize.z; gridsize.y += 1*(blocksize.z*gridsize.y < arraySize.z);
+            gridsize.y = arraySize.z / blocksize.y; gridsize.y += 1*(blocksize.y*gridsize.y < arraySize.z);
 
             blocksize.y = BLOCKDIMA;
+
+            cukern_magnetWstep_uniformY<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
 
             break;
     }
@@ -191,6 +194,59 @@ for(z = 0; z < dims.z; z++) {
         }
 
     x += dims.x*dims.y;
+    __syncthreads(); 
+    }
+
+}
+
+__global__ void cukern_magnetWstep_uniformZ(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims)
+{
+double v, b, locVelFlow;
+
+__shared__ double tile[BLOCKDIMB][BLOCKDIMA];
+__shared__ double flux[BLOCKDIMB][BLOCKDIMA];
+
+int myx = blockIdx.x*BLOCKDIMB + threadIdx.x;
+int myz = blockIdx.y*BLOCKDIMAM2 + threadIdx.y - 1;
+
+if((myx >= dims.x) || (myz > dims.z)) return; // we keep an extra Y thread for the finite diff.
+
+bool IWrite = (threadIdx.y > 0) && (threadIdx.y <= BLOCKDIMAM2) && (myz < dims.y) && (myz >= 0);
+// Exclude threads at the boundary of the fluxing direction from writing back
+
+if(myz < 0) myz += dims.z; // wrap left edge back to right edge
+myz = myz % dims.z; // wrap right edge back to left
+
+int x = myx + dims.x*dims.y*myz;
+int y;
+
+for(y = 0; y < dims.y; y++) {
+    v = velGrid[x];
+    b = mag[x];
+
+    // first calculate velocityFlow
+    tile[threadIdx.x][threadIdx.y] = v;
+    flux[threadIdx.x][threadIdx.y] = b*v;
+    __syncthreads();
+
+    locVelFlow = (tile[threadIdx.x][threadIdx.y] + tile[threadIdx.x][(threadIdx.y+1) % BLOCKDIMA]);
+    if(locVelFlow < 0.0) { locVelFlow = 1.0; } else { locVelFlow = 0.0; }
+
+    __syncthreads();
+
+    // Second step - calculate flux
+    if(locVelFlow == 1) { tile[threadIdx.x][threadIdx.y] = flux[threadIdx.x][(threadIdx.y + 1)%BLOCKDIMA]; } else 
+                        { tile[threadIdx.x][threadIdx.y] = flux[threadIdx.x][threadIdx.y]; }
+   
+    __syncthreads();
+
+    // Third step - Perform flux and write to output array
+    if( IWrite ) {
+            bW[x] = b - lambda * ( tile[threadIdx.x][threadIdx.y] - tile[threadIdx.x][threadIdx.y-1]);
+            velFlow[x] = locVelFlow;
+        }
+
+    x += dims.x;
     __syncthreads(); 
     }
 

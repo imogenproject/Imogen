@@ -190,14 +190,14 @@ classdef CorrugationShockInitializer < Initializer
                     offset = (size(NUMIN.sx_XYZ_FINAL.mass,1)-obj.grid(1))/2;
 
                     for ct = (obj.grid(1)/2 - 20):(obj.grid(1)/2 + 20)
-                        mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct-offset,1,1);
-                        ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct-offset,1,1);
+                        mass(ct,:,:)  = NUMIN.sx_XYZ_FINAL.mass(ct+offset,1,1);
+                        ener(ct,:,:)  = NUMIN.sx_XYZ_FINAL.ener(ct+offset,1,1);
 
-                        mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct-offset,1,1);
-                        mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct-offset,1,1);
+                        mom(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.momX(ct+offset,1,1);
+                        mom(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.momY(ct+offset,1,1);
 
-                        mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct-offset,1,1);
-                        mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct-offset,1,1);
+                        mag(1,ct,:,:) = NUMIN.sx_XYZ_FINAL.magX(ct+offset,1,1);
+                        mag(2,ct,:,:) = NUMIN.sx_XYZ_FINAL.magY(ct+offset,1,1);
                     end
                 else
                     fprintf('WARNING: Unable to open numerical initial condition file %s\nUsing unrelaxed ICs\n',obj.numericalICfile);
