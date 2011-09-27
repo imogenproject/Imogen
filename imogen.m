@@ -79,7 +79,7 @@ function imogen(icfile)
 %        if mod(run.time.iteration, 3) == 1
 %            imagesc(double(mass.array))
 %            input('cont: ');
-        end
+%        end
 
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);

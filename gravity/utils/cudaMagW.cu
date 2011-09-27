@@ -20,7 +20,7 @@ static GPUmat *gm;
 #include "cudaCommon.h"
 
 __global__ void cukern_magnetWstep_uniformX(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int nx);
-__global__ void cukern_magnetWstep_uniformY(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims)
+__global__ void cukern_magnetWstep_uniformY(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims);
 __global__ void cukern_magnetWstep_uniformZ(double *mag, double *velGrid, double *bW, double *velFlow, double lambda, int3 dims);
 
 #define BLOCKDIMA 18
@@ -75,7 +75,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
             blocksize.y = BLOCKDIMA;
 
-            cukern_magnetWstep_uniformY<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
+            cukern_magnetWstep_uniformY<<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
             break;
         case 3: // Z direction flux: u = z, v = x, w = y;
             blocksize.x = BLOCKDIMB; blocksize.y = BLOCKDIMAM2;
@@ -85,7 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
             blocksize.y = BLOCKDIMA;
 
-            cukern_magnetWstep_uniformY<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
+            cukern_magnetWstep_uniformZ<<<gridsize , blocksize>>>(srcs[0], srcs[1], dest[0], dest[1], lambda, arraySize);
 
             break;
     }
