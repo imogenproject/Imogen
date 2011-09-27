@@ -11,25 +11,25 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cublas.h"
-#include "GPUmat.hh"
+#include "GPUmat.hh" // GPUmat drop-in toolkit
 
 // static paramaters
 static int init = 0;
 static GPUmat *gm;
 
-#include "cudaCommon.h"
+#include "cudaCommon.h" // This defines the getGPUSourcePointers and makeGPUDestinationArrays utility functions
 
 __global__ void cukern_Wstep_mhd_uniform(double *rho, double *E, double *px, double *py, double *pz, double *bx, double *by, double *bz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx);
 __global__ void cukern_Wstep_hydro_uniform(double *rho, double *E, double *px, double *py, double *pz, double *P, double *Cfreeze, double *rhoW, double *enerW, double *pxW, double *pyW, double *pzW, double lambda, int nx);
 __global__ void nullStep(fluidVarPtrs fluid, int numel);
-
 
 #define BLOCKLEN 48
 #define BLOCKLENP2 50
 #define BLOCKLENP4 52
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  // At least 2 arguments expected
+  // Check input and output argument counts
+
   // Input and result
   if ((nrhs!=12) || (nlhs != 5)) mexErrMsgTxt("Wrong number of arguments: need [5] = cudaWflux(rho, E, px, py, pz, bx, by, bz, Ptot, c_f, lambda, purehydro?)\n");
 
@@ -45,9 +45,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   double **srcs = getGPUSourcePointers(prhs, 10, &numel, 0, gm);
   double **dest = makeGPUDestinationArrays(srcReference,  plhs, 5, gm);
 
-//int jj;
-//for(jj=0; jj<10;jj++) { printf("%i, %i\n", jj, srcs[jj]); }
-
   // Establish launch dimensions & a few other parameters
   int fluxDirection = 1;
   double lambda     = *mxGetPr(prhs[10]);
@@ -62,6 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   dim3 blocksize, gridsize;
   int hu, hv, hw, nu;
 
+  // This bit is actually redundant now since arrays are always rotated so the fluid step is finite-differenced in the X direction
   blocksize.x = BLOCKLEN+4; blocksize.y = blocksize.z = 1;
   switch(fluxDirection) {
     case 1: // X direction flux: u = x, v = y, w = z;
@@ -72,7 +70,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     case 2: // Y direction flux: u = y, v = x, w = z
       gridsize.x = arraySize.x;
       gridsize.y = arraySize.z;
-//      hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
+      //hu = arraySize.x; hv = 1; hw = arraySize.x * arraySize.y;
       hv = arraySize.x; hu = 1; hw = arraySize.x * arraySize.y;
       nu = arraySize.y; break;
     case 3: // Z direction flux: u = z, v = x, w = y;
@@ -82,6 +80,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       nu = arraySize.z; break;
     }
 
+// It appears this is only used in the null step. It was used in a previous W step but that kernel was irreperably broken.
 fluidVarPtrs fluid;
 int i;
 for(i = 0; i < 5; i++) { fluid.fluidIn[i] = srcs[i]; fluid.fluidOut[i] = dest[i]; }
@@ -92,6 +91,8 @@ fluid.B[2] = srcs[7];
 fluid.Ptotal = srcs[8];
 fluid.cFreeze = srcs[9];
 
+// If the dimension has finite extent, performs actual step; If not, blits input arrays to output arrays
+// NOTE: this situation should not occur, since the flux routine itself skips singleton dimensions for 1- and 2-d sims.
 if(nu > 1) {
   int hydroOnly = (int)*mxGetPr(prhs[11]);
   

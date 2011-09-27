@@ -4,10 +4,10 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = JetInitializer([3072 1024 1]);
+run                 = JetInitializer([512 384 1]);
 run.iterMax         = 10000;
-run.offset          = [40 512 1];
-run.bcMode.x        = 'circ';
+run.offset          = [40 192 1];
+run.bcMode.x        = 'const';
 run.bcMode.y        = 'circ';
 run.direction       = JetInitializer.X;
 run.flip            = false;

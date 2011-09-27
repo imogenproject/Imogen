@@ -61,9 +61,6 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-%dbstop in relaxingMagnet.m at 37
-%dbstop in relaxingMagnet.m at 59
-%dbstop in TimeManager.m at 70
 
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
@@ -78,13 +75,19 @@ function imogen(icfile)
             source(run, mass, mom, ener, mag, grav);
         end
 
+% Dumb hack to push realtime images to a display
+%        if mod(run.time.iteration, 3) == 1
+%            imagesc(double(mass.array))
+%            input('cont: ');
+        end
+
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);
         run.time.step();
     end
     %%%=== END MAIN LOOP ========================================================================%%%
-fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
-%error('devel prevent-matlab-exiting stop')
-    run.postliminary();
+    fprintf('%g seconds in main sim loop\n', etime(clock, clockA));
+    %error('devel prevent-matlab-exiting stop')
 
+    run.postliminary();
 end
