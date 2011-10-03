@@ -27,6 +27,6 @@ function source(run, mass, mom, ener, mag, grav)
     %--- Radiation Sourcing ---%
     %       If radiation is active, the radiation terms are subtracted, as a sink, from the energy
     %       equation.
-    ener.array              = ener.array - run.fluid.radiation.solve(run, mass, mom, ener, mag);
+    ener.array              = ener.array - run.time.dTime*run.fluid.radiation.solve(run, mass, mom, ener, mag);
     
 end
