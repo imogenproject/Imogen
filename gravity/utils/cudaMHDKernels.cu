@@ -65,7 +65,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if((operation == OP_SOUNDSPEED) || (operation == OP_GASPRESSURE) || (operation == OP_TOTALPRESSURE)) {
     if( (nlhs != 1) || (nrhs != 10)) { mexErrMsgTxt("Soundspeed operator is Cs = cudaMHDKernels(1, rho, E, px, py, pz, bx, by, bz, gamma)"); }
     double gam = *mxGetPr(prhs[9]);
-    double **srcs = getGPUSourcePointers(prhs, 8, &numel, 1, gm);
+    int arrdim[3];
+    double **srcs = getGPUSourcePointers(prhs, arrdim, 1, 8);
+    numel = arrdim[0]*arrdim[1]*arrdim[2];
+
     gridsize.x = numel / (BLOCKWIDTH*THREADLOOPS); if(gridsize.x * (BLOCKWIDTH*THREADLOOPS) < numel) gridsize.x++;
     gridsize.y = gridsize.z =1;
     double **destPtr = makeGPUDestinationArrays(gm->gputype.getGPUtype(prhs[1]), plhs, 1, gm);

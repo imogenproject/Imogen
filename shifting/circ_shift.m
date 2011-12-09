@@ -7,13 +7,6 @@ function result = circ_shift(array, DIRECT, n, obj)
 %>< obj                  object owning the array                                                         ImogenArray...
 %<< result               shifted array                                                                   double((3),Nx,Ny,Nz)
 
-if isa(array, 'GPUdouble')
-  shiftAmount = [0 0 0];
-  shiftAmount(DIRECT) = n;
-  result = cudaShift(shiftAmount, array);
-  return;
-end
-
         %--- Initialization ---%
     N           = size(array);
     NDim        = N(DIRECT);

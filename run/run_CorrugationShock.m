@@ -11,10 +11,6 @@ run.theta       = 30;
 run.sonicMach   = 10;
 run.alfvenMach  = .5;
 
-%run.useGPU = true;
-%run.gpuDeviceNumber = 0;
-%run.bcMode.x = ENUM.BCMODE_CIRCULAR;
-
 run.ppSave.dim2 = .5;
 run.ppSave.dim3 = 100;
 run.seedAmplitude = 1e-4;

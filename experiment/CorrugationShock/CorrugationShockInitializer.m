@@ -246,16 +246,6 @@ classdef CorrugationShockInitializer < Initializer
             end
             mass(seedIndices{:}) = squeeze( mass(seedIndices{:}) ) + perturb; %Add seed to mass.
         
-            if obj.useGPU == true
-                statics = StaticsInitializer(); 
-
-                statics.setFluid_allFadeBC(mass, ener, mom, 1, 25);
-                statics.setMag_allFadeBC(mag, 1, 25);
-
-                statics.setFluid_allFadeBC(mass, ener, mom, 2, 25);
-                statics.setMag_allFadeBC(mag, 2, 25);
-            end
-
             if obj.endMass > 0
                 mass((end-10):end,:,:) = obj.endMass;
             end

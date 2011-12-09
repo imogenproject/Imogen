@@ -11,11 +11,6 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cublas.h"
-#include "GPUmat.hh"
-
-// static paramaters
-static int init = 0;
-static GPUmat *gm;
 
 #include "cudaCommon.h"
 
@@ -156,7 +151,7 @@ switch(nrhs) {
     double *maxout = mxGetPr(plhs[0]);
     double *dirout = mxGetPr(plhs[1]);
     maxout[0] = maxes[0];
-    dirout[0] = maxIndices[0];
+    dirout[0] = (double)maxIndices[0];
     
     for(numel = 1; numel < gridsize.x; numel++) { if(maxes[numel] > maxout[0]) { maxout[0] = maxes[numel]; dirout[0] = maxIndices[0]; }  }
 
@@ -258,6 +253,73 @@ if(threadIdx.x == 0) dout[blockIdx.x] = locBloc[0];
 
 }
 
+__global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, double *py, double *pz, int n, double *out, int *dirOut)
+{
+int x = blockIdx.x * blockDim.x + threadIdx.x; // address
+int blockhop = blockIdx.x * gridDim.x;         // stepsize
+
+__shared__ int    maxdir[GLOBAL_BLOCKDIM];
+__shared__ double setA[GLOBAL_BLOCKDIM];
+
+double u, v;
+int q;
+
+setA[threadIdx.x] = 0.0;
+
+if(x >= n) return; // This is unlikely but we may get a stupid-small resolution
+
+// load first set and set maxdir
+maxdir[threadIdx.x] = 1;
+u = abs(px[x]);
+v = abs(py[x]);
+if(v > u) { u = v; maxdir[threadIdx.x] = 2; }
+v = abs(pz[x]);
+if(v > u) { u = v; maxdir[threadIdx.x] = 3; }
+
+setA[threadIdx.x] = u / rho[x] + cs[x];
+
+// load next set and compare until reaching end of array
+while(x < n) {
+  x += blockhop;
+  __syncthreads(); // prevent the memory accesses from breaking too far apart
+
+  // Perform the max operation for this cell
+  u = abs(px[x]);
+  v = abs(py[x]);
+  q = 1;
+  if(v > u) { u = v; q = 2; }
+  v = abs(pz[x]);
+  if(v > u) { u = v; q = 3; }
+
+  u = u / rho[x] + cs[x];
+  // And compare-write to the shared array
+  if(u > setA[threadIdx.x]) { setA[threadIdx.x] = u; maxdir[threadIdx.x] = q; }
+  }
+
+__syncthreads();
+// logarithmic foldin to determine max for block
+if(threadIdx.x == 0) {
+  int a;
+  u = setA[0];
+  q = maxdir[0];
+  
+  // do this the stupid way for now
+  for(a = 1; a < GLOBAL_BLOCKDIM; a++) {
+    if(setA[a] > u) { u = setA[a]; q = maxdir[a]; }
+    }
+  }
+
+
+// write final values to out[blockIdx.x] and dirOut[blockidx.x]
+if(threadIdx.x == 0) {
+  out[blockIdx.x] = u;
+  dirOut[blockIdx.x] = q;
+  }
+
+}
+
+
+/*
 // This is specifically for finding globalmax( max(abs(p_i))/rho + c_s) for the CFL constraint
 __global__ void cukern_GlobalMax_forCFL(double *rho, double *cs, double *px, double *py, double *pz, int n, double *dout, int *dirOut)
 {
@@ -275,6 +337,8 @@ double tmpA, tmpB;
 // Set all maxima to ~-infinity and index to invalid.
 locBloc[threadIdx.x] = -1e37;
 locDir[threadIdx.x] = 0;
+
+return; 
 
 // Have thread 0 write such to the globally shared values (overwrite garbage before we possibly get killed next line)
 if(threadIdx.x == 0) { dout[blockIdx.x] = -1e37; dirOut[blockIdx.x] = 0; }
@@ -329,4 +393,5 @@ dirOut[blockIdx.x] = locDir[0];
 
 }
 
+*/
 

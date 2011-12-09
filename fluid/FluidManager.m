@@ -45,14 +45,14 @@ classdef FluidManager < handle
         
 %___________________________________________________________________________________________________ createFreezeArray
 % Initializes the freeze speed arrays for relaxed fluxing of the fluid variables.
-        function createFreezeArray(obj, statics)
+        function createFreezeArray(obj)
             obj.freezeSpd     = FluxArray.empty(3,0);
             obj.freezeSpdTVD = FluxArray.empty(3,0);
             for i=1:3
                 obj.freezeSpd(i)    = FluxArray(ENUM.VECTOR(i), FluxArray.FREEZE, ...
-                                                obj.parent, statics);
+                                                obj.parent);
                 obj.freezeSpdTVD(i) = FluxArray(ENUM.VECTOR(i), FluxArray.FREEZE, ...
-                                                obj.parent, statics);
+                                                obj.parent);
             end
         end
         

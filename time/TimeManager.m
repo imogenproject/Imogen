@@ -68,15 +68,11 @@ classdef TimeManager < handle
             %--- Find max velocity ---%
             %           Find the maximum fluid velocity in the grid and its vector direction.
             soundSpeed = pressure('sound', obj.parent, mass, mom, ener, mag);
-            if isa(mass.array, 'GPUdouble')
-                [cmax gridIndex] = directionalMaxFinder(mass.array, soundSpeed, mom(1).array, mom(2).array, mom(3).array);
-            else
-                for i=1:3
-                    c = maxFinderND(abs(mom(i).array ./ mass.array) + soundSpeed);
-                    if (c > cmax)
-                        cmax      = c;
-                        gridIndex = i;
-                    end
+            for i=1:3
+                c = maxFinderND(double(abs(mom(i).array ./ mass.array) + soundSpeed));
+                if (c > cmax)
+                    cmax      = c;
+                    gridIndex = i;
                 end
             end
 

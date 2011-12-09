@@ -31,8 +31,8 @@ classdef StorageArray < InitializedArray
 		end
 		
 %___________________________________________________________________________________________________ StorageArray
-        function obj = StorageArray(component, id, run, statics)           
-            obj = obj@InitializedArray(component, id, run, statics);
+        function obj = StorageArray(component, id, run)
+            obj = obj@InitializedArray(component, id, run);
 			
 			if length(obj.id) < 2
 				fullID = cell(1,2);
@@ -47,7 +47,7 @@ classdef StorageArray < InitializedArray
 				obj.threshold = 0;
 			end
 			
-			obj.arrayINI(component, obj.id, run, statics);
+			obj.arrayINI(component, obj.id, run);
         end
         
 %___________________________________________________________________________________________________ cleanup
@@ -64,10 +64,10 @@ classdef StorageArray < InitializedArray
 	methods (Access = protected) %											P R O T E C T E D    [M]
 		
 %___________________________________________________________________________________________________ arrayINI
-        function arrayINI(obj, component, id, run, statics)
+        function arrayINI(obj, component, id, run)
             %Prepare flux arrays
-            obj.fluxL  = FluxArray(component, {id{1}, FluxArray.FLUXL, id{2}}, run, statics);
-            obj.fluxR  = FluxArray(component, {id{1}, FluxArray.FLUXR, id{2}}, run, statics);
+            obj.fluxL  = FluxArray(component, {id{1}, FluxArray.FLUXL, id{2}}, run);
+            obj.fluxR  = FluxArray(component, {id{1}, FluxArray.FLUXR, id{2}}, run);
 		end
 		
     end %PROTECTED

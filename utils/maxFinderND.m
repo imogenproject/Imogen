@@ -7,11 +7,6 @@ function [maxVal, maxVecIndex] = maxFinderND(array)
 %<< maxVal			maximum value for the searched array						double
 %<| maxVecIndex		index of the first array dimension where maxVal occurs		int
 
-    if isa(array,'GPUdouble') == 1
-     [maxVal, maxVecIndex] = maxFinderND(double(array));
-      return;
-    end
-
     %--- Find array dimension ---%
     DIM = ndims(array);
     

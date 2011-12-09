@@ -11,9 +11,6 @@ run.bcMode.x = 'circ';
 run.bcMode.y = 'circ';
 run.bcMode.z = 'circ';
 
-run.useGPU = true;
-run.gpuDeviceNumber = 0;
-
 %--- Adjustable simulation parameters ---%
 
 run.ballXRadius = 1;

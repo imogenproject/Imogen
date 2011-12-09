@@ -41,9 +41,6 @@ classdef Initializer < handle
         radiation;      % Radiation sub initializer objet.                  RadiationSubInitializer
         logProperties;  % List of class properties to include in run.log    cell
         fluxLimiter;    % Specifies the flux limiter(s) to use.             struct
-
-        useGPU;         % if true, Imogen tries to run on a GPU             logical
-        gpuDeviceNumber;      % ID of the device to attempt to run on
     end %PUBLIC
 
 %===================================================================================================
@@ -99,9 +96,6 @@ classdef Initializer < handle
             obj.viscosity            = ViscositySubInitializer();
             obj.radiation            = RadiationSubInitializer();
             obj.fluxLimiter          = struct();
-
-            obj.useGPU               = false;
-            obj.gpuDeviceNumber            = 0;
 
             fields = SaveManager.SLICEFIELDS;
             for i=1:length(fields)

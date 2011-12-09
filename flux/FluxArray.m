@@ -41,14 +41,10 @@ classdef FluxArray < InitializedArray
     methods %																		P U B L I C  [M]
         
 %___________________________________________________________________________________________________ FluxArray
-        function obj = FluxArray(component, id, run, statics)			
-            obj = obj@InitializedArray(component, id, run, statics);
+        function obj = FluxArray(component, id, run)
+            obj = obj@InitializedArray(component, id, run);
             
-            if ~isempty(statics)
-                obj.setArrayLimited = @obj.setArrayLimited_Vanleer_Statics;
-            else
-                obj.setArrayLimited = @obj.setArrayLimited_Vanleer;
-            end
+            obj.setArrayLimited = @obj.setArrayLimited_Vanleer;
         end
         
 	end%PUBLIC

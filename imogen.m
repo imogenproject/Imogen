@@ -31,26 +31,18 @@ function imogen(icfile)
     run.save.saveIniSettings(ini);
     run.preliminary();
 
-    %--- Create Primary Data Objects ---%
-    if run.useGPU
-	massDen = GPUdouble(massDen);
-	momDen  = GPUdouble(momDen);
-	enerDen = GPUdouble(enerDen);
-	magnet  = GPUdouble(magnet);
-    end
-
-    mass = FluidArray(ENUM.SCALAR, ENUM.MASS, massDen, run, statics);
-    ener = FluidArray(ENUM.SCALAR, ENUM.ENER, enerDen, run, statics);
-    grav = GravityArray(ENUM.GRAV, run, statics);
+    mass = FluidArray(ENUM.SCALAR, ENUM.MASS, massDen, run); mass.readStatics(statics);
+    ener = FluidArray(ENUM.SCALAR, ENUM.ENER, enerDen, run); ener.readStatics(statics);
+    grav = GravityArray(ENUM.GRAV, run);
     mom  = FluidArray.empty(3,0);
     mag  = MagnetArray.empty(3,0);
     for i=1:3
-        mom(i) = FluidArray(ENUM.VECTOR(i), ENUM.MOM, momDen(i,:,:,:), run, statics);
-        mag(i) = MagnetArray(ENUM.VECTOR(i), ENUM.MAG, magnet(i,:,:,:), run, statics);
+        mom(i) = FluidArray(ENUM.VECTOR(i), ENUM.MOM, momDen(i,:,:,:), run); mom(i).readStatics(statics);
+        mag(i) = MagnetArray(ENUM.VECTOR(i), ENUM.MAG, magnet(i,:,:,:), run); mag(i).readStatics(statics);
     end
 
     %--- Pre-loop actions ---%
-    run.fluid.createFreezeArray(statics);
+    run.fluid.createFreezeArray();
     clear('massDen','momDen','enerDen','magnet','ini','statics');    
     run.initialize(mass, mom, ener, mag, grav);
     
@@ -61,25 +53,18 @@ function imogen(icfile)
     run.save.logPrint('\nBeginning simulation loop...\n');
 
     clockA = clock;
-
+    
     %%%=== MAIN ITERATION LOOP ==================================================================%%%
     while run.time.running
         %run.time.updateUI();
         
         for i=1:2 % Two timesteps per iteration
             run.time.update(mass, mom, ener, mag, i);
-            fluxB(run, mass, mom, ener, mag, grav, direction(i));
-% change this to 'fluxB' for devel work
+            flux(run, mass, mom, ener, mag, grav, direction(i));
             treadmillGrid(run, mass, mom, ener, mag);
             run.gravity.solvePotential(run, mass, grav);
             source(run, mass, mom, ener, mag, grav);
         end
-
-% Dumb hack to push realtime images to a display
-%        if mod(run.time.iteration, 3) == 1
-%            imagesc(double(mass.array))
-%            input('cont: ');
-%        end
 
         %--- Intermediate file saves ---%
         resultsHandler(run, mass, mom, ener, mag, grav);

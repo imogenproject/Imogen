@@ -9,9 +9,8 @@ directory.
 
 === GPU support
 
-Imogen supports operations both on the CPU of any computer that can run Matlab, and on the GPU of
-any such computer with a supported nVidia GPU (compute capability >= 1.3) through GPUmat.
+This version of Imogen runs the fluid entirely the CPU (except for solving the self gravity
+equation). gpuImogen runs the fluid on the GPU and is available at
+https://github.com/imogenproject/gpuImogen
 
-In order to use the GPU features, one must have GPUmat installed and working and also use the
-nVidia CUDA toolkit to compile the kernels in gravity/utils [where they sit for historical reasons].
 

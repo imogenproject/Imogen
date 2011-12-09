@@ -27,9 +27,6 @@ classdef ImogenManager < handle
         paths;          % Contains various paths needed for saving data.                Paths
         fades;          %
 
-        useGPU;         % if true, Imogen is running on a GPU device - some changes in behavior necessary.
-        pureHydro;      % if true, stores no magnetic information; 
-        
         %--- Manager Classes ---%
         bc;             % Manages boundary conditions.                              BCManager
         image;          % Manages image generation and saving.                      ImageManager
@@ -388,10 +385,6 @@ classdef ImogenManager < handle
             obj.matlab      = ver('matlab');
             obj.DGRID       = num2cell(ones(1,3));
             obj.MINDGRID    = ones(1,3);
-            
-
-            obj.useGPU      = false;
-            obj.pureHydro   = false;
         end
         
     end%PRIVATE

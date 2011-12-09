@@ -72,9 +72,6 @@ classdef ImogenRecord < handle
                     
                 case 'codistributor1d';        value = ImogenRecord.codistToStr(inVal);
 
-                case 'GPUdouble';
-                                               value = ImogenRecord.gpudoubleToStr(inVal);
-                    
                 otherwise %Assumed to be a class object
                     if isobject(inVal)
                         if (nargin < 3 || isempty(depth)); depth = 0; end
@@ -111,14 +108,6 @@ classdef ImogenRecord < handle
             value = ['(',class(inNum),') ', value,    info];
         end
         
-
-%___________________________________________________________________________________________________ gpudoubleToStr
-% Turn a gpudouble to a string
-        function value = gpudoubleToStr(inNum)
-            value = ImogenRecord.numberToStr(double(inNum));
-            value = ['GPU VARIABLE:', value];
-        end
-
 %___________________________________________________________________________________________________ distToStr
 % Converts a codistributed type into a string.
 % * inDist    the input matrix or number array                                            [numeric]

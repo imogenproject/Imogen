@@ -38,13 +38,14 @@ classdef MagnetArray < ImogenArray
         end
 
 %___________________________________________________________________________________________________ MagnetArray
-        function obj = MagnetArray(component, id, array, run, statics)
-            obj         = obj@ImogenArray(component, id, run, statics);
+        function obj = MagnetArray(component, id, array, run)
+            obj         = obj@ImogenArray(component, id, run);
             obj.array   = squeeze(array);
             obj.isZero  = (sumND(obj.array) == 0) && ~run.magnet.ACTIVE;
             obj.initializeShiftingStates();
             obj.initializeBoundingEdges();
-            obj.initializeArrays(component, id, run, statics);
+           
+            obj.initializeArrays(component, id, run);
         end
 
 %___________________________________________________________________________________________________ flux
@@ -84,7 +85,7 @@ classdef MagnetArray < ImogenArray
         
 %___________________________________________________________________________________________________ initializeArrays
 % Initializes all the secondary array objects owned by the MagnetArray object.
-        function initializeArrays(obj, component, id, run, statics)
+        function initializeArrays(obj, component, id, run)
             obj.fluxes   	= FluxArray.empty(2,0);
             obj.stores  	= StorageArray.empty(2,0);
             obj.wMags    	= InitializedArray.empty(2,0);
@@ -92,13 +93,13 @@ classdef MagnetArray < ImogenArray
             for i=1:2
                 comp = MagnetArray.INDEX(component,i);
                 compID = ['mc_' num2str(comp)];
-                obj.fluxes(i)	= FluxArray(component, {id, FluxArray.FLUX, compID}, run, statics);
-                obj.stores(i) 	= StorageArray(component, {id, StorageArray.STORE, compID}, run, statics);
-                obj.wMags(i)    = InitializedArray(component, {id, 'wMag', compID}, run, []);
-                obj.velGrids(i) = InitializedArray(component, {id, 'velGrid', compID}, run, []);
+                obj.fluxes(i)	= FluxArray(component, {id, FluxArray.FLUX, compID}, run);
+                obj.stores(i) 	= StorageArray(component, {id, StorageArray.STORE, compID}, run);
+                obj.wMags(i)    = InitializedArray(component, {id, 'wMag', compID}, run);
+                obj.velGrids(i) = InitializedArray(component, {id, 'velGrid', compID}, run);
             end
             
-            obj.cellMag = InitializedArray(component, id, run, statics);
+            obj.cellMag = InitializedArray(component, id, run);
             obj.updateCellCentered();
         end
         

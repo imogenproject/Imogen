@@ -20,16 +20,6 @@ function run = initialize(ini)
     [run.version, run.detailedVersion]                        = versionInfo();
     [run.paths.hostName, run.paths.imogen, run.paths.results] = determineHostVariables();
 
-%% ===== CHECK IF WE ARE USING THE GPU; START GPU ===== %%
-
-if ini.useGPU == true
-    run.useGPU = true;
-    tmpdir = pwd();
-    cd('~/GPUmat');
-    GPUstart_auto(ini.gpuDeviceNumber);
-    cd(tmpdir);
-end
-        
 %% .bcMode                      Edge condition modes
 try
     if isa(ini.bcMode, 'struct')

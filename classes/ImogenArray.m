@@ -18,7 +18,7 @@ classdef ImogenArray < handle
         staticValues;   % Values for static array indices.                          double
         staticCoeffs;   % Coefficients used to determine how fast the array fades to the value double
         staticIndices;  % Indices of staticValues used by StaticArray.                int
-        staticLinIndices;% The linear indexes into the array used to apply          int
+        staticComputed; % false, set true once statics are run through precomputation. bool
 
         edgeshifts;     % Handles to shifting functions for each grid direction.    handle(2,3)
         isZero;         % Specifies that the array is statically zero.              logical
@@ -56,7 +56,7 @@ classdef ImogenArray < handle
 %>> id          Identification information for the new object.                      cell/str
 %>< run         Run manager object.                                                 ImogenManager
 %>> statics     Static arrays and values structure.                                 struct
-        function obj = ImogenArray(component, id, run, statics)
+        function obj = ImogenArray(component, id, run)
             if (nargin == 0 || isempty(id)); return; end
             if ~isa(id,'cell');    id = {id}; end
             
@@ -68,7 +68,6 @@ classdef ImogenArray < handle
             obj.pDistributed    = run.parallel.ACTIVE;
             obj.pRunManager     = run;
             obj.pFadesValue     = 0.995;
-            obj.readStatics(statics);
             run.bc.attachBoundaryConditions(obj);
         end
 
@@ -202,52 +201,48 @@ classdef ImogenArray < handle
             result = ( obj.shift(X,1) - obj.pArray ) ./ dGrid;
         end
 
-%___________________________________________________________________________________________________ arrayIndexExchange
-% Flips the array and all associated subarrays such that direction i and the x (stride-of-1) direction
-% exchange places. Updates the array, all subarrays, and the static indices.
-        function arrayIndexExchange(obj, toex, type)
-            if numel(obj.indexGriddim) < 3; obj.indexGriddim = obj.gridSize; end
-
-            if toex == 1; return; end
-
-            l = [toex 2 3]; l(toex) = 1;
-            obj.indexGriddim = obj.indexGriddim(l);
-            
-            if numel(obj.staticIndices) > 0
-                ad = obj.indexGriddim;
-                if toex == 2
-                obj.staticIndices(:,2:4) = obj.staticIndices(:,[3 2 4]);
-                obj.staticIndices(:,1)   = obj.staticIndices(:,2) + ...
-                                          (obj.staticIndices(:,3)-1)*ad(1) + ...
-                                          (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
-                end
-                if toex == 3
-                obj.staticIndices(:,2:4) = obj.staticIndices(:,[4 3 2]);
-                obj.staticIndices(:,1)   = obj.staticIndices(:,2) + ...
-                                          (obj.staticIndices(:,3)-1)*ad(1) + ...
-                                          (obj.staticIndices(:,4)-1)*ad(1)*ad(2);
-                end
-            end
-
-            if numel(obj.staticValues) > 0; obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1); end;
-            if type == 1; obj.array = cudaArrayRotate(obj.array, toex); end
-
-            %if strcmp(obj.id{1},'mag') && (numel(obj.id) == 1); obj.updateCellCentered(); end
-
-        end
-
 %___________________________________________________________________________________________________ applyStatics
 % Applies the static conditions for the ImogenArray to the data array. This method is called during
 % array assignment (set.array).
         function applyStatics(obj)
-            if isa(obj.pArray,'double')
-                if numel(obj.staticValues) > 0;
-                    obj.pArray(obj.staticIndices(:,1)) = obj.pArray(obj.staticIndices(:,1)) + obj.staticCoeffs.*(obj.staticValues - obj.pArray(obj.staticIndices(:,1)));
-                end
-            else
-                if numel(obj.staticValues) > 0; cudaStatics(obj.pArray, obj.staticLinIndices, obj.staticValues, obj.staticCoeffs, 8); end
+            if numel(obj.staticValues) > 0;
+                obj.pArray(obj.staticIndices(:,1)) = obj.pArray(obj.staticIndices(:,1)) + obj.staticCoeffs(:,1).*(obj.staticValues(:,1) - obj.pArray(obj.staticIndices(:,1)));
             end
         end
+
+%___________________________________________________________________________________________________ readStatics
+% Reads the static cell array from the structure provided by as an argument in imogen.m.
+%>> statics     Class carrying full information regarding all statics in simulation      class
+        function readStatics(obj, statics)
+            if isempty(statics); return; end
+
+                %--- Flux array case ---%
+                if isa(obj,'FluxArray')
+                    [SI SV SC] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
+                    obj.staticIndices = SI;
+                    obj.staticValues  = SV;
+                    obj.staticCoeffs  = SC;
+
+                    if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
+                %--- Primary array case ---%
+                else
+                    [SI SV SC] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
+                    obj.staticIndices = SI;
+                    obj.staticValues  = SV;
+                    obj.staticCoeffs  = SC;
+
+                    if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
+                end
+
+                if obj.staticActive == true
+                    [valstab coeffstab indextab] = staticsPrecompute(SV, SC, SI(:,2:4), obj.gridSize);
+                     obj.staticIndices = indextab;
+                     obj.staticValues  = valstab;
+                     obj.staticCoeffs  = coeffstab;
+                end
+
+        end
+
 
         
     end%PUBLIC
@@ -309,39 +304,7 @@ classdef ImogenArray < handle
         function initializeBoundingEdges(obj)
             obj.edgeStore = Edges(obj.bcModes, obj.pArray, 0.005);
         end
-        
-%___________________________________________________________________________________________________ readStatics
-% Reads the static cell array from the structure provided by as an argument in imogen.m.
-%>> statics     Class carrying full information regarding all statics in simulation      class
-        function readStatics(obj, statics)
-            if isempty(statics); return; end
-            
-                %--- Flux array case ---%
-                if isa(obj,'FluxArray')
-                    [SI SV SC] = statics.staticsForVariable(obj.id{1}, obj.component, statics.FLUXL);
-                    obj.staticIndices = SI;
-                    obj.staticValues  = SV;
-                    obj.staticCoeffs  = SC;
-
-                    if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
-                %--- Primary array case ---%
-                else
-                    [SI SV SC] = statics.staticsForVariable(obj.id{1}, obj.component, statics.CELLVAR);
-                    obj.staticIndices = SI;
-                    obj.staticValues  = SV;
-                    obj.staticCoeffs  = SC;
-
-                    if isempty(SI); obj.staticActive = false; else; obj.staticActive = true; end
-                end
-
-                if (obj.pRunManager.useGPU == true) && obj.staticActive
-                    obj.staticLinIndices = GPUdouble(obj.staticIndices(:,1)-1);
-                    obj.staticValues = GPUdouble(obj.staticValues);
-                    obj.staticCoeffs = GPUdouble(obj.staticCoeffs);
-                end
-
-        end
-        
+         
     end%PROTECTED
     
 %===================================================================================================

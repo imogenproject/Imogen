@@ -17,9 +17,6 @@ run.notes           = '';
 run.bcMode.x = 'circ';
 run.bcMode.y = 'circ';
 
-run.useGPU = false;
-run.gpuDeviceNumber = 2;
-
 %--- Run tests ---%
 if (true)
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();

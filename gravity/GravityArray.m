@@ -28,8 +28,8 @@ classdef GravityArray < InitializedArray
 		
 %___________________________________________________________________________________________________ GravityArray
 % Creates a new GravityArray object.
-        function obj = GravityArray(id, run, statics)
-			obj = obj@InitializedArray(ENUM.SCALAR, id, run, statics);
+        function obj = GravityArray(id, run)
+			obj = obj@InitializedArray(ENUM.SCALAR, id, run);
 			if isempty(id); return; end
 			obj.array = zeros(run.gridSize);
 		end   

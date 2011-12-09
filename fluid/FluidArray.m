@@ -41,19 +41,18 @@ classdef FluidArray < ImogenArray
 %___________________________________________________________________________________________________ FluidArray
 % Creates a new FluidArray object.
 % obj = FluidArray(component, id, array, run, statics)
-        function obj = FluidArray(component, id, array, run, statics)
+        function obj = FluidArray(component, id, array, run)
         
-            obj = obj@ImogenArray(component, id, run, statics);
+            obj = obj@ImogenArray(component, id, run);
             if isempty(id); return; end
-
             obj.array           = squeeze(array);
             obj.isZero          = false;
             obj.pUninitialized  = false;
             obj.initializeShiftingStates();
             obj.initializeBoundingEdges();
-            obj.initializeDependentArrays(component, id, run, statics);
+            obj.initializeDependentArrays(component, id, run);
             obj.readFades(run);
-            
+           
             if strcmpi(id, ENUM.MASS)
                 obj.threshold   = run.fluid.MASS_THRESHOLD;
                 obj.pFadesValue = run.fluid.MINMASS;
@@ -100,10 +99,10 @@ classdef FluidArray < ImogenArray
         
 %___________________________________________________________________________________________________ initializeDependentArrays
 % Creates the dependent array objects for the fluxing routines.
-        function initializeDependentArrays(obj, component, id, run, statics)
-            obj.store    = StorageArray(component, id, run, statics);
-            obj.fluxL    = FluxArray( component, {id, FluxArray.FLUXL},    run, statics);
-            obj.fluxR    = FluxArray( component, {id, FluxArray.FLUXR},    run, statics);
+        function initializeDependentArrays(obj, component, id, run)
+            obj.store    = StorageArray(component, id, run);
+            obj.fluxL    = FluxArray( component, {id, FluxArray.FLUXL},    run);
+            obj.fluxR    = FluxArray( component, {id, FluxArray.FLUXR},    run);
         end
         
     end

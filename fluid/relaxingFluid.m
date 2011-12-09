@@ -23,95 +23,54 @@ function relaxingFluid(run, mass, mom, ener, mag, grav, X)
 %%                   Half-Timestep predictor step (first-order upwind,not TVD)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-if run.useGPU
-        [pressa freezea] = freezeAndPtot(mass.array, ...
-                                         ener.array, ...
-                                         mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
-                                         mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-                                         run.GAMMA, run.pureHydro);
-        [v(1).store.array v(5).store.array ...
-         v(L(1)+1).store.array v(L(2)+1).store.array v(L(3)+1).store.array] = cudaWstep(mass.array, ener.array, ...
-                                                                         mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
-                                                                         mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-                                                                         pressa, freezea, fluxFactor, run.pureHydro);
+wFluidFlux(run, mass, mom, ener, mag, grav, run.fluid.freezeSpd(X), X);
+  
+tempFreeze = run.fluid.freezeSpd(X).array;
 
-	cudaArrayAtomic(mass.store.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
-
-else
-    wFluidFlux(run, mass, mom, ener, mag, grav, run.fluid.freezeSpd(X), X);
-    
-    tempFreeze = run.fluid.freezeSpd(X).array;
-
-    for i=1:5
-        v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
-        v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
-        v(i).store.array = v(i).array - 0.5*fluxFactor .* tempFreeze .* ...
-                         ( v(i).store.fluxR.array - v(i).store.fluxR.shift(X,-1) ...
-                         + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
-        v(i).store.cleanup();
-    end
-
-    mass.store.array = max(mass.store.array, run.fluid.MINMASS);
+for i=1:5
+    v(i).store.fluxR.array = 0.5*( v(i).array + v(i).wArray );
+    v(i).store.fluxL.array = 0.5*( v(i).array - v(i).wArray );
+    v(i).store.array = v(i).array - 0.5*fluxFactor .* tempFreeze .* ...
+                     ( v(i).store.fluxR.array - v(i).store.fluxR.shift(X,-1) ...
+                     + v(i).store.fluxL.array - v(i).store.fluxL.shift(X,1) );
+    v(i).store.cleanup();
 end
-   
 
-    run.fluid.freezeSpd(X).cleanup();
+mass.store.array = max(mass.store.array, run.fluid.MINMASS);
+  
+run.fluid.freezeSpd(X).cleanup();
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%                   Full-Timestep corrector step (second-order relaxed TVD)
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-if run.useGPU
-   [pressa freezea] = freezeAndPtot(mass.store.array, ener.store.array, ...
-                                         mom(L(1)).store.array, mom(L(2)).store.array, mom(L(3)).store.array, ...
-                                         mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-                                         run.GAMMA, run.pureHydro);
+momStore = [mom(1).store, mom(2).store, mom(3).store];
+wFluidFlux(run, mass.store, momStore, ener.store, mag, grav, run.fluid.freezeSpdTVD(X), X);
 
-    cudaTVDStep(mass.store.array, ener.store.array, ...
-                mom(L(1)).store.array, mom(L(2)).store.array, mom(L(3)).store.array, ...
-                mag(L(1)).cellMag.array, mag(L(2)).cellMag.array, mag(L(3)).cellMag.array, ...
-                pressa, ...
-                mass.array, ener.array, mom(L(1)).array, mom(L(2)).array, mom(L(3)).array, ...
-                freezea, fluxFactor, run.pureHydro);
+tempFreeze = run.fluid.freezeSpdTVD(X).array;
 
-    mass.applyStatics();
-    ener.applyStatics();
-    mom(1).applyStatics();
-    mom(2).applyStatics();
-    mom(3).applyStatics();
+for i=1:5
+    v(i).fluxR.array =  0.5*(v(i).store.array + v(i).store.wArray);
+    v(i).fluxL.array =  0.5*(v(i).store.array - v(i).store.wArray);
     
-    cudaArrayAtomic(mass.array, run.fluid.MINMASS, ENUM.CUATOMIC_SETMIN);
+    % NOTE fluxes are not divided by two here, but in the flux limiters
+    run.fluid.limiter{X}(v(i).fluxR, ...
+                         (v(i).fluxR.array - v(i).fluxR.shift(X,-1)), ...
+                         (v(i).fluxR.shift(X,1) - v(i).fluxR.array) );
+    run.fluid.limiter{X}(v(i).fluxL, ...
+                         (v(i).fluxL.shift(X,-1) - v(i).fluxL.array), ...
+                         (v(i).fluxL.array - v(i).fluxL.shift(X,1)) );
 
-else
+    v(i).array = v(i).array - fluxFactor .* tempFreeze .* ...
+                            ( v(i).fluxR.array  - v(i).fluxR.shift(X,-1) ...
+                            + v(i).fluxL.array  - v(i).fluxL.shift(X,1) );
 
-    momStore = [mom(1).store, mom(2).store, mom(3).store];
-    wFluidFlux(run, mass.store, momStore, ener.store, mag, grav, run.fluid.freezeSpdTVD(X), X);
-
-    tempFreeze = run.fluid.freezeSpdTVD(X).array;
-
-    for i=1:5
-        v(i).fluxR.array =  0.5*(v(i).store.array + v(i).store.wArray);
-        v(i).fluxL.array =  0.5*(v(i).store.array - v(i).store.wArray);
-        
-	% NOTE fluxes are not divided by two here, but in the flux limiters
-        run.fluid.limiter{X}(v(i).fluxR, ...
-                             (v(i).fluxR.array - v(i).fluxR.shift(X,-1)), ...
-                             (v(i).fluxR.shift(X,1) - v(i).fluxR.array) );
-        run.fluid.limiter{X}(v(i).fluxL, ...
-                             (v(i).fluxL.shift(X,-1) - v(i).fluxL.array), ...
-                             (v(i).fluxL.array - v(i).fluxL.shift(X,1)) );
-
-        v(i).array = v(i).array - fluxFactor .* tempFreeze .* ...
-                                ( v(i).fluxR.array  - v(i).fluxR.shift(X,-1) ...
-                                + v(i).fluxL.array  - v(i).fluxL.shift(X,1) );
-      %  
-        v(i).cleanup();
-    end
-
-    mass.array = max(mass.array, run.fluid.MINMASS);
-
-    run.fluid.freezeSpdTVD(X).cleanup();
-
+    v(i).cleanup();
 end
+
+mass.array = max(mass.array, run.fluid.MINMASS);
+
+run.fluid.freezeSpdTVD(X).cleanup();
+
 
 end

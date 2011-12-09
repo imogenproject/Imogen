@@ -13,9 +13,6 @@ run.image.interval = 5;
 run.image.mass = true;
 %run.ppSave.dim2 = 20;
 
-run.useGPU      = true;
-run.gpuDeviceNumber = 2;
-
 %--- Run tests ---%
 if (true)
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();

@@ -14,9 +14,6 @@ run.alias       = '';
 run.info        = 'Sod shock tube test.';
 run.notes       = 'Simple axis aligned shock tube test';
 
-run.useGPU = false;
-run.gpuDeviceNumber = 2;
-
 run.ppSave.dim2 = 1;
 
 %--- Run tests ---%

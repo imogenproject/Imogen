@@ -11,21 +11,17 @@ run.theta       = 0;
 run.sonicMach   = 10;
 run.alfvenMach  = .5;
 
-%run.useGPU = true;
-%run.gpuDeviceNumber = 0;
-%run.bcMode.x = ENUM.BCMODE_CIRCULAR;
-
 run.radiation.type = ENUM.RADIATION_OPTICALLY_THIN;
-run.radiation.initialMaximum = .01;
-run.endMass = 8;
+run.radiation.initialMaximum = 500; % radiate 1% per unit time
+%run.endMass = 8;
 
 run.ppSave.dim2 = .5;
 run.ppSave.dim3 = 100;
 run.seedAmplitude = 0e-8;
 
 run.image.interval = 5;
-run.image.mass = false;
-run.image.ener = false;
+run.image.mass = true;
+run.image.ener = true;
 
 %run.numericalICfile = '/home/erik/group_data/NASdata/ICGEN_ms5_ma0pt50_ang0/3D_XYZ_FINAL.mat';
 

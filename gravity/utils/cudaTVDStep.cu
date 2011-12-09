@@ -230,14 +230,14 @@ while(Xtrack < nx+2) {
         derivLR[0][threadIdx.x] = fluxLR[0][(threadIdx.x-1)%BLOCKLENP4] - fluxLR[0][threadIdx.x]; /* left derivative */
         derivLR[1][threadIdx.x] = fluxLR[0][threadIdx.x] - fluxLR[0][(threadIdx.x+1)%BLOCKLENP4]; /* right derivative */
         __syncthreads();
-        cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 0);
+//        cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 0);
         __syncthreads();
 
             /* Right flux */
         derivLR[0][threadIdx.x] = fluxLR[1][threadIdx.x] - fluxLR[1][(threadIdx.x-1)%BLOCKLENP4]; /* left derivative */
         derivLR[1][threadIdx.x] = fluxLR[1][(threadIdx.x+1)%BLOCKLENP4] - fluxLR[1][threadIdx.x]; /* right derivative */
         __syncthreads();
-        cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 1);
+//        cukern_FluxLimiter_VanLeer(derivLR, fluxLR, 1);
         __syncthreads();
 
         /* Step 4 - Perform flux and write to output array */

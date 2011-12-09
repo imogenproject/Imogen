@@ -5,7 +5,7 @@ starterRun();
 
 %--- Initialize test ---%
 run                 = JetInitializer([512 384 1]);
-run.iterMax         = 10000;
+run.iterMax         = 200;
 run.offset          = [40 192 1];
 run.bcMode.x        = 'const';
 run.bcMode.y        = 'circ';
@@ -21,10 +21,7 @@ run.notes           = '';
 
 run.injectorSize = 30;
 run.jetMass = .65;
-run.jetMach = 3;
-
-run.useGPU = true;
-run.gpuDeviceNumber = 2;
+run.jetMach = 8;
 
 %--- Run tests ---%
 if (true)

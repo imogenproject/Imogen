@@ -153,6 +153,7 @@ double v, b, locVelFlow;
 __shared__ double tile[BLOCKDIMB][BLOCKDIMA];
 __shared__ double flux[BLOCKDIMB][BLOCKDIMA];
 
+// Dimensions into the array
 int myx = blockIdx.x*BLOCKDIMB + threadIdx.x;
 int myy = blockIdx.y*BLOCKDIMAM2 + threadIdx.y - 1;
 

@@ -13,9 +13,6 @@ run.image.mach		= true;
 run.info            = 'Kelvin-Helmholtz instability test.';
 run.notes           = '';
 
-run.useGPU = true;
-run.gpuDeviceNumber = 0;
-
 %--- Run tests ---%
 if (true)
     [mass, mom, ener, magnet, statics, ini] = run.getInitialConditions();
