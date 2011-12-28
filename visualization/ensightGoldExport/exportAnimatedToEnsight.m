@@ -53,8 +53,8 @@ for ITER = 1:numel(range)
     structName = who('sx_*');
     structName = structName{1};
 
-    if ITER == 1
-        eval(sprintf('equilframe = %s', structName));
+    if (ITER == 1) && (pertonly == 1)
+        eval(sprintf('equilframe = %s;', structName));
     end
 
     eval(sprintf('dataframe = %s;', structName));

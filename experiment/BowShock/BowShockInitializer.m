@@ -112,7 +112,7 @@ classdef BowShockInitializer < Initializer
             ener        = zeros(obj.grid);
 
             %--- Static Values ---%
-            statics = StaticsInitializer();
+            statics = StaticsInitializer(obj.grid);
 
             [X Y Z] = ndgrid(1:obj.grid(1), 1:obj.grid(2), 1:obj.grid(3));
             Ledge = (X < 8); % Left edge - we establish plane flow here

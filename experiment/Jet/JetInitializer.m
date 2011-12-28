@@ -126,7 +126,7 @@ classdef JetInitializer < Initializer
                         + 0.5*(jetMom^2)/obj.jetMass ...            % kinetic
                         + 0.5*sum(obj.jetMags .* obj.jetMags, 2);   % magnetic
 
-statics = StaticsInitializer();
+statics = StaticsInitializer(obj.grid);
              
 lind = zeros(obj.grid);
 lind(1:end) = 1:prod(obj.grid);
