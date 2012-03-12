@@ -4,12 +4,13 @@
 starterRun();
 
 %--- Initialize test ---%
-run                 = OrszagTangVortexInitializer([512 512 1]);
+run                 = OrszagTangVortexInitializer([2560 2560 1]);
 run.info            = 'Orszag-Tang vortex test.';
 run.notes           = '';
 run.profile         = false;
-run.image.interval	= 3;
+run.image.interval	= 50;
 run.image.mass		= true;
+run.iterMax         = 15000;
 
 %--- Run tests ---%
 if (true)

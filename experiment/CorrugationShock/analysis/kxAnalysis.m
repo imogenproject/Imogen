@@ -6,18 +6,31 @@ hold off;
 
 subplot(1,2,1);
 
-plot(-imag(analysis.post.drhoKx)./analysis.kyValues,'r','DisplayName','drho post');
+plot(-imag(analysis.post.drhoKx),'r','DisplayName','drho post');
 hold on;
-plot(-imag(analysis.post.dvxKx) ./analysis.kyValues,'g-','DisplayName','dvx post');
-plot(-imag(analysis.post.dvyKx) ./analysis.kyValues,'b-','DisplayName','dvy post');
-plot(-imag(analysis.post.dbxKx) ./analysis.kyValues,'m-','DisplayName','dbx post');
-plot(-imag(analysis.post.dbyKx) ./analysis.kyValues,'c-','DisplayName','dby post');
+plot(-imag(analysis.post.dvxKx) ,'g-','DisplayName','dvx post');
+plot(-imag(analysis.post.dvyKx) ,'b-','DisplayName','dvy post');
+plot(-imag(analysis.post.dbxKx) ,'m-','DisplayName','dbx post');
+plot(-imag(analysis.post.dbyKx) ,'c-','DisplayName','dby post');
 
-plot(-imag(analysis.pre.drhoKx)./analysis.kyValues,'r-.','DisplayName','drho pre');
-plot(-imag(analysis.pre.dvxKx) ./analysis.kyValues,'g-.','DisplayName','dvx pre');
-plot(-imag(analysis.pre.dvyKx) ./analysis.kyValues,'b-.','DisplayName','dvy pre');
-plot(-imag(analysis.pre.dbxKx) ./analysis.kyValues,'m-.','DisplayName','dbx pre');
-plot(-imag(analysis.pre.dbyKx) ./analysis.kyValues,'c-.','DisplayName','dby pre');
+plot(-imag(analysis.pre.drhoKx),'r-.','DisplayName','drho pre');
+plot(-imag(analysis.pre.dvxKx) ,'g-.','DisplayName','dvx pre');
+plot(-imag(analysis.pre.dvyKx) ,'b-.','DisplayName','dvy pre');
+plot(-imag(analysis.pre.dbxKx) ,'m-.','DisplayName','dbx pre');
+plot(-imag(analysis.pre.dbyKx) ,'c-.','DisplayName','dby pre');
+
+%plot(-imag(analysis.post.drhoKx)./analysis.kyValues,'r','DisplayName','drho post');
+%hold on;
+%plot(-imag(analysis.post.dvxKx) ./analysis.kyValues,'g-','DisplayName','dvx post');
+%plot(-imag(analysis.post.dvyKx) ./analysis.kyValues,'b-','DisplayName','dvy post');
+%plot(-imag(analysis.post.dbxKx) ./analysis.kyValues,'m-','DisplayName','dbx post');
+%plot(-imag(analysis.post.dbyKx) ./analysis.kyValues,'c-','DisplayName','dby post');
+
+%plot(-imag(analysis.pre.drhoKx)./analysis.kyValues,'r-.','DisplayName','drho pre');
+%plot(-imag(analysis.pre.dvxKx) ./analysis.kyValues,'g-.','DisplayName','dvx pre');
+%plot(-imag(analysis.pre.dvyKx) ./analysis.kyValues,'b-.','DisplayName','dvy pre');
+%plot(-imag(analysis.pre.dbxKx) ./analysis.kyValues,'m-.','DisplayName','dbx pre');
+%plot(-imag(analysis.pre.dbyKx) ./analysis.kyValues,'c-.','DisplayName','dby pre');
 
 plot(1:analysis.nModes(1), zeros(size(analysis.kyValues)),'k-','DisplayName','');
 

@@ -4,11 +4,11 @@
 starterRun();
 
 %--- Initialize test ---%
-run         = CorrugationShockInitializer([512 1024 1]);
+run         = CorrugationShockInitializer([512 512 1]);
 
 run.iterMax     = 20000;
 run.theta       = 30;
-run.sonicMach   = 10;
+run.sonicMach   = 4;
 run.alfvenMach  = .5;
 
 run.ppSave.dim2 = .5;

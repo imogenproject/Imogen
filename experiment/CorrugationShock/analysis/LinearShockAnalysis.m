@@ -5,7 +5,7 @@ classdef LinearShockAnalysis < handle
     end
 
     properties(SetAccess = public, GetAccess = public)
-
+        lastLinearFrame;
     end
 
     properties(SetAccess = protected, GetAccess = public)
@@ -21,7 +21,6 @@ classdef LinearShockAnalysis < handle
         kzValues; kzWavenums;
 
         linearFrames;
-        lastLinearFrame;
 
         equil; % Structure containing equilibrium data
         front; % Structure containing information about the shock front

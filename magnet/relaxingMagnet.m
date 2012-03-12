@@ -9,7 +9,6 @@ function relaxingMagnet(run, mag, velGrid, X, I)
 %>> X				vector index for fluxing direction						int
 %>>	I				the component of the b-field to operate on				int
 
-
     %-----------------------------------------------------------------------------------------------
     % Initialization
     %---------------
@@ -32,11 +31,20 @@ function relaxingMagnet(run, mag, velGrid, X, I)
     %+++++++++++++++++++++++++++++++++++++++++++++++++++++++    
     fluxFactor = 2*fluxFactor; %Multiply to get full timeste p
     mag(I).wMag(X).array = mag(I).store(X).array .* velGrid.array;
+    mag(I).flux(X).array = mag(I).wMag(X).array .* (1-velocityFlow) ...
+                           + mag(I).wMag(X).shift(X,1) .* velocityFlow;
+
+%    dFluxR  = ( mag(I).wMag(X).shift(X,1) - mag(I).flux(X).array ) .* (1-velocityFlow) ...
+%            + ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,2) ) .* velocityFlow;
+%    dFluxL  = ( mag(I).flux(X).array - mag(I).wMag(X).shift(X,-1) ) .* (1-velocityFlow) ...
+%            + ( mag(I).wMag(X).array - mag(I).flux(X).array ) .* velocityFlow;
 
     dFluxR = mag(I).wMag(X).shift(X,1) - ...
              (velocityFlow.*mag(I).wMag(X).shift(X,2) +(1-velocityFlow).*mag(I).wMag(X).array);
     dFluxL = mag(I).wMag(X).array - ...
              (velocityFlow.*mag(I).wMag(X).shift(X,1) +(1-velocityFlow).*mag(I).wMag(X).shift(X,-1));
+
+%[max(max(dFluxR - dFluxRa)) max(max(dFluxL - dFluxLa))]
 
     run.magnet.limiter{X}(mag(I).flux(X), dFluxL, dFluxR); % This is doubled, appropriate halving done by limiter functions
 
